@@ -1,26 +1,16 @@
 # ===== 构建阶段 =====
 FROM maven:3.9-eclipse-temurin-21 AS builder
 
-# 使用阿里云 Maven 镜像 + Nexus 加速
-RUN mkdir -p /root/.m2 && cat > /root/.m2/settings.xml << 'XMLEOF'
-<settings>
-  <mirrors>
-    <mirror>
-      <id>aliyun</id>
-      <mirrorOf>central</mirrorOf>
-      <url>https://maven.aliyun.com/repository/public</url>
-    </mirror>
-  </mirrors>
-</settings>
-XMLEOF
+# 使用阿里云 Maven 镜像加速
+COPY docker/maven-settings.xml /root/.m2/settings.xml
 
 WORKDIR /build
-COPY pom.xml .
-COPY checkstyle.xml .
-COPY platform-common ./platform-common
-COPY platform-starter ./platform-starter
-COPY modules ./modules
-COPY app ./app
+COPY backend/pom.xml .
+COPY backend/checkstyle.xml .
+COPY backend/platform-common ./platform-common
+COPY backend/platform-starter ./platform-starter
+COPY backend/modules ./modules
+COPY backend/app ./app
 
 RUN mvn package -DskipTests -B -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Djacoco.skip=true
 

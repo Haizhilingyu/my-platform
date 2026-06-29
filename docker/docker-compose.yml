@@ -1,7 +1,7 @@
 services:
   backend:
     build:
-      context: /volume1/docker/my-platform/backend
+      context: /volume1/docker/my-platform
       dockerfile: /volume1/docker/my-platform/docker/Dockerfile.backend
     container_name: my-platform-backend
     restart: unless-stopped
@@ -20,7 +20,7 @@ services:
 
   frontend:
     build:
-      context: /volume1/docker/my-platform/frontend
+      context: /volume1/docker/my-platform
       dockerfile: /volume1/docker/my-platform/docker/Dockerfile.frontend
     container_name: my-platform-frontend
     restart: unless-stopped
