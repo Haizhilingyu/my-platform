@@ -20,8 +20,14 @@ http.interceptors.response.use(
   (response) => response.data,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+      // 区分两种 401：
+      // 1) 登录请求（本身不带 token）密码错误 → 业务自行 catch 显示 toast，不跳转
+      // 2) 已登录用户 token 失效（请求带过 token）→ 清除登录态并跳转登录页
+      const hadToken = !!error.config?.headers?.Authorization
+      if (hadToken) {
+        localStorage.removeItem('token')
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }
