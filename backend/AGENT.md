@@ -255,32 +255,126 @@ git config core.hooksPath .githooks
 
 ## 测试规范
 
+### TDD 开发流程（强制）
+
+开发任何功能必须遵循 Red-Green-Refactor 循环：
+
+```
+1. Red    — 先写测试，此时测试必须失败（功能未实现）
+2. Green  — 写最少量的代码让测试通过
+3. Refactor — 重构代码，保持测试绿色
+```
+
+**不允许先写实现再补测试。**
+
 ### 测试命名
 
-```
-src/test/java/<package>/
-├── ModulithVerificationTest.java          # 模块边界验证（每个模块一个）
-├── <Service>Test.java                     # 单元测试
-└── <Service>IntegrationTest.java          # 集成测试
-```
-
-### Spring Modulith 验证测试
+用 `should_<期望> _when_<条件>` 句式，用下划线分隔（可读性优先）：
 
 ```java
-class ModulithVerificationTest {
-    @Test
-    void verifyModuleStructure() {
-        ApplicationModules.of(Application.class).verify();
-    }
+@Test
+@DisplayName("密码加密：创建用户时密码被 BCrypt 加密")
+void should_encryptPassword_when_createUser() { ... }
+
+@Test
+@DisplayName("用户名重复：抛出 BizException")
+void should_throwBizException_when_usernameExists() { ... }
+```
+
+`@DisplayName` 用中文描述业务语义，方法名用英文。
+
+### 测试结构
+
+每个测试方法遵循 Given / When / Then 三段式：
+
+```java
+@Test
+@DisplayName("正常创建：返回用户 ID")
+void should_returnUserId_when_createValidUser() {
+    // Given — 准备数据和 mock
+    var dto = new UserCreateDTO();
+    dto.setUsername("newuser");
+    when(userRepository.save(any())).thenReturn(savedUser);
+
+    // When — 执行被测方法
+    Long id = userService.create(dto);
+
+    // Then — 断言结果
+    assertThat(id).isEqualTo(100L);
+    verify(eventPublisher).publishEvent(any(UserCreated.class));
 }
 ```
 
-### 测试编写原则
+### 测试层级
 
-- 单元测试不启动 Spring 容器，只 Mock 依赖
-- 集成测试用 `@ApplicationTest` 加载单个模块上下文
-- 使用随机端口：`@SpringBootTest(webEnvironment = RANDOM_PORT)`
-- API 测试用 `MockMvc`，不启动 Tomcat
+| 层级 | 工具 | 测试什么 | 文件命名 |
+|---|---|---|---|
+| 单元测试 | JUnit5 + Mockito | Service/工具类的业务逻辑，不启动 Spring | `*Test.java` |
+| 集成测试 | Spring Boot Test + H2 | Repository 查询、事务行为 | `*IT.java` |
+| 模块验证 | Spring Modulith | 模块边界、依赖关系 | `ModulithVerificationTest.java` |
+| 容器集成 | Testcontainers | 真实数据库下的行为 | `*ContainerIT.java` |
+
+### 断言库
+
+**统一使用 AssertJ**（`assertThat`），不使用 JUnit 原生 `assertEquals`：
+
+```java
+// ✅ AssertJ
+assertThat(result).isEqualTo(expected);
+assertThatThrownBy(() -> service.create(dto))
+    .isInstanceOf(BizException.class)
+    .hasMessageContaining("已存在");
+
+// ❌ JUnit 原生
+assertEquals(expected, result);
+```
+
+### Mock 规范
+
+- 使用 `@ExtendWith(MockitoExtension.class)` + `@Mock` + `@InjectMocks`
+- 只 mock 外部依赖（Repository、EventPublisher），不 mock 被测类
+- 用 `ArgumentCaptor` 验证传入参数
+- 用 `verify(mock, never())` 验证未被调用
+
+### 覆盖率要求
+
+| 指标 | 门禁 |
+|---|---|
+| 行覆盖率 (LINE) | ≥ 80% |
+| 分支覆盖率 (BRANCH) | ≥ 70% |
+
+覆盖率不达标 CI 构建失败。本地运行：
+
+```bash
+mvn test jacoco:report    # 生成报告
+mvn jacoco:check           # 检查门禁
+# 报告位置: target/site/jacoco/index.html
+```
+
+### 测试目录结构
+
+```
+src/test/java/<package>/
+├── ModulithVerificationTest.java      # 模块边界验证
+├── service/
+│   ├── UserServiceTest.java           # 单元测试
+│   ├── RoleServiceTest.java
+│   └── PermissionServiceTest.java
+├── controller/
+│   └── UserControllerIT.java          # 集成测试
+└── architecture/
+    └── ArchitectureTest.java          # ArchUnit 架构约束
+```
+
+### 新增功能时的 TDD 操作清单
+
+1. 创建测试文件（如 `XxxServiceTest.java`）
+2. 写测试方法（应该失败，因为功能未实现）
+3. 运行 `mvn test -Dtest=XxxServiceTest` 确认 Red
+4. 实现最少代码让测试通过
+5. 运行确认 Green
+6. 重构，保持绿色
+7. `git add` 时 pre-commit 会自动运行测试
 
 ## 常见任务（Agent 操作指南）
 

@@ -31,13 +31,28 @@ jobs:
         working-directory: backend
         run: mvn spotbugs:check -q
 
-      - name: Build & Test
+      - name: Unit Tests + Coverage Report
         working-directory: backend
-        run: mvn test -B
+        run: mvn test jacoco:report -B
 
-      - name: Package (skip tests)
+      - name: Coverage Gate (≥ 80% lines)
+        working-directory: backend
+        run: mvn jacoco:check -B
+
+      - name: Modulith Verify
+        working-directory: backend
+        run: mvn test -Dtest=ModulithVerificationTest -B
+
+      - name: Package
         working-directory: backend
         run: mvn package -DskipTests -B -q
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: backend/**/target/site/jacoco/
 
       - name: Upload backend artifacts
         uses: actions/upload-artifact@v4
@@ -69,6 +84,17 @@ jobs:
       - name: Lint
         working-directory: frontend
         run: npm run lint:check
+
+      - name: Unit Tests + Coverage
+        working-directory: frontend
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
 
       - name: Build
         working-directory: frontend

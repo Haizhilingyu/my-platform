@@ -313,6 +313,113 @@ export const useThemeStore = defineStore('theme', () => {
 
 ## 代码质量
 
+### TDD 开发流程（强制）
+
+开发任何功能必须遵循 Red-Green-Refactor 循环：
+
+```
+1. Red    — 先写测试，此时测试必须失败（功能未实现）
+2. Green  — 写最少量的代码让测试通过
+3. Refactor — 重构代码，保持测试绿色
+```
+
+**不允许先写实现再补测试。**
+
+### 测试命名
+
+用 `should <期望> when <条件>` 句式：
+
+```typescript
+it('should return true when user has permission', () => { ... })
+it('should clear all state when logout', () => { ... })
+it('should remove element when user lacks permission', () => { ... })
+```
+
+### 测试结构
+
+```typescript
+it('should encrypt password when login', () => {
+  // Given — 准备
+  const store = useAuthStore()
+  store.permissions = new Set(['sys:user:add'])
+
+  // When — 执行
+  const result = store.hasPermission('sys:user:add')
+
+  // Then — 断言
+  expect(result).toBe(true)
+})
+```
+
+### 测试层级
+
+| 层级 | 工具 | 测试什么 | 文件位置 |
+|---|---|---|---|
+| 单元测试 | Vitest | Store / Composable / 纯函数 | `__tests__/*.test.ts` |
+| 组件测试 | Vitest + @vue/test-utils | Vue 组件渲染/交互 | `__tests__/*.test.ts` |
+| E2E | （可选 Playwright） | 完整用户流程 | `e2e/*.spec.ts` |
+
+### 测试目录结构
+
+测试文件与源码同级目录下的 `__tests__/` 子文件夹：
+
+```
+src/
+├── stores/
+│   └── __tests__/
+│       ├── auth.test.ts
+│       └── theme.test.ts
+├── shared/directives/
+│   └── __tests__/
+│       └── permission.test.ts
+├── modules/sys/api/
+│   └── __tests__/
+│       └── user.test.ts
+└── shared/utils/
+    └── __tests__/
+        └── format.test.ts
+```
+
+### 断言风格
+
+统一使用 Vitest 的 `expect` + matcher：
+
+```typescript
+expect(result).toBe(true)
+expect(array).toHaveLength(3)
+expect(fn).toThrow('error message')
+expect(el.parentNode).toBeNull()
+```
+
+### Mock 规范
+
+- API 调用用 `vi.mock('@/modules/sys/api/user')` mock
+- localStorage 在 `beforeEach` 中 `clear()`
+- Pinia Store 在 `beforeEach` 中 `setActivePinia(createPinia())`
+
+### 覆盖率要求
+
+| 指标 | 门禁 |
+|---|---|
+| 行覆盖率 | ≥ 80% |
+| 函数覆盖率 | ≥ 80% |
+| 分支覆盖率 | ≥ 70% |
+
+```bash
+npm run test:coverage    # 运行 + 生成报告
+# 报告位置: coverage/index.html
+```
+
+### 新增功能时的 TDD 操作清单
+
+1. 在 `__tests__/` 下创建测试文件
+2. 写测试方法（应该失败）
+3. 运行 `npx vitest <文件>` 确认 Red
+4. 实现功能让测试通过
+5. 确认 Green
+6. 重构
+7. pre-commit 自动运行全量测试
+
 ### 强制检查
 
 | 工具 | 命令 | 触发 |
@@ -320,6 +427,8 @@ export const useThemeStore = defineStore('theme', () => {
 | TypeScript 类型检查 | `npm run type-check` | pre-commit + CI |
 | ESLint | `npm run lint` | pre-commit（lint-staged） |
 | Prettier | `npm run format` | pre-commit（lint-staged） |
+| Vitest 单元测试 | `npm run test:run` | pre-commit + CI |
+| Vitest 覆盖率 | `npm run test:coverage` | CI |
 | commitlint | 自动 | commit-msg hook |
 
 ### 脚本

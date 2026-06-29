@@ -108,8 +108,7 @@ public class MenuService {
         Map<Long, List<MenuTreeNode>> parentIdMap = nodes.stream()
                 .collect(Collectors.groupingBy(n -> n.getParentId() == null ? 0L : n.getParentId()));
 
-        List<MenuTreeNode> roots = parentIdMap.getOrDefault(0L, new ArrayList<>());
-        roots.addAll(nodes.stream().filter(n -> n.getParentId() == null).toList());
+        List<MenuTreeNode> roots = new ArrayList<>(parentIdMap.getOrDefault(0L, new ArrayList<>()));
 
         for (MenuTreeNode node : nodes) {
             List<MenuTreeNode> children = parentIdMap.get(node.getId());
