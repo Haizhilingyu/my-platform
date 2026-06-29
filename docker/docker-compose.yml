@@ -1,36 +1,36 @@
 services:
   backend:
     build:
-      context: ../backend
-      dockerfile: ../docker/Dockerfile.backend
-    container_name: platform-backend
+      context: /volume1/docker/my-platform/backend
+      dockerfile: /volume1/docker/my-platform/docker/Dockerfile.backend
+    container_name: my-platform-backend
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://192.168.1.2:5532/platform
-      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_DATA_REDIS_HOST: 192.168.1.2
       SPRING_DATA_REDIS_PORT: 6380
-      APP_SECURITY_JWT_SECRET: ${JWT_SECRET:-my-platform-secret-key-must-be-at-least-32-bytes-long-for-hs256}
+      APP_SECURITY_JWT_SECRET: my-platform-secret-key-must-be-at-least-32-bytes-long-for-hs256
     ports:
-      - "8090:8090"
+      - "8095:8090"
     networks:
-      - platform
+      - my-platform
 
   frontend:
     build:
-      context: ../frontend
-      dockerfile: ../docker/Dockerfile.frontend
-    container_name: platform-frontend
+      context: /volume1/docker/my-platform/frontend
+      dockerfile: /volume1/docker/my-platform/docker/Dockerfile.frontend
+    container_name: my-platform-frontend
     restart: unless-stopped
     ports:
       - "8088:80"
     depends_on:
       - backend
     networks:
-      - platform
+      - my-platform
 
 networks:
-  platform:
+  my-platform:
     driver: bridge

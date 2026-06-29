@@ -2,8 +2,8 @@
 FROM node:20-alpine AS builder
 
 WORKDIR /build
-COPY .npmrc package.json package-lock.json* ./
-RUN npm ci --registry=http://192.168.1.2:8081/repository/npm-group/
+COPY package.json package-lock.json* ./
+RUN npm install --registry=https://registry.npmmirror.com
 COPY . .
 RUN npm run build
 
