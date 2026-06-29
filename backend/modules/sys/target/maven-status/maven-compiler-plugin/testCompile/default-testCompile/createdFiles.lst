@@ -1,7 +1,0 @@
-com/example/sys/service/PermissionServiceTest.class
-com/example/sys/service/UserServiceTest$UpdateUser.class
-com/example/sys/service/MenuServiceTest.class
-com/example/sys/service/UserServiceTest$DeleteUser.class
-com/example/sys/service/UserServiceTest$CreateUser.class
-com/example/sys/service/UserServiceTest$GetUser.class
-com/example/sys/service/UserServiceTest.class

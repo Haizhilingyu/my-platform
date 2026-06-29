@@ -3,9 +3,11 @@ spring:
     name: my-platform
 
   datasource:
-    url: jdbc:postgresql://192.168.1.2:5532/platform
-    username: postgres
-    password: postgres
+    # 凭证外部化：未设置环境变量时使用默认值（本地/容器内开发友好），
+    # 生产/NAS 通过 SPRING_DATASOURCE_* 环境变量注入真实凭证（见 docker/docker-compose*.yml）。
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://192.168.1.2:5532/platform}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
@@ -27,8 +29,9 @@ spring:
 
   data:
     redis:
-      host: 192.168.1.2
-      port: 6380
+      host: ${SPRING_DATA_REDIS_HOST:192.168.1.2}
+      port: ${SPRING_DATA_REDIS_PORT:6380}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
       database: 0
 
 server:
@@ -37,7 +40,8 @@ server:
 app:
   security:
     jwt:
-      secret: my-platform-secret-key-must-be-at-least-32-bytes-long-for-hs256
+      # 密钥外部化：生产环境务必通过 APP_SECURITY_JWT_SECRET 注入随机密钥。
+      secret: ${APP_SECURITY_JWT_SECRET:my-platform-secret-key-must-be-at-least-32-bytes-long-for-hs256}
       expiration: 86400000
 
 springdoc:
