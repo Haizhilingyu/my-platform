@@ -16,9 +16,9 @@ public interface SysUserRepository extends JpaRepository<SysUser, Long> {
     boolean existsByUsername(String username);
 
     @Query("SELECT u FROM SysUser u WHERE "
-            + "(:keyword IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) "
-            + "OR LOWER(u.realName) LIKE LOWER(CONCAT('%', :keyword, '%')) "
-            + "OR LOWER(u.phone) LIKE LOWER(CONCAT('%', :keyword, '%'))) "
+            + "(CAST(:keyword AS string) IS NULL OR LOWER(u.username) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) "
+            + "OR LOWER(u.realName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) "
+            + "OR LOWER(u.phone) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) "
             + "AND (:unitId IS NULL OR u.unitId = :unitId) "
             + "AND (:status IS NULL OR u.status = :status)")
     Page<SysUser> search(@Param("keyword") String keyword,

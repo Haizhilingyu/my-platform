@@ -9,7 +9,7 @@ ON CONFLICT (unit_code) DO NOTHING;
 
 -- 超级管理员用户 (密码: admin123, BCrypt加密)
 INSERT INTO sys_user (id, username, password, real_name, unit_id, status)
-VALUES (1, 'admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVKIUi', '超级管理员', 1, 1)
+VALUES (1, 'admin', '$2a$10$HH.rhJLgwoJdgh4Nu.NIeuRD.NMWvZP9fAOAC9cY13cmQq8XSAKRy', '超级管理员', 1, 1)
 ON CONFLICT (username) DO NOTHING;
 
 -- 超级管理员角色

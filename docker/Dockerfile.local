@@ -1,0 +1,26 @@
+# 本地构建后端（多阶段：Maven 编译 → JRE 运行）
+FROM maven:3.9-eclipse-temurin-21 AS builder
+
+WORKDIR /build
+COPY pom.xml .
+COPY checkstyle.xml .
+COPY platform-common ./platform-common
+COPY platform-starter ./platform-starter
+COPY modules ./modules
+COPY app ./app
+
+# 阿里云镜像加速
+RUN mkdir -p /root/.m2 && echo '<settings><mirrors><mirror><id>aliyun</id><mirrorOf>central</mirrorOf><url>https://maven.aliyun.com/repository/public</url></mirror></mirrors></settings>' > /root/.m2/settings.xml
+
+RUN mvn package -DskipTests -B -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Djacoco.skip=true
+
+FROM eclipse-temurin:21-jre
+
+WORKDIR /app
+COPY --from=builder /build/app/target/*.jar app.jar
+
+ENV JAVA_OPTS="-Xms256m -Xmx512m"
+ENV SPRING_PROFILES_ACTIVE=prod
+
+EXPOSE 8090
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

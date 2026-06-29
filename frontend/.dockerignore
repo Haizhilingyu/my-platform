@@ -1,0 +1,9 @@
+node_modules
+dist
+.git
+.husky
+*.md
+src/auto-imports.d.ts
+src/components.d.ts
+__tests__
+coverage
