@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/platform
+    username: postgres
+    password: postgres
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+logging:
+  level:
+    com.example: DEBUG
+    org.hibernate.SQL: DEBUG

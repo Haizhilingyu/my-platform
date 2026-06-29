@@ -1,0 +1,31 @@
+# Backend
+backend/*/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+*.class
+*.jar
+*.war
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.husky/
+frontend/src/auto-imports.d.ts
+frontend/src/components.d.ts
+frontend/package-lock.json
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local

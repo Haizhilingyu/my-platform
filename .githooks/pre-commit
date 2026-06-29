@@ -1,0 +1,34 @@
+#!/bin/sh
+# Pre-commit: 强制格式检查（后端 + 前端）
+
+echo "🔍 Running pre-commit checks..."
+
+# 后端检查
+if [ -f backend/pom.xml ]; then
+  echo "  Checking backend format..."
+  cd backend
+  mvn spotless:check -q 2>/dev/null
+  BACKEND_OK=$?
+  cd ..
+
+  if [ $BACKEND_OK -ne 0 ]; then
+    echo "❌ Backend format check failed. Run: cd backend && mvn spotless:apply"
+    exit 1
+  fi
+fi
+
+# 前端检查（如果 node_modules 存在）
+if [ -f frontend/node_modules/.package-lock.json ]; then
+  echo "  Checking frontend lint..."
+  cd frontend
+  npx lint-staged
+  FRONTEND_OK=$?
+  cd ..
+
+  if [ $FRONTEND_OK -ne 0 ]; then
+    echo "❌ Frontend lint check failed."
+    exit 1
+  fi
+fi
+
+echo "✅ Pre-commit checks passed."

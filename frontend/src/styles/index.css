@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============ 设计 Token ============ */
+:root {
+  --color-primary: 64 158 255;
+  --color-background: 240 242 245;
+  --color-surface: 255 255 255;
+  --color-surface-hover: 248 250 252;
+  --color-text: 32 34 37;
+  --color-text-secondary: 128 134 139;
+  --color-border: 229 231 235;
+}
+
+.dark {
+  --color-primary: 64 158 255;
+  --color-background: 15 23 42;
+  --color-surface: 30 41 59;
+  --color-surface-hover: 51 65 85;
+  --color-text: 241 245 249;
+  --color-text-secondary: 148 163 184;
+  --color-border: 51 65 85;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'v-sans', system-ui, -apple-system, sans-serif;
+  background-color: rgb(var(--color-background));
+  color: rgb(var(--color-text));
+  transition: background-color 0.3s, color 0.3s;
+}

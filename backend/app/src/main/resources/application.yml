@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: my-platform
+
+  datasource:
+    url: jdbc:postgresql://192.168.1.2:5532/platform
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc.time_zone: Asia/Shanghai
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: 192.168.1.2
+      port: 6380
+      database: 0
+
+server:
+  port: 8090
+
+app:
+  security:
+    jwt:
+      secret: my-platform-secret-key-must-be-at-least-32-bytes-long-for-hs256
+      expiration: 86400000
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
