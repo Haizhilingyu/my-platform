@@ -1,0 +1,20 @@
+# sys 模块测试切片配置。
+#
+# 此 yaml 仅服务于 @DataJpaTest 切片（当前仅 UserDataScopeTest），该测试在 @BeforeEach
+# 中自行播种数据，不依赖 Flyway 种子。为避免 Flyway 在 H2 上执行含 PG 默认值（DEFAULT
+# NOW()）的 INSERT 时报 "NULL not allowed" —— 这里显式关闭 Flyway 并使用 create-drop
+# 让 Hibernate 从实体生成 schema。主应用与 app 模块仍使用 classpath:db/migration。
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
