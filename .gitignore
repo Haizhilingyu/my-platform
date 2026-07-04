@@ -35,3 +35,15 @@ e2e/logs/
 e2e/test-results/
 e2e/playwright-report/
 e2e/playwright/.cache/
+
+# Go SDK
+client-sdk-go/example/platform-demo
+client-sdk-go/*.exe
+
+# C SDK build artifacts
+client-sdk-c/libplatformclient.a
+client-sdk-c/platform_demo
+client-sdk-c/test_platform_client
+client-sdk-c/*.o
+client-sdk-c/*.obj
+client-sdk-c/*.exe
