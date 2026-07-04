@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,7 @@ public class SessionService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final Duration sessionTtl;
 
+    @Autowired
     public SessionService(
             RedisCacheService redisCacheService,
             RedisTemplate<String, Object> redisTemplate,
