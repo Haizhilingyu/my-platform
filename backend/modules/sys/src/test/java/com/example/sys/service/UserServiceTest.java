@@ -122,7 +122,8 @@ class UserServiceTest {
             // Given
             var user = SysUser.builder()
                     .id(1L).username("admin").realName("管理员")
-                    .unitId(10L).status(1).build();
+                    .status(1).build();
+            user.setUnitId(10L);
             when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
             // When

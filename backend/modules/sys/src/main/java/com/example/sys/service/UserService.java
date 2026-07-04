@@ -63,10 +63,10 @@ public class UserService {
                 .realName(dto.getRealName())
                 .email(dto.getEmail())
                 .phone(dto.getPhone())
-                .unitId(dto.getUnitId())
                 .avatar(dto.getAvatar())
                 .status(1)
                 .build();
+        user.setUnitId(dto.getUnitId());
 
         user = userRepository.save(user);
 

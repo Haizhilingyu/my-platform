@@ -1,15 +1,15 @@
 package com.example.sys.repository;
 
+import com.example.common.persistence.ScopedRepository;
 import com.example.sys.domain.SysUser;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 /** 用户 Repository。 */
-public interface SysUserRepository extends JpaRepository<SysUser, Long> {
+public interface SysUserRepository extends ScopedRepository<SysUser, Long> {
 
     Optional<SysUser> findByUsername(String username);
 

@@ -1,6 +1,6 @@
 package com.example.sys.domain;
 
-import com.example.common.persistence.BaseEntity;
+import com.example.common.persistence.ScopedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -23,7 +23,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SysUser extends BaseEntity {
+public class SysUser extends ScopedEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,9 +43,6 @@ public class SysUser extends BaseEntity {
 
     @Column(length = 20)
     private String phone;
-
-    @Column(name = "unit_id")
-    private Long unitId;
 
     @Column(name = "avatar")
     private String avatar;
