@@ -41,6 +41,7 @@ class JwtAuthFilter extends OncePerRequestFilter {
             var claims = jwtUtil.parse(token);
             Long userId = Long.valueOf(claims.getSubject());
             String username = claims.get("username", String.class);
+            Long unitId = claims.get("unitId", Long.class);
 
             @SuppressWarnings("unchecked")
             List<String> roleList = claims.get("roles", List.class);
@@ -48,7 +49,7 @@ class JwtAuthFilter extends OncePerRequestFilter {
 
             Set<String> permissions = permissionLoader.loadPermissions(userId);
 
-            CurrentUser.set(new CurrentUser.UserInfo(userId, username, null, roles, permissions));
+            CurrentUser.set(new CurrentUser.UserInfo(userId, username, unitId, roles, permissions));
 
             var authToken = new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
             var context = new SecurityContextImpl();

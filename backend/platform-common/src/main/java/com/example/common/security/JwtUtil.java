@@ -25,11 +25,20 @@ public class JwtUtil {
 
     /** 生成 Token。 */
     public String generate(Long userId, String username, List<String> roles) {
+        return generate(userId, username, null, roles);
+    }
+
+    /** 生成 Token（携带 unitId）。 */
+    public String generate(Long userId, String username, Long unitId, List<String> roles) {
         Date now = new Date();
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("username", username)
-                .claim("roles", roles)
+                .claim("roles", roles);
+        if (unitId != null) {
+            builder.claim("unitId", unitId);
+        }
+        return builder
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expirationMillis))
                 .signWith(key)

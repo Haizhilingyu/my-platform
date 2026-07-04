@@ -52,7 +52,7 @@ public class AuthController {
         }
 
         List<String> roles = List.copyOf(permissionService.getUserRoleCodes(user.getId()));
-        String token = jwtUtil.generate(user.getId(), user.getUsername(), roles);
+        String token = jwtUtil.generate(user.getId(), user.getUsername(), user.getUnitId(), roles);
 
         UserVO vo = UserVO.of(user);
         return Result.ok(new LoginVO(token, "Bearer", vo));
