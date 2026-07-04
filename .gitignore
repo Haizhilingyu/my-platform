@@ -7,6 +7,9 @@ backend/mvnw.cmd
 *.jar
 *.war
 
+# Committed build outputs (never track built jars; rebuild from source)
+/docker/app.jar
+
 # Frontend
 frontend/node_modules/
 frontend/dist/

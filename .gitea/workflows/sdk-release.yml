@@ -1,0 +1,232 @@
+name: SDK Release
+
+# Triggered by language-specific tags:
+#   sdk-java-v1.2.3     -> Maven deploy to Nexus (releases repo)
+#   sdk-python-v1.2.3   -> twine upload to Nexus PyPI
+#   sdk-go-v1.2.3       -> tag push IS the release (Go modules); Gitea release created for visibility
+#   sdk-c-v1.2.3        -> build static lib, attach to a Gitea release
+#
+# Each job self-selects with `if` so one tag fires exactly one language job.
+# Nexus credentials come from the NEXUS_USER / NEXUS_PASS Gitea secrets (same
+# ones used by deploy.yml for image builds).
+
+on:
+  push:
+    tags:
+      - 'sdk-java-v*'
+      - 'sdk-python-v*'
+      - 'sdk-go-v*'
+      - 'sdk-c-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag, e.g. sdk-java-v1.2.3'
+        required: true
+
+jobs:
+  # ---------------------------------------------------------------- Java ----
+  # Strips -SNAPSHOT from the pom, sets the tag version, deploys to Nexus.
+  # distributionManagement in the pom targets nexus-releases / nexus-snapshots,
+  # and docker/settings.xml maps those server ids to NEXUS_USER / NEXUS_PASS.
+  release-java:
+    name: Java SDK -> Nexus Maven
+    if: startsWith(github.ref, 'refs/tags/sdk-java-v') || contains(github.event.inputs.tag, 'sdk-java-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version from tag
+        id: ver
+        run: |
+          RAW="${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}"
+          VERSION="${RAW#sdk-java-v}"
+          echo "Version: $VERSION"
+          [ -n "$VERSION" ] || { echo "No version parsed from tag"; exit 1; }
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Set release version (strip -SNAPSHOT)
+        working-directory: backend/client-sdk-java
+        run: |
+          mvn -B versions:set \
+            -DnewVersion=${{ steps.ver.outputs.version }} \
+            -DgenerateBackupPoms=false
+
+      - name: Verify build (tests)
+        working-directory: backend/client-sdk-java
+        run: mvn -B test
+
+      - name: Deploy to Nexus
+        working-directory: backend/client-sdk-java
+        env:
+          NEXUS_USER: ${{ secrets.NEXUS_USER }}
+          NEXUS_PASS: ${{ secrets.NEXUS_PASS }}
+        run: mvn -B deploy -s ../../docker/settings.xml
+
+  # ------------------------------------------------------------- Python -----
+  # Rewrites version="..." in setup.py to the tag version, builds sdist+wheel,
+  # uploads to the Nexus hosted PyPI repository.
+  release-python:
+    name: Python SDK -> Nexus PyPI
+    if: startsWith(github.ref, 'refs/tags/sdk-python-v') || contains(github.event.inputs.tag, 'sdk-python-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version from tag
+        id: ver
+        run: |
+          RAW="${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}"
+          VERSION="${RAW#sdk-python-v}"
+          echo "Version: $VERSION"
+          [ -n "$VERSION" ] || { echo "No version parsed from tag"; exit 1; }
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install build tooling
+        run: pip install -U build twine setuptools wheel
+
+      - name: Set release version in setup.py
+        working-directory: client-sdk-python
+        run: |
+          sed -i.bak -E "s/^(\s*version\s*=\s*)\"[^\"]*\"/\1\"${{ steps.ver.outputs.version }}\"/" setup.py
+          rm -f setup.py.bak
+          grep -n 'version=' setup.py
+
+      - name: Build sdist + wheel
+        working-directory: client-sdk-python
+        run: python -m build
+
+      - name: Upload to Nexus PyPI
+        working-directory: client-sdk-python
+        env:
+          NEXUS_USER: ${{ secrets.NEXUS_USER }}
+          NEXUS_PASS: ${{ secrets.NEXUS_PASS }}
+        run: |
+          twine upload \
+            --repository-url http://192.168.1.2:8081/repository/pypi-hosted/ \
+            --non-interactive \
+            -u "$NEXUS_USER" -p "$NEXUS_PASS" \
+            dist/*
+
+  # ----------------------------------------------------------------- Go -----
+  # Go modules are consumed by tag. Pushing the tag is the release. We still
+  # create a Gitea release so the version is visible in the UI and referenced
+  # from CHANGELOG / docs. Consumers run:
+  #   go get github.com/my-platform/client-sdk-go@vX.Y.Z
+  release-go:
+    name: Go SDK -> tag + Gitea release
+    if: startsWith(github.ref, 'refs/tags/sdk-go-v') || contains(github.event.inputs.tag, 'sdk-go-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version from tag
+        id: ver
+        run: |
+          RAW="${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}"
+          VERSION="${RAW#sdk-go-v}"
+          echo "Version: $VERSION"
+          [ -n "$VERSION" ] || { echo "No version parsed from tag"; exit 1; }
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify go.mod module path
+        working-directory: client-sdk-go
+        run: |
+          echo "Module: $(head -1 go.mod)"
+          echo "Consumers: go get github.com/my-platform/client-sdk-go@v${{ steps.ver.outputs.version }}"
+
+      - name: Create Gitea release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}"
+          BODY="Go SDK release **${{ steps.ver.outputs.version }}**.
+
+          Consumed as a Go module. There is no binary artifact to download.
+
+          \`\`\`
+          go get github.com/my-platform/client-sdk-go@v${{ steps.ver.outputs.version }}
+          \`\`\`"
+          curl -fsS -X POST \
+            "${GITHUB_SERVER_URL}/api/v1/repos/${GITHUB_REPOSITORY}/releases" \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg t "$TAG" --arg b "$BODY" '{tag_name:$t, name:$t, body:$b}')"
+
+  # ------------------------------------------------------------------ C -----
+  # Builds the static library libplatformclient.a (plus public headers) and
+  # attaches them to a Gitea release. Downstream apps link the .a and include
+  # platform_client.h / platform_json.h.
+  release-c:
+    name: C SDK -> build + Gitea release artifact
+    if: startsWith(github.ref, 'refs/tags/sdk-c-v') || contains(github.event.inputs.tag, 'sdk-c-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version from tag
+        id: ver
+        run: |
+          RAW="${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}"
+          VERSION="${RAW#sdk-c-v}"
+          echo "Version: $VERSION"
+          [ -n "$VERSION" ] || { echo "No version parsed from tag"; exit 1; }
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Install build deps (libcurl)
+        run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
+
+      - name: Build static library
+        working-directory: client-sdk-c
+        run: |
+          make clean
+          make lib
+          ls -l libplatformclient.a
+
+      - name: Stage release assets
+        run: |
+          STAGE="client-sdk-c/platform-c-sdk-${{ steps.ver.outputs.version }}"
+          mkdir -p "$STAGE/include" "$STAGE/lib"
+          cp client-sdk-c/libplatformclient.a "$STAGE/lib/"
+          cp client-sdk-c/platform_client.h client-sdk-c/platform_json.h "$STAGE/include/"
+          cp client-sdk-c/README.md "$STAGE/" || true
+          tar -czf "$STAGE.tar.gz" "$STAGE"
+          ls -l "$STAGE.tar.gz"
+
+      - name: Create Gitea release
+        id: rel
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}"
+          RESP=$(curl -fsS -X POST \
+            "${GITHUB_SERVER_URL}/api/v1/repos/${GITHUB_REPOSITORY}/releases" \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg t "$TAG" --arg v "${{ steps.ver.outputs.version }}" \
+                  '{tag_name:$t, name:$t, body:"C SDK release **\($v)**. Static library + headers, link against libcurl."}')")
+          echo "$RESP"
+          echo "id=$(echo "$RESP" | jq -r .id)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ASSET="client-sdk-c/platform-c-sdk-${{ steps.ver.outputs.version }}.tar.gz"
+          curl -fsS -X POST \
+            "${GITHUB_SERVER_URL}/api/v1/repos/${GITHUB_REPOSITORY}/releases/${{ steps.rel.outputs.id }}/assets" \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -F "name=$(basename "$ASSET")" \
+            -F "attachment=@$ASSET"
