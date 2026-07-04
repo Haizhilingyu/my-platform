@@ -16,6 +16,7 @@
         <module>platform-security</module>
         <module>platform-starter</module>
         <module>modules/sys</module>
+        <module>modules/openapp</module>
         <module>app</module>
     </modules>
 
@@ -27,6 +28,7 @@
 
         <spring-boot.version>3.3.5</spring-boot.version>
         <spring-modulith.version>1.3.0</spring-modulith.version>
+        <spring-authorization-server.version>1.3.7</spring-authorization-server.version>
         <springdoc.version>2.6.0</springdoc.version>
         <jjwt.version>0.12.6</jjwt.version>
         <mapstruct.version>1.6.3</mapstruct.version>
@@ -79,6 +81,13 @@
                 <scope>runtime</scope>
             </dependency>
 
+            <!-- Spring Authorization Server（对齐 Spring Boot 3.3 / Spring Security 6.3） -->
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-oauth2-authorization-server</artifactId>
+                <version>${spring-authorization-server.version}</version>
+            </dependency>
+
             <!-- 内部模块 -->
             <dependency>
                 <groupId>com.example</groupId>
@@ -98,6 +107,11 @@
             <dependency>
                 <groupId>com.example</groupId>
                 <artifactId>sys-module</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.example</groupId>
+                <artifactId>openapp-module</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

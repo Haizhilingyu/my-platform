@@ -27,5 +27,9 @@
             <groupId>com.example</groupId>
             <artifactId>sys-module</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>openapp-module</artifactId>
+        </dependency>
     </dependencies>
 </project>
