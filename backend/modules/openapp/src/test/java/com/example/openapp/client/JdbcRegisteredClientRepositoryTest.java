@@ -19,6 +19,7 @@ import org.springframework.security.oauth2.server.authorization.settings.TokenSe
 class JdbcRegisteredClientRepositoryTest {
 
   private JdbcRegisteredClientRepository repository;
+  private JdbcTemplate jdbc;
 
   @BeforeEach
   void setUp() throws Exception {
@@ -35,8 +36,13 @@ class JdbcRegisteredClientRepositoryTest {
       ScriptUtils.executeSqlScript(
           con,
           new org.springframework.core.io.ClassPathResource("db/migration/V30__openapp_init.sql"));
+      ScriptUtils.executeSqlScript(
+          con,
+          new org.springframework.core.io.ClassPathResource(
+              "db/migration/V31__openapp_logout_webhook.sql"));
     }
     repository = new JdbcRegisteredClientRepository(jdbc);
+    this.jdbc = jdbc;
   }
 
   private RegisteredClient buildClient(String clientId, String secretHash) {
@@ -120,5 +126,83 @@ class JdbcRegisteredClientRepositoryTest {
     repository.insert(buildClient("app-5", "h"), "N");
     repository.deleteByClientId("app-5");
     assertThat(repository.findByClientId("app-5")).isNull();
+  }
+
+  @Test
+  void findActiveLogoutWebhooksReturnsClientsWithWebhookAndActiveAuthorization() {
+    repository.insert(buildClient("hook-client", "hash"), "Hook App");
+    jdbc.update(
+        "UPDATE openapp_client SET logout_webhook_url = ? WHERE client_id = ?",
+        "http://example.com/hook",
+        "hook-client");
+    jdbc.update(
+        "INSERT INTO oauth_authorization (registered_client_id, principal_name, access_token, attributes) "
+            + "VALUES (?, ?, ?, ?)",
+        "hook-client",
+        "user-x",
+        "token",
+        "{}");
+
+    var webhooks = repository.findActiveLogoutWebhooks("user-x");
+
+    assertThat(webhooks).hasSize(1);
+    assertThat(webhooks.get(0).clientId()).isEqualTo("hook-client");
+    assertThat(webhooks.get(0).webhookUrl()).isEqualTo("http://example.com/hook");
+  }
+
+  @Test
+  void findActiveLogoutWebhooksExcludesClientsWithoutWebhookUrl() {
+    repository.insert(buildClient("no-hook", "hash"), "No Hook");
+    jdbc.update(
+        "INSERT INTO oauth_authorization (registered_client_id, principal_name, access_token, attributes) "
+            + "VALUES (?, ?, ?, ?)",
+        "no-hook",
+        "user-y",
+        "token",
+        "{}");
+
+    var webhooks = repository.findActiveLogoutWebhooks("user-y");
+
+    assertThat(webhooks).isEmpty();
+  }
+
+  @Test
+  void findActiveLogoutWebhooksExcludesClientsWithoutAuthorization() {
+    repository.insert(buildClient("orphan-hook", "hash"), "Orphan");
+    jdbc.update(
+        "UPDATE openapp_client SET logout_webhook_url = ? WHERE client_id = ?",
+        "http://example.com/orphan",
+        "orphan-hook");
+
+    var webhooks = repository.findActiveLogoutWebhooks("user-z");
+
+    assertThat(webhooks).isEmpty();
+  }
+
+  @Test
+  void findActiveLogoutWebhooksDeduplicatesByClientId() {
+    repository.insert(buildClient("dup-client", "hash"), "Dup");
+    jdbc.update(
+        "UPDATE openapp_client SET logout_webhook_url = ? WHERE client_id = ?",
+        "http://example.com/dup",
+        "dup-client");
+    jdbc.update(
+        "INSERT INTO oauth_authorization (registered_client_id, principal_name, access_token, attributes) "
+            + "VALUES (?, ?, ?, ?)",
+        "dup-client",
+        "user-w",
+        "token1",
+        "{}");
+    jdbc.update(
+        "INSERT INTO oauth_authorization (registered_client_id, principal_name, access_token, attributes) "
+            + "VALUES (?, ?, ?, ?)",
+        "dup-client",
+        "user-w",
+        "token2",
+        "{}");
+
+    var webhooks = repository.findActiveLogoutWebhooks("user-w");
+
+    assertThat(webhooks).hasSize(1);
   }
 }

@@ -112,6 +112,31 @@ public class JdbcRegisteredClientRepository implements RegisteredClientRepositor
     return result.isEmpty() ? null : result.get(0);
   }
 
+  /**
+   * 查询某用户的活跃授权所涉及、且配置了登出 webhook 的客户端列表。
+   *
+   * <p>JOIN {@code oauth_authorization}（用户在该 client 上有授权记录）与 {@code openapp_client}（client 配置了 webhook
+   * URL）。结果按 client_id 去重——一个用户可能在同一 client 上有多条授权记录（不同 grant_type），但 webhook 只需推送一次。
+   *
+   * @param principalName 用户标识（对应 oauth_authorization.principal_name）
+   * @return 去重后的 (clientId, webhookUrl) 列表，无匹配时返回空列表
+   */
+  public List<ClientLogoutWebhook> findActiveLogoutWebhooks(String principalName) {
+    return jdbc.query(
+        "SELECT DISTINCT c.client_id, c.logout_webhook_url "
+            + "FROM openapp_client c "
+            + "JOIN oauth_authorization a ON a.registered_client_id = c.client_id "
+            + "WHERE a.principal_name = ? AND c.logout_webhook_url IS NOT NULL "
+            + "AND TRIM(c.logout_webhook_url) <> ''",
+        (rs, rowNum) ->
+            new ClientLogoutWebhook(
+                rs.getString("client_id"), rs.getString("logout_webhook_url")),
+        principalName);
+  }
+
+  /** 登出 webhook 目标（client_id + webhook URL）。 */
+  public record ClientLogoutWebhook(String clientId, String webhookUrl) {}
+
   private static RegisteredClient mapRow(java.sql.ResultSet rs) throws java.sql.SQLException {
     String clientId = rs.getString("client_id");
     RegisteredClient.Builder builder =

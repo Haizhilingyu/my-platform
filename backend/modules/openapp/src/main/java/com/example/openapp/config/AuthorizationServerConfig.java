@@ -15,7 +15,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.authorization.InMemoryOAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
-import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
@@ -51,7 +50,7 @@ public class AuthorizationServerConfig {
   }
 
   @Bean
-  public RegisteredClientRepository registeredClientRepository(JdbcTemplate jdbcTemplate) {
+  public JdbcRegisteredClientRepository registeredClientRepository(JdbcTemplate jdbcTemplate) {
     return new JdbcRegisteredClientRepository(jdbcTemplate);
   }
 
@@ -67,7 +66,10 @@ public class AuthorizationServerConfig {
 
   @Bean
   public AuthorizationServerSettings authorizationServerSettings(OpenAppProperties properties) {
-    return AuthorizationServerSettings.builder().issuer(properties.getIssuer()).build();
+    return AuthorizationServerSettings.builder()
+        .issuer(properties.getIssuer())
+        .oidcLogoutEndpoint("/oauth2/logout")
+        .build();
   }
 
   @Bean
