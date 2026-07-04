@@ -27,47 +27,47 @@ import lombok.Setter;
 @Builder
 public class SysMenu extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(name = "parent_id")
-    private Long parentId;
+  @Column(name = "parent_id")
+  private Long parentId;
 
-    @Column(name = "menu_name", nullable = false, length = 64)
-    private String menuName;
+  @Column(name = "menu_name", nullable = false, length = 64)
+  private String menuName;
 
-    /** DIRECTORY / PAGE / BUTTON */
-    @Column(name = "menu_type", nullable = false, length = 20)
-    private String menuType;
+  /** DIRECTORY / PAGE / BUTTON */
+  @Column(name = "menu_type", nullable = false, length = 20)
+  private String menuType;
 
-    /** 前端路由路径 */
-    @Column(length = 200)
-    private String path;
+  /** 前端路由路径 */
+  @Column(length = 200)
+  private String path;
 
-    /** 前端组件路径 */
-    @Column(length = 200)
-    private String component;
+  /** 前端组件路径 */
+  @Column(length = 200)
+  private String component;
 
-    /** 权限标识，如 sys:user:add */
-    @Column(length = 100)
-    private String permission;
+  /** 权限标识，如 sys:user:add */
+  @Column(length = 100)
+  private String permission;
 
-    /** 图标 */
-    @Column(length = 64)
-    private String icon;
+  /** 图标 */
+  @Column(length = 64)
+  private String icon;
 
-    @Column(nullable = false)
-    @Builder.Default
-    private Integer sort = 0;
+  @Column(nullable = false)
+  @Builder.Default
+  private Integer sort = 0;
 
-    /** 0=隐藏 1=显示 */
-    @Column(nullable = false)
-    @Builder.Default
-    private Integer visible = 1;
+  /** 0=隐藏 1=显示 */
+  @Column(nullable = false)
+  @Builder.Default
+  private Integer visible = 1;
 
-    /** 0=禁用 1=启用 */
-    @Column(nullable = false)
-    @Builder.Default
-    private Integer status = 1;
+  /** 0=禁用 1=启用 */
+  @Column(nullable = false)
+  @Builder.Default
+  private Integer status = 1;
 }

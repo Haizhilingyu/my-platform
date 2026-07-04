@@ -12,11 +12,12 @@ import org.springframework.stereotype.Component;
 /**
  * 监听 HTTP 会话销毁事件，触发登出 webhook。
  *
- * <p>{@link HttpSessionDestroyedEvent} 由 {@code HttpSessionEventPublisher}（在 {@link WebhookConfig} 中注册）在会话失效时发布，
- * 携带会话中缓存的 {@link SecurityContext} 列表。从中提取认证主体（principal）调用 {@link LogoutWebhookService}。
+ * <p>{@link HttpSessionDestroyedEvent} 由 {@code HttpSessionEventPublisher}（在 {@link WebhookConfig}
+ * 中注册）在会话失效时发布， 携带会话中缓存的 {@link SecurityContext} 列表。从中提取认证主体（principal）调用 {@link
+ * LogoutWebhookService}。
  *
- * <p>多副本部署下，任一副本销毁 Redis 中的会话后，该副本触发 webhook 推送。由于 webhook 查询的是共享的
- * {@code oauth_authorization} 表，推送范围对所有副本一致。
+ * <p>多副本部署下，任一副本销毁 Redis 中的会话后，该副本触发 webhook 推送。由于 webhook 查询的是共享的 {@code oauth_authorization}
+ * 表，推送范围对所有副本一致。
  */
 @Component
 public class LogoutEventListener {

@@ -43,97 +43,99 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
-    static final String BLACKLIST_KEY_PREFIX = "jwt:blacklist:";
-    static final String DEFAULT_LOGIN_METHOD = "password";
-    static final String CAPTCHA_ENABLED_KEY = "sys.security.captcha.enabled";
+  static final String BLACKLIST_KEY_PREFIX = "jwt:blacklist:";
+  static final String DEFAULT_LOGIN_METHOD = "password";
+  static final String CAPTCHA_ENABLED_KEY = "sys.security.captcha.enabled";
 
-    private final UserService userService;
-    private final PermissionService permissionService;
-    private final MenuService menuService;
-    private final JwtUtil jwtUtil;
-    private final RedisCacheService redisCacheService;
-    private final LoginMethodRegistry loginMethodRegistry;
-    private final CaptchaService captchaService;
-    private final ConfigService configService;
+  private final UserService userService;
+  private final PermissionService permissionService;
+  private final MenuService menuService;
+  private final JwtUtil jwtUtil;
+  private final RedisCacheService redisCacheService;
+  private final LoginMethodRegistry loginMethodRegistry;
+  private final CaptchaService captchaService;
+  private final ConfigService configService;
 
-    @Operation(summary = "登录", description = "根据 method 路由到对应 LoginMethodProvider，默认 password")
-    @Auditable(action = "LOGIN")
-    @PostMapping("/login")
-    public Result<LoginVO> login(@RequestBody LoginRequest request) {
-        if (captchaEnabled() && !captchaService.validate(request.captchaId(), request.captchaCode())) {
-            if (request.captchaId() == null || request.captchaCode() == null) {
-                throw new BizException(400, "请输入验证码");
-            }
-            throw new BizException(400, "验证码错误或已过期");
+  @Operation(summary = "登录", description = "根据 method 路由到对应 LoginMethodProvider，默认 password")
+  @Auditable(action = "LOGIN")
+  @PostMapping("/login")
+  public Result<LoginVO> login(@RequestBody LoginRequest request) {
+    if (captchaEnabled() && !captchaService.validate(request.captchaId(), request.captchaCode())) {
+      if (request.captchaId() == null || request.captchaCode() == null) {
+        throw new BizException(400, "请输入验证码");
+      }
+      throw new BizException(400, "验证码错误或已过期");
+    }
+    String method = request.method() != null ? request.method() : DEFAULT_LOGIN_METHOD;
+    LoginMethodProvider provider = loginMethodRegistry.getProvider(method);
+    if (provider == null) {
+      throw new BizException(400, "不支持的登录方式: " + method);
+    }
+    LoginResult result = provider.authenticate(request);
+    return Result.ok((LoginVO) result);
+  }
+
+  @Operation(
+      summary = "获取图形验证码",
+      description = "返回 captchaId 和带 data URI 前缀的 base64 图片，TTL 5 分钟，单次使用")
+  @GetMapping("/captcha")
+  public Result<CaptchaResult> captcha() {
+    return Result.ok(captchaService.generate());
+  }
+
+  private boolean captchaEnabled() {
+    return "true".equalsIgnoreCase(configService.getValue(CAPTCHA_ENABLED_KEY, "true"));
+  }
+
+  @Operation(summary = "获取可用登录方式", description = "返回所有已启用登录方式的描述符，按 order 升序")
+  @GetMapping("/login-methods")
+  public Result<List<LoginMethodDescriptor>> loginMethods() {
+    return Result.ok(loginMethodRegistry.getEnabledMethods());
+  }
+
+  @Operation(summary = "登出", description = "将当前 token 的 jti 加入 Redis 黑名单，使其立即失效")
+  @PostMapping("/logout")
+  public Result<Void> logout(HttpServletRequest request) {
+    String token = jwtUtil.extractToken(request.getHeader("Authorization"));
+    if (token != null && jwtUtil.isValid(token)) {
+      Claims claims = jwtUtil.parse(token);
+      String jti = claims.getId();
+      if (jti != null) {
+        Instant expiry = claims.getExpiration().toInstant();
+        long remainingSeconds = Duration.between(Instant.now(), expiry).toSeconds();
+        if (remainingSeconds > 0) {
+          redisCacheService.set(
+              BLACKLIST_KEY_PREFIX + jti, "1", Duration.ofSeconds(remainingSeconds));
         }
-        String method = request.method() != null ? request.method() : DEFAULT_LOGIN_METHOD;
-        LoginMethodProvider provider = loginMethodRegistry.getProvider(method);
-        if (provider == null) {
-            throw new BizException(400, "不支持的登录方式: " + method);
-        }
-        LoginResult result = provider.authenticate(request);
-        return Result.ok((LoginVO) result);
+      }
     }
+    return Result.ok();
+  }
 
-    @Operation(summary = "获取图形验证码", description = "返回 captchaId 和带 data URI 前缀的 base64 图片，TTL 5 分钟，单次使用")
-    @GetMapping("/captcha")
-    public Result<CaptchaResult> captcha() {
-        return Result.ok(captchaService.generate());
+  @Operation(summary = "获取当前用户信息")
+  @GetMapping("/me")
+  public Result<UserVO> me() {
+    Long userId = CurrentUser.getUserId();
+    if (userId == null) {
+      throw new BizException(401, "未登录");
     }
+    return Result.ok(userService.getById(userId));
+  }
 
-    private boolean captchaEnabled() {
-        return "true".equalsIgnoreCase(configService.getValue(CAPTCHA_ENABLED_KEY, "true"));
-    }
+  @Operation(summary = "获取当前用户权限列表")
+  @GetMapping("/permissions")
+  public Result<Set<String>> permissions() {
+    return Result.ok(CurrentUser.getPermissions());
+  }
 
-    @Operation(summary = "获取可用登录方式", description = "返回所有已启用登录方式的描述符，按 order 升序")
-    @GetMapping("/login-methods")
-    public Result<List<LoginMethodDescriptor>> loginMethods() {
-        return Result.ok(loginMethodRegistry.getEnabledMethods());
+  @Operation(summary = "获取当前用户菜单树")
+  @GetMapping("/menus")
+  public Result<List<MenuTreeNode>> menus() {
+    Long userId = CurrentUser.getUserId();
+    if (userId == null) {
+      throw new BizException(401, "未登录");
     }
-
-    @Operation(summary = "登出", description = "将当前 token 的 jti 加入 Redis 黑名单，使其立即失效")
-    @PostMapping("/logout")
-    public Result<Void> logout(HttpServletRequest request) {
-        String token = jwtUtil.extractToken(request.getHeader("Authorization"));
-        if (token != null && jwtUtil.isValid(token)) {
-            Claims claims = jwtUtil.parse(token);
-            String jti = claims.getId();
-            if (jti != null) {
-                Instant expiry = claims.getExpiration().toInstant();
-                long remainingSeconds = Duration.between(Instant.now(), expiry).toSeconds();
-                if (remainingSeconds > 0) {
-                    redisCacheService.set(
-                            BLACKLIST_KEY_PREFIX + jti, "1", Duration.ofSeconds(remainingSeconds));
-                }
-            }
-        }
-        return Result.ok();
-    }
-
-    @Operation(summary = "获取当前用户信息")
-    @GetMapping("/me")
-    public Result<UserVO> me() {
-        Long userId = CurrentUser.getUserId();
-        if (userId == null) {
-            throw new BizException(401, "未登录");
-        }
-        return Result.ok(userService.getById(userId));
-    }
-
-    @Operation(summary = "获取当前用户权限列表")
-    @GetMapping("/permissions")
-    public Result<Set<String>> permissions() {
-        return Result.ok(CurrentUser.getPermissions());
-    }
-
-    @Operation(summary = "获取当前用户菜单树")
-    @GetMapping("/menus")
-    public Result<List<MenuTreeNode>> menus() {
-        Long userId = CurrentUser.getUserId();
-        if (userId == null) {
-            throw new BizException(401, "未登录");
-        }
-        List<SysMenu> menus = permissionService.getUserMenus(userId);
-        return Result.ok(MenuService.buildTree(menus));
-    }
+    List<SysMenu> menus = permissionService.getUserMenus(userId);
+    return Result.ok(MenuService.buildTree(menus));
+  }
 }

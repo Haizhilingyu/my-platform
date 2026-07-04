@@ -21,15 +21,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @EnableJpaRepositories(basePackages = "com.example.sys.repository")
 public class SysAutoConfiguration {
 
-    @Bean
-    public JwtUtil jwtUtil(
-            @Value("${app.security.jwt.secret:my-platform-secret-key-must-be-at-least-32-bytes}") String secret,
-            @Value("${app.security.jwt.expiration:86400000}") long expiration) {
-        return new JwtUtil(secret, expiration);
-    }
+  @Bean
+  public JwtUtil jwtUtil(
+      @Value("${app.security.jwt.secret:my-platform-secret-key-must-be-at-least-32-bytes}")
+          String secret,
+      @Value("${app.security.jwt.expiration:86400000}") long expiration) {
+    return new JwtUtil(secret, expiration);
+  }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
 }

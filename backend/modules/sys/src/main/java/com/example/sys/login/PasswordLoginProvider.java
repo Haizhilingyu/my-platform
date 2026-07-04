@@ -27,9 +27,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 /**
  * 账号密码登录提供者。
  *
- * <p>从 {@code AuthController.login} 提取的原始密码认证逻辑：查库校验用户状态 →
- * 比对密码哈希 → 加载角色 → 生成 JWT（含 unitId/jti）→ 组装 {@link LoginVO} →
- * 发布 {@link LoginSuccessEvent}。
+ * <p>从 {@code AuthController.login} 提取的原始密码认证逻辑：查库校验用户状态 → 比对密码哈希 → 加载角色 → 生成 JWT（含 unitId/jti）→ 组装
+ * {@link LoginVO} → 发布 {@link LoginSuccessEvent}。
  *
  * <p>{@code order=100} 排在常见扩展方式（如 LDAP=50、SSO=30）之后，作为默认 Tab 展示在最后。
  */
@@ -37,99 +36,99 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @RequiredArgsConstructor
 public class PasswordLoginProvider implements LoginMethodProvider {
 
-    public static final String METHOD = "password";
+  public static final String METHOD = "password";
 
-    private final UserService userService;
-    private final PermissionService permissionService;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
-    private final ApplicationEventPublisher eventPublisher;
-    private final LoginSecurityService loginSecurityService;
+  private final UserService userService;
+  private final PermissionService permissionService;
+  private final PasswordEncoder passwordEncoder;
+  private final JwtUtil jwtUtil;
+  private final ApplicationEventPublisher eventPublisher;
+  private final LoginSecurityService loginSecurityService;
 
-    @Override
-    public String getMethod() {
-        return METHOD;
+  @Override
+  public String getMethod() {
+    return METHOD;
+  }
+
+  @Override
+  public boolean isEnabled() {
+    return true;
+  }
+
+  @Override
+  public int getOrder() {
+    return 100;
+  }
+
+  @Override
+  public LoginMethodDescriptor describe() {
+    return new LoginMethodDescriptor(METHOD, "账号密码登录", "password-icon", getOrder());
+  }
+
+  @Override
+  public LoginResult authenticate(LoginRequest request) {
+    loginSecurityService.checkLockStatus(request.username());
+    SysUser user = userService.getEntityByUsername(request.username());
+    if (user.getStatus() != 1) {
+      throw new BizException(403, "用户已被禁用");
     }
-
-    @Override
-    public boolean isEnabled() {
-        return true;
+    if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+      loginSecurityService.recordFailedAttempt(request.username());
+      throw new BizException(401, "用户名或密码错误");
     }
+    loginSecurityService.recordSuccessfulLogin(user.getUsername());
 
-    @Override
-    public int getOrder() {
-        return 100;
+    List<String> roles = List.copyOf(permissionService.getUserRoleCodes(user.getId()));
+    String token = jwtUtil.generate(user.getId(), user.getUsername(), user.getUnitId(), roles);
+
+    String jti = extractJti(token);
+    eventPublisher.publishEvent(
+        new LoginSuccessEvent(
+            user.getId(),
+            user.getUsername(),
+            jti,
+            extractIp(),
+            extractUserAgent(),
+            LocalDateTime.now()));
+
+    UserVO vo = UserVO.of(user);
+    return new LoginVO(token, "Bearer", vo);
+  }
+
+  private String extractJti(String token) {
+    Claims claims = jwtUtil.parse(token);
+    return claims.getId();
+  }
+
+  private String extractIp() {
+    HttpServletRequest request = currentRequest();
+    if (request == null) {
+      return null;
     }
-
-    @Override
-    public LoginMethodDescriptor describe() {
-        return new LoginMethodDescriptor(METHOD, "账号密码登录", "password-icon", getOrder());
+    String xff = request.getHeader("X-Forwarded-For");
+    if (xff != null && !xff.isBlank()) {
+      int comma = xff.indexOf(',');
+      return (comma > 0 ? xff.substring(0, comma) : xff).trim();
     }
-
-    @Override
-    public LoginResult authenticate(LoginRequest request) {
-        loginSecurityService.checkLockStatus(request.username());
-        SysUser user = userService.getEntityByUsername(request.username());
-        if (user.getStatus() != 1) {
-            throw new BizException(403, "用户已被禁用");
-        }
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            loginSecurityService.recordFailedAttempt(request.username());
-            throw new BizException(401, "用户名或密码错误");
-        }
-        loginSecurityService.recordSuccessfulLogin(user.getUsername());
-
-        List<String> roles = List.copyOf(permissionService.getUserRoleCodes(user.getId()));
-        String token = jwtUtil.generate(user.getId(), user.getUsername(), user.getUnitId(), roles);
-
-        String jti = extractJti(token);
-        eventPublisher.publishEvent(
-                new LoginSuccessEvent(
-                        user.getId(),
-                        user.getUsername(),
-                        jti,
-                        extractIp(),
-                        extractUserAgent(),
-                        LocalDateTime.now()));
-
-        UserVO vo = UserVO.of(user);
-        return new LoginVO(token, "Bearer", vo);
+    String real = request.getHeader("X-Real-IP");
+    if (real != null && !real.isBlank()) {
+      return real.trim();
     }
+    return request.getRemoteAddr();
+  }
 
-    private String extractJti(String token) {
-        Claims claims = jwtUtil.parse(token);
-        return claims.getId();
-    }
+  private String extractUserAgent() {
+    HttpServletRequest request = currentRequest();
+    return request != null ? request.getHeader("User-Agent") : null;
+  }
 
-    private String extractIp() {
-        HttpServletRequest request = currentRequest();
-        if (request == null) {
-            return null;
-        }
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            int comma = xff.indexOf(',');
-            return (comma > 0 ? xff.substring(0, comma) : xff).trim();
-        }
-        String real = request.getHeader("X-Real-IP");
-        if (real != null && !real.isBlank()) {
-            return real.trim();
-        }
-        return request.getRemoteAddr();
+  private HttpServletRequest currentRequest() {
+    try {
+      ServletRequestAttributes attrs =
+          (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+      return attrs != null ? attrs.getRequest() : null;
+    } catch (Exception e) {
+      return null;
     }
-
-    private String extractUserAgent() {
-        HttpServletRequest request = currentRequest();
-        return request != null ? request.getHeader("User-Agent") : null;
-    }
-
-    private HttpServletRequest currentRequest() {
-        try {
-            ServletRequestAttributes attrs =
-                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            return attrs != null ? attrs.getRequest() : null;
-        } catch (Exception e) {
-            return null;
-        }
-    }
+  }
 }

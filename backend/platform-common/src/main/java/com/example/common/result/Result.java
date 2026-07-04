@@ -10,25 +10,25 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record Result<T>(int code, String message, T data) {
 
-    private static final int SUCCESS_CODE = 200;
-    private static final String SUCCESS_MSG = "success";
+  private static final int SUCCESS_CODE = 200;
+  private static final String SUCCESS_MSG = "success";
 
-    /** 成功响应（带数据）。 */
-    public static <T> Result<T> ok(T data) {
-        return new Result<>(SUCCESS_CODE, SUCCESS_MSG, data);
-    }
+  /** 成功响应（带数据）。 */
+  public static <T> Result<T> ok(T data) {
+    return new Result<>(SUCCESS_CODE, SUCCESS_MSG, data);
+  }
 
-    /** 成功响应（无数据）。 */
-    public static <T> Result<T> ok() {
-        return new Result<>(SUCCESS_CODE, SUCCESS_MSG, null);
-    }
+  /** 成功响应（无数据）。 */
+  public static <T> Result<T> ok() {
+    return new Result<>(SUCCESS_CODE, SUCCESS_MSG, null);
+  }
 
-    /** 失败响应。 */
-    public static <T> Result<T> fail(int code, String message) {
-        return new Result<>(code, message, null);
-    }
+  /** 失败响应。 */
+  public static <T> Result<T> fail(int code, String message) {
+    return new Result<>(code, message, null);
+  }
 
-    public boolean isSuccess() {
-        return this.code == SUCCESS_CODE;
-    }
+  public boolean isSuccess() {
+    return this.code == SUCCESS_CODE;
+  }
 }

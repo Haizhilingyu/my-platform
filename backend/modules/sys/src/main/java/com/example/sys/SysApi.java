@@ -15,26 +15,26 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class SysApi {
 
-    private final PermissionService permissionService;
-    private final ConfigService configService;
+  private final PermissionService permissionService;
+  private final ConfigService configService;
 
-    /** 获取用户权限标识集合。 */
-    public Set<String> getUserPermissions(Long userId) {
-        return permissionService.getUserPermissions(userId);
-    }
+  /** 获取用户权限标识集合。 */
+  public Set<String> getUserPermissions(Long userId) {
+    return permissionService.getUserPermissions(userId);
+  }
 
-    /** 获取用户角色编码集合。 */
-    public Set<String> getUserRoles(Long userId) {
-        return permissionService.getUserRoleCodes(userId);
-    }
+  /** 获取用户角色编码集合。 */
+  public Set<String> getUserRoles(Long userId) {
+    return permissionService.getUserRoleCodes(userId);
+  }
 
-    /** 校验用户是否拥有指定权限。 */
-    public boolean hasPermission(Long userId, String permission) {
-        return permissionService.getUserPermissions(userId).contains(permission);
-    }
+  /** 校验用户是否拥有指定权限。 */
+  public boolean hasPermission(Long userId, String permission) {
+    return permissionService.getUserPermissions(userId).contains(permission);
+  }
 
-    /** 按 key 获取配置值，支持默认值。 */
-    public String getConfig(String key, String defaultValue) {
-        return configService.getValue(key, defaultValue);
-    }
+  /** 按 key 获取配置值，支持默认值。 */
+  public String getConfig(String key, String defaultValue) {
+    return configService.getValue(key, defaultValue);
+  }
 }

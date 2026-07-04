@@ -9,10 +9,10 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class SessionEventListener {
 
-    private final SessionService sessionService;
+  private final SessionService sessionService;
 
-    @EventListener
-    public void onLoginSuccess(LoginSuccessEvent event) {
-        sessionService.recordSession(event);
-    }
+  @EventListener
+  public void onLoginSuccess(LoginSuccessEvent event) {
+    sessionService.recordSession(event);
+  }
 }

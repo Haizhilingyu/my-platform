@@ -7,13 +7,13 @@ import lombok.Data;
 @Data
 public class ConfigDTO {
 
-    private Long id;
+  private Long id;
 
-    @NotBlank(message = "配置键不能为空")
-    private String configKey;
+  @NotBlank(message = "配置键不能为空")
+  private String configKey;
 
-    private String configValue;
-    private String configType;
-    private String description;
-    private String category;
+  private String configValue;
+  private String configType;
+  private String description;
+  private String category;
 }

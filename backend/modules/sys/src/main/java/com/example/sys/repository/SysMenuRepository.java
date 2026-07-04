@@ -7,11 +7,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 /** 菜单 Repository。 */
 public interface SysMenuRepository extends JpaRepository<SysMenu, Long> {
 
-    List<SysMenu> findByStatus(Integer status);
+  List<SysMenu> findByStatus(Integer status);
 
-    List<SysMenu> findByIdIn(List<Long> ids);
+  List<SysMenu> findByIdIn(List<Long> ids);
 
-    List<SysMenu> findByParentId(Long parentId);
+  List<SysMenu> findByParentId(Long parentId);
 
-    List<SysMenu> findByMenuTypeAndStatus(String menuType, Integer status);
+  List<SysMenu> findByMenuTypeAndStatus(String menuType, Integer status);
 }

@@ -18,45 +18,43 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 单位管理 Controller。
- */
+/** 单位管理 Controller。 */
 @RestController
 @RequestMapping("/sys/unit")
 @RequiredArgsConstructor
 public class UnitController {
 
-    private final UnitService unitService;
+  private final UnitService unitService;
 
-    @RequiresPermission("sys:unit:list")
-    @GetMapping("/tree")
-    public Result<List<UnitTreeNode>> tree() {
-        return Result.ok(unitService.getTree());
-    }
+  @RequiresPermission("sys:unit:list")
+  @GetMapping("/tree")
+  public Result<List<UnitTreeNode>> tree() {
+    return Result.ok(unitService.getTree());
+  }
 
-    @RequiresPermission("sys:unit:list")
-    @GetMapping("/{id}")
-    public Result<SysUnit> get(@PathVariable Long id) {
-        return Result.ok(unitService.getById(id));
-    }
+  @RequiresPermission("sys:unit:list")
+  @GetMapping("/{id}")
+  public Result<SysUnit> get(@PathVariable Long id) {
+    return Result.ok(unitService.getById(id));
+  }
 
-    @RequiresPermission("sys:unit:add")
-    @PostMapping
-    public Result<Long> create(@RequestBody @Valid UnitDTO dto) {
-        return Result.ok(unitService.create(dto));
-    }
+  @RequiresPermission("sys:unit:add")
+  @PostMapping
+  public Result<Long> create(@RequestBody @Valid UnitDTO dto) {
+    return Result.ok(unitService.create(dto));
+  }
 
-    @RequiresPermission("sys:unit:edit")
-    @PutMapping("/{id}")
-    public Result<Void> update(@PathVariable Long id, @RequestBody UnitDTO dto) {
-        unitService.update(id, dto);
-        return Result.ok();
-    }
+  @RequiresPermission("sys:unit:edit")
+  @PutMapping("/{id}")
+  public Result<Void> update(@PathVariable Long id, @RequestBody UnitDTO dto) {
+    unitService.update(id, dto);
+    return Result.ok();
+  }
 
-    @RequiresPermission("sys:unit:delete")
-    @DeleteMapping("/{id}")
-    public Result<Void> delete(@PathVariable Long id) {
-        unitService.delete(id);
-        return Result.ok();
-    }
+  @RequiresPermission("sys:unit:delete")
+  @DeleteMapping("/{id}")
+  public Result<Void> delete(@PathVariable Long id) {
+    unitService.delete(id);
+    return Result.ok();
+  }
 }

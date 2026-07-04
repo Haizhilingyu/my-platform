@@ -8,9 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 /** 系统配置 Repository。 */
 public interface SysConfigRepository extends JpaRepository<SysConfig, Long> {
 
-    Optional<SysConfig> findByConfigKey(String configKey);
+  Optional<SysConfig> findByConfigKey(String configKey);
 
-    boolean existsByConfigKey(String configKey);
+  boolean existsByConfigKey(String configKey);
 
-    List<SysConfig> findByCategory(String category);
+  List<SysConfig> findByCategory(String category);
 }

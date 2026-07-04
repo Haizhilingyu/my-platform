@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class LoginVO implements LoginResult {
-    private String token;
-    private String tokenType;
-    private UserVO user;
+  private String token;
+  private String tokenType;
+  private UserVO user;
 }

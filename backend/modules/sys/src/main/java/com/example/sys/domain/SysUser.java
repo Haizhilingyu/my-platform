@@ -13,9 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * 系统用户实体。
- */
+/** 系统用户实体。 */
 @Entity
 @Table(name = "sys_user")
 @Getter
@@ -25,33 +23,33 @@ import lombok.Setter;
 @Builder
 public class SysUser extends ScopedEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(nullable = false, unique = true, length = 64)
-    private String username;
+  @Column(nullable = false, unique = true, length = 64)
+  private String username;
 
-    @Column(nullable = false, length = 128)
-    private String password;
+  @Column(nullable = false, length = 128)
+  private String password;
 
-    @Column(name = "real_name", length = 64)
-    private String realName;
+  @Column(name = "real_name", length = 64)
+  private String realName;
 
-    @Column(length = 128)
-    private String email;
+  @Column(length = 128)
+  private String email;
 
-    @Column(length = 20)
-    private String phone;
+  @Column(length = 20)
+  private String phone;
 
-    @Column(name = "avatar")
-    private String avatar;
+  @Column(name = "avatar")
+  private String avatar;
 
-    /** 0=禁用 1=启用 */
-    @Column(nullable = false)
-    @Builder.Default
-    private Integer status = 1;
+  /** 0=禁用 1=启用 */
+  @Column(nullable = false)
+  @Builder.Default
+  private Integer status = 1;
 
-    @Column(length = 500)
-    private String remark;
+  @Column(length = 500)
+  private String remark;
 }

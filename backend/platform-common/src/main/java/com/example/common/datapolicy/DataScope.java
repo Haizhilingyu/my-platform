@@ -14,26 +14,26 @@ package com.example.common.datapolicy;
  * </ul>
  */
 public enum DataScope {
-    ALL,
-    UNIT,
-    UNIT_BELOW,
-    SELF,
-    CUSTOM;
+  ALL,
+  UNIT,
+  UNIT_BELOW,
+  SELF,
+  CUSTOM;
 
-    /**
-     * 从 {@code SysRole.dataScope} 字符串解析为枚举，忽略大小写；无法识别时回退为 {@link #SELF}（最保守）。
-     *
-     * @param text 角色表中存储的范围文本（如 "ALL"、"unit_below"），可为 null
-     * @return 对应枚举值
-     */
-    public static DataScope fromString(String text) {
-        if (text == null || text.isBlank()) {
-            return SELF;
-        }
-        try {
-            return DataScope.valueOf(text.trim().toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            return SELF;
-        }
+  /**
+   * 从 {@code SysRole.dataScope} 字符串解析为枚举，忽略大小写；无法识别时回退为 {@link #SELF}（最保守）。
+   *
+   * @param text 角色表中存储的范围文本（如 "ALL"、"unit_below"），可为 null
+   * @return 对应枚举值
+   */
+  public static DataScope fromString(String text) {
+    if (text == null || text.isBlank()) {
+      return SELF;
     }
+    try {
+      return DataScope.valueOf(text.trim().toUpperCase());
+    } catch (IllegalArgumentException ex) {
+      return SELF;
+    }
+  }
 }

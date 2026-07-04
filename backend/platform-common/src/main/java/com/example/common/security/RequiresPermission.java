@@ -11,6 +11,7 @@ import java.lang.annotation.Target;
  * <p>权限标识规范：{@code 模块:资源:操作}，如 {@code sys:user:add}
  *
  * <p>示例：
+ *
  * <pre>
  * &#64;RequiresPermission("sys:user:add")
  * &#64;RequiresPermission(value = {"sys:user:add", "sys:user:edit"}, logical = Logical.OR)
@@ -20,9 +21,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RequiresPermission {
 
-    /** 权限标识，支持多个。 */
-    String[] value();
+  /** 权限标识，支持多个。 */
+  String[] value();
 
-    /** 多个权限之间的逻辑关系，默认 AND。 */
-    Logical logical() default Logical.AND;
+  /** 多个权限之间的逻辑关系，默认 AND。 */
+  Logical logical() default Logical.AND;
 }

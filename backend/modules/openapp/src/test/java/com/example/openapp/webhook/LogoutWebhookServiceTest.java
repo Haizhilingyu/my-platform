@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.openapp.client.JdbcRegisteredClientRepository;
 import java.sql.Connection;
 import java.util.Map;
 import javax.sql.DataSource;
@@ -25,8 +26,6 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.web.client.RestTemplate;
-
-import com.example.openapp.client.JdbcRegisteredClientRepository;
 
 class LogoutWebhookServiceTest {
 

@@ -22,21 +22,21 @@ import lombok.Setter;
 @AllArgsConstructor
 public class SysUserRole {
 
-    @Id
-    @Column(name = "user_id")
+  @Id
+  @Column(name = "user_id")
+  private Long userId;
+
+  @Id
+  @Column(name = "role_id")
+  private Long roleId;
+
+  @Getter
+  @Setter
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @EqualsAndHashCode
+  public static class PK implements Serializable {
     private Long userId;
-
-    @Id
-    @Column(name = "role_id")
     private Long roleId;
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @EqualsAndHashCode
-    public static class PK implements Serializable {
-        private Long userId;
-        private Long roleId;
-    }
+  }
 }

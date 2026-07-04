@@ -17,107 +17,104 @@ import org.junit.jupiter.api.Test;
 @DisplayName("LoginMethodRegistry 注册表")
 class LoginMethodRegistryTest {
 
-    private LoginMethodProvider provider(String method, boolean enabled, int order) {
-        LoginMethodProvider p = mock(LoginMethodProvider.class);
-        when(p.getMethod()).thenReturn(method);
-        when(p.isEnabled()).thenReturn(enabled);
-        when(p.getOrder()).thenReturn(order);
-        when(p.describe())
-                .thenReturn(new LoginMethodDescriptor(method, method + "-label", method + "-icon", order));
-        return p;
-    }
+  private LoginMethodProvider provider(String method, boolean enabled, int order) {
+    LoginMethodProvider p = mock(LoginMethodProvider.class);
+    when(p.getMethod()).thenReturn(method);
+    when(p.isEnabled()).thenReturn(enabled);
+    when(p.getOrder()).thenReturn(order);
+    when(p.describe())
+        .thenReturn(new LoginMethodDescriptor(method, method + "-label", method + "-icon", order));
+    return p;
+  }
 
-    @Test
-    @DisplayName("多提供者注册：getEnabledMethods 按 order 升序排列")
-    void getEnabledMethods_shouldSortByOrderAscending() {
-        LoginMethodRegistry registry =
-                new LoginMethodRegistry(
-                        List.of(
-                                provider("password", true, 100),
-                                provider("ldap", true, 50),
-                                provider("sso", true, 30)));
+  @Test
+  @DisplayName("多提供者注册：getEnabledMethods 按 order 升序排列")
+  void getEnabledMethods_shouldSortByOrderAscending() {
+    LoginMethodRegistry registry =
+        new LoginMethodRegistry(
+            List.of(
+                provider("password", true, 100),
+                provider("ldap", true, 50),
+                provider("sso", true, 30)));
 
-        List<LoginMethodDescriptor> methods = registry.getEnabledMethods();
+    List<LoginMethodDescriptor> methods = registry.getEnabledMethods();
 
-        assertThat(methods)
-                .extracting(LoginMethodDescriptor::method)
-                .containsExactly("sso", "ldap", "password");
-    }
+    assertThat(methods)
+        .extracting(LoginMethodDescriptor::method)
+        .containsExactly("sso", "ldap", "password");
+  }
 
-    @Test
-    @DisplayName("disabled 提供者不出现在 getEnabledMethods 中")
-    void getEnabledMethods_shouldExcludeDisabled() {
-        LoginMethodRegistry registry =
-                new LoginMethodRegistry(
-                        List.of(
-                                provider("password", true, 100),
-                                provider("ldap", false, 50)));
+  @Test
+  @DisplayName("disabled 提供者不出现在 getEnabledMethods 中")
+  void getEnabledMethods_shouldExcludeDisabled() {
+    LoginMethodRegistry registry =
+        new LoginMethodRegistry(
+            List.of(provider("password", true, 100), provider("ldap", false, 50)));
 
-        List<LoginMethodDescriptor> methods = registry.getEnabledMethods();
+    List<LoginMethodDescriptor> methods = registry.getEnabledMethods();
 
-        assertThat(methods).extracting(LoginMethodDescriptor::method).containsExactly("password");
-    }
+    assertThat(methods).extracting(LoginMethodDescriptor::method).containsExactly("password");
+  }
 
-    @Test
-    @DisplayName("getProvider 按 method 命中已启用提供者")
-    void getProvider_shouldReturnEnabledProviderByMethod() {
-        LoginMethodProvider password = provider("password", true, 100);
-        LoginMethodRegistry registry = new LoginMethodRegistry(List.of(password));
+  @Test
+  @DisplayName("getProvider 按 method 命中已启用提供者")
+  void getProvider_shouldReturnEnabledProviderByMethod() {
+    LoginMethodProvider password = provider("password", true, 100);
+    LoginMethodRegistry registry = new LoginMethodRegistry(List.of(password));
 
-        LoginMethodProvider resolved = registry.getProvider("password");
+    LoginMethodProvider resolved = registry.getProvider("password");
 
-        assertThat(resolved).isSameAs(password);
-    }
+    assertThat(resolved).isSameAs(password);
+  }
 
-    @Test
-    @DisplayName("getProvider 对未知 method 返回 null")
-    void getProvider_shouldReturnNullForUnknownMethod() {
-        LoginMethodRegistry registry =
-                new LoginMethodRegistry(List.of(provider("password", true, 100)));
+  @Test
+  @DisplayName("getProvider 对未知 method 返回 null")
+  void getProvider_shouldReturnNullForUnknownMethod() {
+    LoginMethodRegistry registry =
+        new LoginMethodRegistry(List.of(provider("password", true, 100)));
 
-        assertThat(registry.getProvider("ldap")).isNull();
-    }
+    assertThat(registry.getProvider("ldap")).isNull();
+  }
 
-    @Test
-    @DisplayName("getProvider 对禁用 method 返回 null")
-    void getProvider_shouldReturnNullForDisabledMethod() {
-        LoginMethodRegistry registry =
-                new LoginMethodRegistry(List.of(provider("ldap", false, 50)));
+  @Test
+  @DisplayName("getProvider 对禁用 method 返回 null")
+  void getProvider_shouldReturnNullForDisabledMethod() {
+    LoginMethodRegistry registry = new LoginMethodRegistry(List.of(provider("ldap", false, 50)));
 
-        assertThat(registry.getProvider("ldap")).isNull();
-    }
+    assertThat(registry.getProvider("ldap")).isNull();
+  }
 
-    @Test
-    @DisplayName("getProvider 对 null method 返回 null")
-    void getProvider_shouldReturnNullForNullMethod() {
-        LoginMethodRegistry registry =
-                new LoginMethodRegistry(List.of(provider("password", true, 100)));
+  @Test
+  @DisplayName("getProvider 对 null method 返回 null")
+  void getProvider_shouldReturnNullForNullMethod() {
+    LoginMethodRegistry registry =
+        new LoginMethodRegistry(List.of(provider("password", true, 100)));
 
-        assertThat(registry.getProvider(null)).isNull();
-    }
+    assertThat(registry.getProvider(null)).isNull();
+  }
 
-    @Test
-    @DisplayName("getEnabledMethodNames 返回启用方法集合，按 order 升序保序")
-    void getEnabledMethodNames_shouldReturnOrderedSetOfEnabledMethods() {
-        LoginMethodRegistry registry =
-                new LoginMethodRegistry(
-                        List.of(
-                                provider("password", true, 100),
-                                provider("ldap", true, 50),
-                                provider("disabled", false, 10)));
+  @Test
+  @DisplayName("getEnabledMethodNames 返回启用方法集合，按 order 升序保序")
+  void getEnabledMethodNames_shouldReturnOrderedSetOfEnabledMethods() {
+    LoginMethodRegistry registry =
+        new LoginMethodRegistry(
+            List.of(
+                provider("password", true, 100),
+                provider("ldap", true, 50),
+                provider("disabled", false, 10)));
 
-        Set<String> names = registry.getEnabledMethodNames();
+    Set<String> names = registry.getEnabledMethodNames();
 
-        assertThat(names).containsExactly("ldap", "password");
-    }
+    assertThat(names).containsExactly("ldap", "password");
+  }
 
-    @Test
-    @DisplayName("空注册表：所有查询返回空/null")
-    void emptyRegistry_shouldReturnEmptyResults() {
-        LoginMethodRegistry registry = new LoginMethodRegistry(List.of());
+  @Test
+  @DisplayName("空注册表：所有查询返回空/null")
+  void emptyRegistry_shouldReturnEmptyResults() {
+    LoginMethodRegistry registry = new LoginMethodRegistry(List.of());
 
-        assertThat(registry.getEnabledMethods()).isEmpty();
-        assertThat(registry.getEnabledMethodNames()).isEmpty();
-        assertThat(registry.getProvider("password")).isNull();
-    }
+    assertThat(registry.getEnabledMethods()).isEmpty();
+    assertThat(registry.getEnabledMethodNames()).isEmpty();
+    assertThat(registry.getProvider("password")).isNull();
+  }
 }

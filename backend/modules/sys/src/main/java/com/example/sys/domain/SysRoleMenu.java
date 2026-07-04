@@ -22,21 +22,21 @@ import lombok.Setter;
 @AllArgsConstructor
 public class SysRoleMenu {
 
-    @Id
-    @Column(name = "role_id")
+  @Id
+  @Column(name = "role_id")
+  private Long roleId;
+
+  @Id
+  @Column(name = "menu_id")
+  private Long menuId;
+
+  @Getter
+  @Setter
+  @NoArgsConstructor
+  @AllArgsConstructor
+  @EqualsAndHashCode
+  public static class PK implements Serializable {
     private Long roleId;
-
-    @Id
-    @Column(name = "menu_id")
     private Long menuId;
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @EqualsAndHashCode
-    public static class PK implements Serializable {
-        private Long roleId;
-        private Long menuId;
-    }
+  }
 }

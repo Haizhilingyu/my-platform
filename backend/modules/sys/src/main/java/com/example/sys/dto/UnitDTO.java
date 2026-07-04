@@ -7,15 +7,15 @@ import lombok.Data;
 @Data
 public class UnitDTO {
 
-    private Long parentId;
+  private Long parentId;
 
-    @NotBlank(message = "单位编码不能为空")
-    private String unitCode;
+  @NotBlank(message = "单位编码不能为空")
+  private String unitCode;
 
-    @NotBlank(message = "单位名称不能为空")
-    private String unitName;
+  @NotBlank(message = "单位名称不能为空")
+  private String unitName;
 
-    private Integer sort;
-    private Integer status;
-    private String remark;
+  private Integer sort;
+  private Integer status;
+  private String remark;
 }

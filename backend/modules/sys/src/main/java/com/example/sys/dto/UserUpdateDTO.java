@@ -6,11 +6,11 @@ import lombok.Data;
 @Data
 public class UserUpdateDTO {
 
-    private String realName;
-    private String email;
-    private String phone;
-    private Long unitId;
-    private String avatar;
-    private Integer status;
-    private String remark;
+  private String realName;
+  private String email;
+  private String phone;
+  private Long unitId;
+  private String avatar;
+  private Integer status;
+  private String remark;
 }

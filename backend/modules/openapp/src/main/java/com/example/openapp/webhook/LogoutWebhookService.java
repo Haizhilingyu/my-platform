@@ -13,8 +13,8 @@ import org.springframework.web.client.RestTemplate;
 /**
  * 用户登出时向外部应用推送 webhook。
  *
- * <p>查询 {@code oauth_authorization} 表中该用户有活跃授权、且在 {@code openapp_client} 配置了
- * {@code logout_webhook_url} 的客户端，向每个 webhook URL POST {@code {event:"logout", userId, username,
+ * <p>查询 {@code oauth_authorization} 表中该用户有活跃授权、且在 {@code openapp_client} 配置了 {@code
+ * logout_webhook_url} 的客户端，向每个 webhook URL POST {@code {event:"logout", userId, username,
  * timestamp}}。单个 webhook 失败（网络超时 / 非 2xx / URL 无效）不影响其他客户端的推送，异常仅记录日志。
  *
  * <p>设计为同步推送 + 异常隔离：登出流程不阻塞在慢速 webhook 上（RestTemplate 超时由调用方注入），单个失败不影响整体登出语义。
@@ -57,10 +57,14 @@ public class LogoutWebhookService {
   private boolean postWebhook(ClientLogoutWebhook webhook, String principalName, String username) {
     Map<String, Object> payload =
         Map.of(
-            "event", "logout",
-            "userId", principalName,
-            "username", username,
-            "timestamp", Instant.now().toString());
+            "event",
+            "logout",
+            "userId",
+            principalName,
+            "username",
+            username,
+            "timestamp",
+            Instant.now().toString());
     try {
       ResponseEntity<String> response =
           restTemplate.postForEntity(webhook.webhookUrl(), payload, String.class);
