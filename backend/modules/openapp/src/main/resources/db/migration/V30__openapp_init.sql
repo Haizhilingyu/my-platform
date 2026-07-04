@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS openapp_client (
     id                          BIGSERIAL      PRIMARY KEY,
     client_id                   VARCHAR(128)   NOT NULL UNIQUE,
     client_secret               VARCHAR(256)   NOT NULL,
-    client_name                 VARCHAR(128)   NOT NULL,
+    client_name                 VARCHAR(128),
     redirect_uris               VARCHAR(1024),
     post_logout_redirect_uris   VARCHAR(1024),
     scopes                      VARCHAR(1024),
