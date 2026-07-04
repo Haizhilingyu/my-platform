@@ -50,6 +50,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/modules/sys/views/config/index.vue'),
         meta: { title: '系统配置', permission: 'sys:config:list' },
       },
+      {
+        path: 'sys/app',
+        name: 'SysApp',
+        component: () => import('@/modules/sys/views/app/index.vue'),
+        meta: { title: '外部应用', permission: 'sys:openapp:list' },
+      },
     ],
   },
   {
