@@ -2,6 +2,8 @@ package com.example.sys.service;
 
 import com.example.common.exception.BizException;
 import com.example.common.exception.NotFoundException;
+import com.example.common.security.CurrentUser;
+import com.example.common.security.PermissionLoader;
 import com.example.sys.domain.SysMenu;
 import com.example.sys.domain.SysRole;
 import com.example.sys.domain.SysRoleMenu;
@@ -24,11 +26,11 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 权限核心服务。负责用户权限和菜单数据的加载。
  *
- * <p>权限缓存通过 Redis 实现，角色权限变更时自动清除。
+ * <p>当前直接查库；Redis 缓存待后续任务实现（当前未接入）。
  */
 @Service
 @RequiredArgsConstructor
-public class PermissionService {
+public class PermissionService implements PermissionLoader {
 
     private final SysUserRepository userRepository;
     private final SysRoleRepository roleRepository;
@@ -127,5 +129,38 @@ public class PermissionService {
                     .toList();
             roleMenuRepository.saveAll(roleMenus);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<String> loadPermissions(Long userId) {
+        return getUserPermissions(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<String> loadRoles(Long userId) {
+        return getUserRoleCodes(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CurrentUser.UserInfo loadUserInfo(Long userId) {
+        SysUser user = getActiveUser(userId);
+        return new CurrentUser.UserInfo(
+                userId,
+                user.getUsername(),
+                user.getUnitId(),
+                getUserRoleCodes(userId),
+                getUserPermissions(userId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasPermission(Long userId, String permission) {
+        if (permission == null || permission.isBlank()) {
+            return false;
+        }
+        return getUserPermissions(userId).contains(permission);
     }
 }

@@ -2,6 +2,7 @@ package com.example.app.config;
 
 import com.example.common.security.CurrentUser;
 import com.example.common.security.JwtUtil;
+import com.example.common.security.PermissionLoader;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,8 +24,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.example.sys.service.PermissionService;
-
 /**
  * 安全配置。JWT 无状态认证 + 权限注入。
  */
@@ -35,7 +34,7 @@ import com.example.sys.service.PermissionService;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
-    private final PermissionService permissionService;
+    private final PermissionLoader permissionLoader;
 
     private static final String[] PUBLIC_PATHS = {
             "/sys/auth/login",
@@ -55,7 +54,7 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new JwtAuthFilter(jwtUtil, permissionService),
+                .addFilterBefore(new JwtAuthFilter(jwtUtil, permissionLoader),
                         UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -68,7 +67,7 @@ public class SecurityConfig {
     static class JwtAuthFilter extends OncePerRequestFilter {
 
         private final JwtUtil jwtUtil;
-        private final PermissionService permissionService;
+        private final PermissionLoader permissionLoader;
 
         @Override
         protected void doFilterInternal(HttpServletRequest request,
@@ -86,7 +85,7 @@ public class SecurityConfig {
                 List<String> roleList = claims.get("roles", List.class);
                 Set<String> roles = roleList != null ? new HashSet<>(roleList) : new HashSet<>();
 
-                Set<String> permissions = permissionService.getUserPermissions(userId);
+                Set<String> permissions = permissionLoader.loadPermissions(userId);
 
                 CurrentUser.set(new CurrentUser.UserInfo(userId, username, null, roles, permissions));
 
