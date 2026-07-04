@@ -8,6 +8,8 @@ export interface UserVO {
   unitName: string | null
   avatar: string | null
   status: number
+  /** 锁定状态：后端 UserVO 暂未填充，需 LoginSecurityService.isLocked 接入。 */
+  locked?: boolean
   remark: string | null
   createdAt: string
 }
@@ -80,4 +82,31 @@ export interface LoginVO {
   token: string
   tokenType: string
   user: UserVO
+}
+
+/**
+ * 登录请求载荷（与后端 LoginRequest 对齐）。
+ * method 缺省时后端默认 "password"；开启验证码时 captchaId/captchaCode 必填。
+ */
+export interface LoginRequest {
+  method?: string
+  username: string
+  password: string
+  captchaId?: string | null
+  captchaCode?: string | null
+  attributes?: Record<string, unknown> | null
+}
+
+/** 登录方式描述符；前端按 order 升序渲染 Tab。 */
+export interface LoginMethodDescriptor {
+  method: string
+  label: string
+  icon: string | null
+  order: number
+}
+
+/** 图形验证码响应；image 为 data URI，captchaId 需原样回传校验。 */
+export interface CaptchaResult {
+  captchaId: string
+  image: string
 }

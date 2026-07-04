@@ -1,9 +1,25 @@
 import { http } from './http'
-import type { Result, LoginVO, UserVO, MenuTreeNode } from './types'
+import type {
+  Result,
+  LoginVO,
+  UserVO,
+  MenuTreeNode,
+  LoginRequest,
+  LoginMethodDescriptor,
+  CaptchaResult,
+} from './types'
 
 export const authApi = {
-  login(data: { username: string; password: string }): Promise<Result<LoginVO>> {
+  login(data: LoginRequest): Promise<Result<LoginVO>> {
     return http.post('/sys/auth/login', data)
+  },
+
+  getLoginMethods(): Promise<Result<LoginMethodDescriptor[]>> {
+    return http.get('/sys/auth/login-methods')
+  },
+
+  getCaptcha(): Promise<Result<CaptchaResult>> {
+    return http.get('/sys/auth/captcha')
   },
 
   getMe(): Promise<Result<UserVO>> {
