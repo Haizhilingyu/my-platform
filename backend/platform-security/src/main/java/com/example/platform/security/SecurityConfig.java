@@ -39,6 +39,7 @@ public class SecurityConfig {
     static final String[] PUBLIC_PATHS = {
             "/sys/auth/login",
             "/sys/auth/login-methods",
+            "/sys/auth/captcha",
             "/doc/**",
             "/swagger-ui/**",
             "/v3/api-docs/**",

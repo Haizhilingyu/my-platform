@@ -12,9 +12,12 @@ import com.example.common.result.Result;
 import com.example.common.security.CurrentUser;
 import com.example.common.security.JwtUtil;
 import com.example.sys.domain.SysMenu;
+import com.example.sys.dto.CaptchaResult;
 import com.example.sys.dto.LoginVO;
 import com.example.sys.dto.MenuTreeNode;
 import com.example.sys.dto.UserVO;
+import com.example.sys.service.CaptchaService;
+import com.example.sys.service.ConfigService;
 import com.example.sys.service.MenuService;
 import com.example.sys.service.PermissionService;
 import com.example.sys.service.UserService;
@@ -42,6 +45,7 @@ public class AuthController {
 
     static final String BLACKLIST_KEY_PREFIX = "jwt:blacklist:";
     static final String DEFAULT_LOGIN_METHOD = "password";
+    static final String CAPTCHA_ENABLED_KEY = "sys.security.captcha.enabled";
 
     private final UserService userService;
     private final PermissionService permissionService;
@@ -49,11 +53,19 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final RedisCacheService redisCacheService;
     private final LoginMethodRegistry loginMethodRegistry;
+    private final CaptchaService captchaService;
+    private final ConfigService configService;
 
     @Operation(summary = "登录", description = "根据 method 路由到对应 LoginMethodProvider，默认 password")
     @Auditable(action = "LOGIN")
     @PostMapping("/login")
     public Result<LoginVO> login(@RequestBody LoginRequest request) {
+        if (captchaEnabled() && !captchaService.validate(request.captchaId(), request.captchaCode())) {
+            if (request.captchaId() == null || request.captchaCode() == null) {
+                throw new BizException(400, "请输入验证码");
+            }
+            throw new BizException(400, "验证码错误或已过期");
+        }
         String method = request.method() != null ? request.method() : DEFAULT_LOGIN_METHOD;
         LoginMethodProvider provider = loginMethodRegistry.getProvider(method);
         if (provider == null) {
@@ -61,6 +73,16 @@ public class AuthController {
         }
         LoginResult result = provider.authenticate(request);
         return Result.ok((LoginVO) result);
+    }
+
+    @Operation(summary = "获取图形验证码", description = "返回 captchaId 和带 data URI 前缀的 base64 图片，TTL 5 分钟，单次使用")
+    @GetMapping("/captcha")
+    public Result<CaptchaResult> captcha() {
+        return Result.ok(captchaService.generate());
+    }
+
+    private boolean captchaEnabled() {
+        return "true".equalsIgnoreCase(configService.getValue(CAPTCHA_ENABLED_KEY, "true"));
     }
 
     @Operation(summary = "获取可用登录方式", description = "返回所有已启用登录方式的描述符，按 order 升序")

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -17,8 +18,11 @@ import com.example.common.login.LoginMethodRegistry;
 import com.example.common.login.LoginRequest;
 import com.example.common.result.Result;
 import com.example.common.security.JwtUtil;
+import com.example.sys.dto.CaptchaResult;
 import com.example.sys.dto.LoginVO;
 import com.example.sys.dto.UserVO;
+import com.example.sys.service.CaptchaService;
+import com.example.sys.service.ConfigService;
 import com.example.sys.service.MenuService;
 import com.example.sys.service.PermissionService;
 import com.example.sys.service.UserService;
@@ -44,10 +48,19 @@ class AuthControllerTest {
     private final PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
     private final RedisCacheService redisCacheService = mock(RedisCacheService.class);
     private final LoginMethodRegistry loginMethodRegistry = mock(LoginMethodRegistry.class);
+    private final CaptchaService captchaService = mock(CaptchaService.class);
+    private final ConfigService configService = mock(ConfigService.class);
 
     private final AuthController controller =
             new AuthController(
-                    userService, permissionService, menuService, jwtUtil, redisCacheService, loginMethodRegistry);
+                    userService,
+                    permissionService,
+                    menuService,
+                    jwtUtil,
+                    redisCacheService,
+                    loginMethodRegistry,
+                    captchaService,
+                    configService);
 
     @Test
     @DisplayName("登出：将 jti 写入黑名单，TTL = token 剩余有效期")
@@ -181,5 +194,89 @@ class AuthControllerTest {
         assertThat(result.isSuccess()).isTrue();
         assertThat(result.data()).hasSize(2);
         assertThat(result.data().get(0).method()).isEqualTo("ldap");
+    }
+
+    @Test
+    @DisplayName("captcha 端点：返回 captchaId + base64 图片")
+    void captcha_returnsCaptchaResult() {
+        CaptchaResult captcha = new CaptchaResult("cap-id-1", "data:image/png;base64,AAAA");
+        when(captchaService.generate()).thenReturn(captcha);
+
+        Result<CaptchaResult> result = controller.captcha();
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.data().captchaId()).isEqualTo("cap-id-1");
+        assertThat(result.data().image()).isEqualTo("data:image/png;base64,AAAA");
+        verify(captchaService).generate();
+    }
+
+    @Test
+    @DisplayName("登录：captcha 开启 + 验证码正确 → 继续路由到 provider")
+    void login_captchaEnabledAndValid_routesToProvider() {
+        when(configService.getValue(AuthController.CAPTCHA_ENABLED_KEY, "true")).thenReturn("true");
+        when(captchaService.validate("cap-id", "ABCD")).thenReturn(true);
+        LoginMethodProvider provider = mock(LoginMethodProvider.class);
+        LoginVO vo = new LoginVO("tok", "Bearer", new UserVO());
+        when(provider.authenticate(any(LoginRequest.class))).thenReturn(vo);
+        when(loginMethodRegistry.getProvider("password")).thenReturn(provider);
+
+        Result<LoginVO> result =
+                controller.login(new LoginRequest("password", "admin", "pw", "cap-id", "ABCD", null));
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.data()).isSameAs(vo);
+        verify(captchaService).validate("cap-id", "ABCD");
+    }
+
+    @Test
+    @DisplayName("登录：captcha 开启 + 验证码错误 → 400 \"验证码错误或已过期\"，不路由 provider")
+    void login_captchaEnabledAndInvalid_throws400() {
+        when(configService.getValue(AuthController.CAPTCHA_ENABLED_KEY, "true")).thenReturn("true");
+        when(captchaService.validate("cap-id", "WRONG")).thenReturn(false);
+
+        assertThatThrownBy(
+                        () ->
+                                controller.login(
+                                        new LoginRequest("password", "admin", "pw", "cap-id", "WRONG", null)))
+                .isInstanceOf(BizException.class)
+                .satisfies(
+                        ex -> {
+                            BizException biz = (BizException) ex;
+                            assertThat(biz.getCode()).isEqualTo(400);
+                            assertThat(biz.getMessage()).contains("验证码错误或已过期");
+                        });
+        verify(loginMethodRegistry, never()).getProvider(any(String.class));
+    }
+
+    @Test
+    @DisplayName("登录：captcha 开启 + 未提交验证码 → 400 \"请输入验证码\"")
+    void login_captchaEnabledButMissing_throws400() {
+        when(configService.getValue(AuthController.CAPTCHA_ENABLED_KEY, "true")).thenReturn("true");
+        when(captchaService.validate(null, null)).thenReturn(false);
+
+        assertThatThrownBy(() -> controller.login(LoginRequest.password("admin", "pw")))
+                .isInstanceOf(BizException.class)
+                .satisfies(
+                        ex -> {
+                            BizException biz = (BizException) ex;
+                            assertThat(biz.getCode()).isEqualTo(400);
+                            assertThat(biz.getMessage()).contains("请输入验证码");
+                        });
+    }
+
+    @Test
+    @DisplayName("登录：captcha 关闭 → 跳过校验，直接路由 provider")
+    void login_captchaDisabled_skipsValidation() {
+        when(configService.getValue(AuthController.CAPTCHA_ENABLED_KEY, "true")).thenReturn("false");
+        LoginMethodProvider provider = mock(LoginMethodProvider.class);
+        LoginVO vo = new LoginVO("tok", "Bearer", new UserVO());
+        when(provider.authenticate(any(LoginRequest.class))).thenReturn(vo);
+        when(loginMethodRegistry.getProvider("password")).thenReturn(provider);
+
+        Result<LoginVO> result = controller.login(LoginRequest.password("admin", "pw"));
+
+        assertThat(result.isSuccess()).isTrue();
+        verify(captchaService, never()).validate(any(String.class), any(String.class));
+        verify(loginMethodRegistry).getProvider("password");
     }
 }

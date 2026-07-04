@@ -51,6 +51,7 @@
     <lombok.version>1.18.34</lombok.version>
     <testcontainers.version>1.20.4</testcontainers.version>
     <archunit.version>1.3.0</archunit.version>
+    <hutool.version>5.8.46</hutool.version>
   </properties>
 
   <dependencyManagement>
@@ -160,6 +161,13 @@
         <artifactId>archunit-junit5</artifactId>
         <version>${archunit.version}</version>
         <scope>test</scope>
+      </dependency>
+
+      <!-- Hutool 工具库（按需引入子模块：hutool-captcha 等） -->
+      <dependency>
+        <groupId>cn.hutool</groupId>
+        <artifactId>hutool-captcha</artifactId>
+        <version>${hutool.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
