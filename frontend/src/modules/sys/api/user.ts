@@ -60,4 +60,8 @@ export const userApi = {
   resetPassword(id: number, newPassword: string): Promise<Result<void>> {
     return http.post(`/sys/user/${id}/reset-password`, null, { params: { newPassword } })
   },
+
+  unlock(id: number): Promise<Result<void>> {
+    return http.post(`/sys/user/${id}/unlock`)
+  },
 }

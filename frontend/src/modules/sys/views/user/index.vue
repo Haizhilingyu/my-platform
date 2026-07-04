@@ -118,6 +118,16 @@ async function handleDelete(row: UserVO) {
   }
 }
 
+async function handleUnlock(row: UserVO) {
+  try {
+    await userApi.unlock(row.id)
+    message.success('解锁成功')
+    fetchData()
+  } catch (e: any) {
+    message.error(e.response?.data?.message || '解锁失败')
+  }
+}
+
 function flattenUnits(units: UnitTreeNode[]): any[] {
   return units.map(u => ({
     label: u.unitName,
@@ -133,17 +143,25 @@ const columns: DataTableColumns<UserVO> = [
   { title: '电话', key: 'phone', width: 130 },
   { title: '单位', key: 'unitName', width: 120 },
   {
-    title: '状态', key: 'status', width: 80,
-    render: (row) => h(NTag, { type: row.status === 1 ? 'success' : 'error', size: 'small' },
-      { default: () => row.status === 1 ? '启用' : '禁用' }),
+    title: '状态', key: 'status', width: 90,
+    render: (row) => {
+      if (row.locked) {
+        return h(NTag, { type: 'error', size: 'small' }, { default: () => '锁定' })
+      }
+      return h(NTag, { type: row.status === 1 ? 'success' : 'warning', size: 'small' },
+        { default: () => row.status === 1 ? '正常' : '禁用' })
+    },
   },
   {
-    title: '操作', key: 'actions', width: 180,
+    title: '操作', key: 'actions', width: 220,
     render: (row) => h(NSpace, {}, {
       default: () => [
         authStore.hasPermission('sys:user:edit') && h(NButton, {
           size: 'small', onClick: () => handleEdit(row),
         }, { default: () => '编辑' }),
+        row.locked && authStore.hasPermission('sys:user:unlock') && h(NButton, {
+          size: 'small', type: 'warning', onClick: () => handleUnlock(row),
+        }, { default: () => '解锁' }),
         authStore.hasPermission('sys:user:delete') && h(NButton, {
           size: 'small', type: 'error', onClick: () => handleDelete(row),
         }, { default: () => '删除' }),
@@ -173,7 +191,7 @@ onMounted(() => {
       :columns="columns"
       :data="data"
       :loading="loading"
-      :scroll-x="910"
+      :scroll-x="950"
       :pagination="{
         page: query.pageNum,
         pageSize: query.pageSize,

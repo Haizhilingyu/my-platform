@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import {
   NCard, NDataTable, NButton, NSpace, NModal, NForm, NFormItem,
   NInput, NSelect, NTag, useMessage, NTree, type DataTableColumns,
 } from 'naive-ui'
 import { roleApi, type RoleDTO } from '@/modules/sys/api/role'
 import { menuApi } from '@/modules/sys/api/menu'
-import type { SysRole, MenuTreeNode } from '@/modules/sys/api/types'
+import { unitApi } from '@/modules/sys/api/unit'
+import type { SysRole, MenuTreeNode, UnitTreeNode } from '@/modules/sys/api/types'
+import { useBreakpoint } from '@/shared/composables/useBreakpoint'
 
 const message = useMessage()
+const { isMobile } = useBreakpoint()
+const labelPlacement = computed(() => (isMobile.value ? 'top' : 'left'))
 
 const loading = ref(false)
 const data = ref<SysRole[]>([])
@@ -16,6 +20,10 @@ const data = ref<SysRole[]>([])
 const showModal = ref(false)
 const editingId = ref<number | null>(null)
 const form = ref<RoleDTO>({ roleCode: '', roleName: '', dataScope: 'SELF', status: 1 })
+
+const unitTree = ref<UnitTreeNode[]>([])
+const customUnitIds = ref<number[]>([])
+const isCustomScope = computed(() => form.value.dataScope === 'CUSTOM')
 
 const showPermModal = ref(false)
 const permRoleId = ref<number | null>(null)
@@ -27,6 +35,7 @@ const dataScopes = [
   { label: '本单位', value: 'UNIT' },
   { label: '本单位及下属', value: 'UNIT_BELOW' },
   { label: '仅本人', value: 'SELF' },
+  { label: '自定义', value: 'CUSTOM' },
 ]
 
 async function fetchData() {
@@ -42,10 +51,11 @@ async function fetchData() {
 function handleAdd() {
   editingId.value = null
   form.value = { roleCode: '', roleName: '', dataScope: 'SELF', status: 1 }
+  customUnitIds.value = []
   showModal.value = true
 }
 
-function handleEdit(row: SysRole) {
+async function handleEdit(row: SysRole) {
   editingId.value = row.id
   form.value = {
     roleCode: row.roleCode,
@@ -54,6 +64,15 @@ function handleEdit(row: SysRole) {
     status: row.status,
     remark: row.remark || undefined,
   }
+  customUnitIds.value = []
+  if (row.dataScope === 'CUSTOM') {
+    try {
+      const res = await roleApi.getCustomUnits(row.id)
+      customUnitIds.value = res.data
+    } catch {
+      // 后端暂未暴露自定义数据范围查询端点（T24 known limitation）
+    }
+  }
   showModal.value = true
 }
 
@@ -61,15 +80,26 @@ async function handleSave() {
   try {
     if (editingId.value) {
       await roleApi.update(editingId.value, form.value)
+      await saveCustomScope(editingId.value)
       message.success('修改成功')
     } else {
-      await roleApi.create(form.value)
+      const res = await roleApi.create(form.value)
+      await saveCustomScope(res.data)
       message.success('新增成功')
     }
     showModal.value = false
     fetchData()
   } catch (e: any) {
     message.error(e.response?.data?.message || '操作失败')
+  }
+}
+
+async function saveCustomScope(roleId: number) {
+  if (!isCustomScope.value) return
+  try {
+    await roleApi.saveCustomUnits(roleId, customUnitIds.value)
+  } catch {
+    message.warning('自定义数据范围保存失败：后端暂未提供该端点（见 T24 limitation）')
   }
 }
 
@@ -110,10 +140,25 @@ function flattenMenuTree(menus: MenuTreeNode[]): any[] {
   }))
 }
 
+function flattenUnitTree(units: UnitTreeNode[]): any[] {
+  return units.map(u => ({
+    key: u.id,
+    label: u.unitName,
+    children: u.children?.length ? flattenUnitTree(u.children) : undefined,
+  }))
+}
+
+const dataScopeLabel = (scope: string): string =>
+  dataScopes.find(d => d.value === scope)?.label || scope
+
 const columns: DataTableColumns<SysRole> = [
   { title: '角色编码', key: 'roleCode', width: 150 },
   { title: '角色名称', key: 'roleName', width: 150 },
-  { title: '数据范围', key: 'dataScope', width: 120 },
+  {
+    title: '数据范围', key: 'dataScope', width: 130,
+    render: (row) => h(NTag, { size: 'small', type: 'info' },
+      { default: () => dataScopeLabel(row.dataScope) }),
+  },
   {
     title: '状态', key: 'status', width: 80,
     render: (row) => h(NTag, { type: row.status === 1 ? 'success' : 'error', size: 'small' },
@@ -132,7 +177,15 @@ const columns: DataTableColumns<SysRole> = [
   },
 ]
 
-onMounted(fetchData)
+onMounted(async () => {
+  fetchData()
+  try {
+    const unitRes = await unitApi.tree()
+    unitTree.value = unitRes.data
+  } catch {
+    // 单位树加载失败不阻断角色管理主流程
+  }
+})
 </script>
 
 <template>
@@ -145,7 +198,7 @@ onMounted(fetchData)
   </NCard>
 
   <NModal v-model:show="showModal" :title="editingId ? '编辑角色' : '新增角色'" preset="card" :style="{ width: '500px' }">
-    <NForm label-placement="left" :label-width="80">
+    <NForm :label-placement="labelPlacement" :label-width="80">
       <NFormItem label="角色编码" required>
         <NInput v-model:value="form.roleCode" :disabled="!!editingId" placeholder="如 admin" />
       </NFormItem>
@@ -154,6 +207,18 @@ onMounted(fetchData)
       </NFormItem>
       <NFormItem label="数据范围">
         <NSelect v-model:value="form.dataScope" :options="dataScopes" />
+      </NFormItem>
+      <NFormItem v-if="isCustomScope" label="自定义单位">
+        <NTree
+          key-field="key"
+          :data="flattenUnitTree(unitTree)"
+          checkable
+          cascade
+          :checked-keys="customUnitIds"
+          expand-on-click
+          block-line
+          @update:checked-keys="(keys: number[]) => customUnitIds = keys"
+        />
       </NFormItem>
       <NFormItem label="备注">
         <NInput v-model:value="form.remark" type="textarea" placeholder="备注" />
