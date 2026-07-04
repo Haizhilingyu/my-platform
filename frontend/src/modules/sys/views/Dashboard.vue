@@ -11,7 +11,7 @@ const authStore = useAuthStore()
       <NText>欢迎回来，{{ authStore.user?.realName || authStore.user?.username }}！</NText>
     </NCard>
 
-    <NGrid :cols="4" :x-gap="16" :y-gap="16">
+    <NGrid cols="1 s:2 m:4" responsive="screen" :x-gap="16" :y-gap="16">
       <NGi>
         <NCard>
           <NStatistic label="用户数量" :value="0" />

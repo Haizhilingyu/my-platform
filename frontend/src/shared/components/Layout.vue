@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { h, computed, ref } from 'vue'
+import { h, computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   NLayout, NLayoutHeader, NLayoutSider, NLayoutContent,
   NMenu, NButton, NIcon, NSpace, NDropdown, NAvatar, NText,
+  NDrawer, NDrawerContent,
   type MenuOption,
 } from 'naive-ui'
 import {
   SettingsOutline, MoonOutline, SunnyOutline, LogOutOutline,
-  PersonOutline,
+  PersonOutline, MenuOutline,
 } from '@vicons/ionicons5'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
+import { useBreakpoint } from '@/shared/composables/useBreakpoint'
 import type { MenuTreeNode } from '@/modules/sys/api/types'
 
 const themeStore = useThemeStore()
@@ -19,6 +21,28 @@ const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 const collapsed = ref(false)
+const drawerVisible = ref(false)
+
+// 响应式断点：mobile <768, tablet 768-1023, desktop >=1024。
+// - desktop: 用户可折叠的 240px sider（默认展开）
+// - tablet : 64px 折叠 sider（默认折叠，仍可手动展开）
+// - mobile : 不渲染 sider，改用 NDrawer，顶栏 hamburger 触发
+const { isMobile, breakpoint } = useBreakpoint()
+
+// 断点切换时同步默认折叠态：
+// - 进入 tablet → 强制折叠（任务要求“collapsed by default”）
+// - 进入 desktop → 展开回 240px
+// - 进入 mobile → 关闭抽屉（防止抽屉在桌面态残留）
+watch(breakpoint, (bp) => {
+  if (bp === 'tablet') {
+    collapsed.value = true
+  } else if (bp === 'desktop') {
+    collapsed.value = false
+  }
+  if (bp !== 'mobile') {
+    drawerVisible.value = false
+  }
+})
 
 function renderIcon(icon: any) {
   return () => h(NIcon, null, { default: () => h(icon) })
@@ -53,6 +77,10 @@ const activeKey = computed(() => route.path)
 
 function handleMenuUpdate(key: string) {
   router.push(key)
+  // 移动端选中后立即关闭抽屉，避免遮挡内容
+  if (isMobile.value) {
+    drawerVisible.value = false
+  }
 }
 
 const userOptions = [
@@ -69,8 +97,9 @@ function handleUserAction(key: string) {
 
 <template>
   <NLayout has-sider class="h-screen">
-    <!-- 侧边栏 -->
+    <!-- 桌面/平板：固定 sider（240px 展开 / 64px 折叠） -->
     <NLayoutSider
+      v-if="!isMobile"
       bordered
       collapse-mode="width"
       :collapsed-width="64"
@@ -97,12 +126,38 @@ function handleUserAction(key: string) {
       />
     </NLayoutSider>
 
+    <!-- 移动端：NDrawer 抽屉 -->
+    <NDrawer
+      v-if="isMobile"
+      v-model:show="drawerVisible"
+      :width="240"
+      placement="left"
+    >
+      <NDrawerContent title="My Platform" :native-scrollbar="false">
+        <NMenu
+          :options="menuOptions"
+          :value="activeKey"
+          @update:value="handleMenuUpdate"
+        />
+      </NDrawerContent>
+    </NDrawer>
+
     <NLayout>
       <!-- 顶栏 -->
       <NLayoutHeader bordered class="px-4 py-2 flex items-center justify-between bg-[rgb(var(--color-surface))]">
-        <NText strong>{{ (route.meta.title as string) || '首页' }}</NText>
+        <div class="flex items-center gap-2 min-w-0">
+          <!-- 移动端：hamburger 触发抽屉 -->
+          <NButton v-if="isMobile" quaternary circle @click="drawerVisible = true">
+            <template #icon>
+              <NIcon>
+                <MenuOutline />
+              </NIcon>
+            </template>
+          </NButton>
+          <NText strong class="truncate">{{ (route.meta.title as string) || '首页' }}</NText>
+        </div>
 
-        <NSpace align="center">
+        <NSpace align="center" :wrap="false">
           <!-- 主题切换 -->
           <NButton quaternary circle @click="themeStore.toggle()">
             <template #icon>
@@ -115,11 +170,12 @@ function handleUserAction(key: string) {
 
           <!-- 用户菜单 -->
           <NDropdown :options="userOptions" trigger="click" @select="handleUserAction">
-            <NSpace align="center" class="cursor-pointer">
+            <NSpace align="center" :wrap="false" class="cursor-pointer">
               <NAvatar round size="small" color="rgb(var(--color-primary))">
                 {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
               </NAvatar>
-              <NText>{{ authStore.user?.realName || authStore.user?.username }}</NText>
+              <!-- 移动端隐藏用户名文字，仅保留头像 -->
+              <NText v-if="!isMobile">{{ authStore.user?.realName || authStore.user?.username }}</NText>
             </NSpace>
           </NDropdown>
         </NSpace>

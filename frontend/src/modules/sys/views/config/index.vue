@@ -98,7 +98,7 @@ onMounted(fetchData)
       <NButton v-permission="'sys:config:add'" type="primary" @click="handleAdd">新增配置</NButton>
     </NSpace>
 
-    <NDataTable :columns="columns" :data="data" :loading="loading" />
+    <NDataTable :columns="columns" :data="data" :loading="loading" :scroll-x="900" />
   </NCard>
 
   <NModal v-model:show="showModal" :title="editingId ? '编辑配置' : '新增配置'" preset="card" :style="{ width: '500px' }">

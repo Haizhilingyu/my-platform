@@ -141,7 +141,7 @@ onMounted(fetchData)
       <NButton v-permission="'sys:role:add'" type="primary" @click="handleAdd">新增角色</NButton>
     </NSpace>
 
-    <NDataTable :columns="columns" :data="data" :loading="loading" />
+    <NDataTable :columns="columns" :data="data" :loading="loading" :scroll-x="950" />
   </NCard>
 
   <NModal v-model:show="showModal" :title="editingId ? '编辑角色' : '新增角色'" preset="card" :style="{ width: '500px' }">

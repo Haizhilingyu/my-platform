@@ -173,6 +173,7 @@ onMounted(() => {
       :columns="columns"
       :data="data"
       :loading="loading"
+      :scroll-x="910"
       :pagination="{
         page: query.pageNum,
         pageSize: query.pageSize,
