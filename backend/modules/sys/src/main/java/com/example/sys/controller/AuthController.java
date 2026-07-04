@@ -1,5 +1,6 @@
 package com.example.sys.controller;
 
+import com.example.common.audit.Auditable;
 import com.example.common.cache.RedisCacheService;
 import com.example.common.exception.BizException;
 import com.example.common.result.Result;
@@ -30,85 +31,84 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * 认证 Controller。负责登录、登出、获取当前用户信息（权限、菜单）。
- */
+/** 认证 Controller。负责登录、登出、获取当前用户信息（权限、菜单）。 */
 @Tag(name = "认证", description = "登录、登出、获取当前用户权限和菜单")
 @RestController
 @RequestMapping("/sys/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    static final String BLACKLIST_KEY_PREFIX = "jwt:blacklist:";
+  static final String BLACKLIST_KEY_PREFIX = "jwt:blacklist:";
 
-    private final UserService userService;
-    private final PermissionService permissionService;
-    private final MenuService menuService;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
-    private final RedisCacheService redisCacheService;
+  private final UserService userService;
+  private final PermissionService permissionService;
+  private final MenuService menuService;
+  private final PasswordEncoder passwordEncoder;
+  private final JwtUtil jwtUtil;
+  private final RedisCacheService redisCacheService;
 
-    @Operation(summary = "登录")
-    @PostMapping("/login")
-    public Result<LoginVO> login(@RequestBody LoginDTO dto) {
-        SysUser user = userService.getEntityByUsername(dto.getUsername());
-        if (user.getStatus() != 1) {
-            throw new BizException(403, "用户已被禁用");
-        }
-        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            throw new BizException(401, "用户名或密码错误");
-        }
-
-        List<String> roles = List.copyOf(permissionService.getUserRoleCodes(user.getId()));
-        String token = jwtUtil.generate(user.getId(), user.getUsername(), user.getUnitId(), roles);
-
-        UserVO vo = UserVO.of(user);
-        return Result.ok(new LoginVO(token, "Bearer", vo));
+  @Operation(summary = "登录")
+  @Auditable(action = "LOGIN")
+  @PostMapping("/login")
+  public Result<LoginVO> login(@RequestBody LoginDTO dto) {
+    SysUser user = userService.getEntityByUsername(dto.getUsername());
+    if (user.getStatus() != 1) {
+      throw new BizException(403, "用户已被禁用");
+    }
+    if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+      throw new BizException(401, "用户名或密码错误");
     }
 
-    @Operation(summary = "登出", description = "将当前 token 的 jti 加入 Redis 黑名单，使其立即失效")
-    @PostMapping("/logout")
-    public Result<Void> logout(HttpServletRequest request) {
-        String token = jwtUtil.extractToken(request.getHeader("Authorization"));
-        if (token != null && jwtUtil.isValid(token)) {
-            Claims claims = jwtUtil.parse(token);
-            String jti = claims.getId();
-            if (jti != null) {
-                Instant expiry = claims.getExpiration().toInstant();
-                long remainingSeconds = Duration.between(Instant.now(), expiry).toSeconds();
-                if (remainingSeconds > 0) {
-                    redisCacheService.set(
-                            BLACKLIST_KEY_PREFIX + jti, "1", Duration.ofSeconds(remainingSeconds));
-                }
-            }
-        }
-        return Result.ok();
-    }
+    List<String> roles = List.copyOf(permissionService.getUserRoleCodes(user.getId()));
+    String token = jwtUtil.generate(user.getId(), user.getUsername(), user.getUnitId(), roles);
 
-    @Operation(summary = "获取当前用户信息")
-    @GetMapping("/me")
-    public Result<UserVO> me() {
-        Long userId = CurrentUser.getUserId();
-        if (userId == null) {
-            throw new BizException(401, "未登录");
-        }
-        return Result.ok(userService.getById(userId));
-    }
+    UserVO vo = UserVO.of(user);
+    return Result.ok(new LoginVO(token, "Bearer", vo));
+  }
 
-    @Operation(summary = "获取当前用户权限列表")
-    @GetMapping("/permissions")
-    public Result<Set<String>> permissions() {
-        return Result.ok(CurrentUser.getPermissions());
-    }
-
-    @Operation(summary = "获取当前用户菜单树")
-    @GetMapping("/menus")
-    public Result<List<MenuTreeNode>> menus() {
-        Long userId = CurrentUser.getUserId();
-        if (userId == null) {
-            throw new BizException(401, "未登录");
+  @Operation(summary = "登出", description = "将当前 token 的 jti 加入 Redis 黑名单，使其立即失效")
+  @PostMapping("/logout")
+  public Result<Void> logout(HttpServletRequest request) {
+    String token = jwtUtil.extractToken(request.getHeader("Authorization"));
+    if (token != null && jwtUtil.isValid(token)) {
+      Claims claims = jwtUtil.parse(token);
+      String jti = claims.getId();
+      if (jti != null) {
+        Instant expiry = claims.getExpiration().toInstant();
+        long remainingSeconds = Duration.between(Instant.now(), expiry).toSeconds();
+        if (remainingSeconds > 0) {
+          redisCacheService.set(
+              BLACKLIST_KEY_PREFIX + jti, "1", Duration.ofSeconds(remainingSeconds));
         }
-        List<SysMenu> menus = permissionService.getUserMenus(userId);
-        return Result.ok(MenuService.buildTree(menus));
+      }
     }
+    return Result.ok();
+  }
+
+  @Operation(summary = "获取当前用户信息")
+  @GetMapping("/me")
+  public Result<UserVO> me() {
+    Long userId = CurrentUser.getUserId();
+    if (userId == null) {
+      throw new BizException(401, "未登录");
+    }
+    return Result.ok(userService.getById(userId));
+  }
+
+  @Operation(summary = "获取当前用户权限列表")
+  @GetMapping("/permissions")
+  public Result<Set<String>> permissions() {
+    return Result.ok(CurrentUser.getPermissions());
+  }
+
+  @Operation(summary = "获取当前用户菜单树")
+  @GetMapping("/menus")
+  public Result<List<MenuTreeNode>> menus() {
+    Long userId = CurrentUser.getUserId();
+    if (userId == null) {
+      throw new BizException(401, "未登录");
+    }
+    List<SysMenu> menus = permissionService.getUserMenus(userId);
+    return Result.ok(MenuService.buildTree(menus));
+  }
 }
