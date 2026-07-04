@@ -56,6 +56,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/modules/sys/views/app/index.vue'),
         meta: { title: '外部应用', permission: 'sys:openapp:list' },
       },
+      {
+        path: 'sys/audit',
+        name: 'SysAudit',
+        component: () => import('@/modules/sys/views/audit/index.vue'),
+        meta: { title: '审计日志', permission: 'sys:audit:list' },
+      },
     ],
   },
   {
