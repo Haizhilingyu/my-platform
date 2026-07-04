@@ -10,6 +10,7 @@ import com.example.common.security.JwtUtil;
 import com.example.sys.domain.SysUser;
 import com.example.sys.dto.LoginVO;
 import com.example.sys.dto.UserVO;
+import com.example.sys.service.LoginSecurityService;
 import com.example.sys.service.PermissionService;
 import com.example.sys.service.UserService;
 import io.jsonwebtoken.Claims;
@@ -43,6 +44,7 @@ public class PasswordLoginProvider implements LoginMethodProvider {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final ApplicationEventPublisher eventPublisher;
+    private final LoginSecurityService loginSecurityService;
 
     @Override
     public String getMethod() {
@@ -66,13 +68,16 @@ public class PasswordLoginProvider implements LoginMethodProvider {
 
     @Override
     public LoginResult authenticate(LoginRequest request) {
+        loginSecurityService.checkLockStatus(request.username());
         SysUser user = userService.getEntityByUsername(request.username());
         if (user.getStatus() != 1) {
             throw new BizException(403, "用户已被禁用");
         }
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            loginSecurityService.recordFailedAttempt(request.username());
             throw new BizException(401, "用户名或密码错误");
         }
+        loginSecurityService.recordSuccessfulLogin(user.getUsername());
 
         List<String> roles = List.copyOf(permissionService.getUserRoleCodes(user.getId()));
         String token = jwtUtil.generate(user.getId(), user.getUsername(), user.getUnitId(), roles);

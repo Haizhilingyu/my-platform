@@ -1,5 +1,6 @@
 package com.example.sys.controller;
 
+import com.example.common.audit.Auditable;
 import com.example.common.result.PageResult;
 import com.example.common.result.Result;
 import com.example.common.security.RequiresPermission;
@@ -7,6 +8,7 @@ import com.example.common.web.PageUtils;
 import com.example.sys.dto.UserCreateDTO;
 import com.example.sys.dto.UserUpdateDTO;
 import com.example.sys.dto.UserVO;
+import com.example.sys.service.LoginSecurityService;
 import com.example.sys.service.UserService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserController {
 
   private final UserService userService;
+  private final LoginSecurityService loginSecurityService;
 
   @RequiresPermission("sys:user:list")
   @GetMapping
@@ -94,6 +97,15 @@ public class UserController {
   @PostMapping("/{id}/reset-password")
   public Result<Void> resetPassword(@PathVariable Long id, @RequestParam String newPassword) {
     userService.resetPassword(id, newPassword);
+    return Result.ok();
+  }
+
+  @RequiresPermission("sys:user:unlock")
+  @Auditable(action = "UNLOCK", targetType = "USER", targetIdParam = "id")
+  @PostMapping("/{id}/unlock")
+  public Result<Void> unlock(@PathVariable Long id) {
+    String username = userService.getEntityById(id).getUsername();
+    loginSecurityService.unlock(username);
     return Result.ok();
   }
 }
