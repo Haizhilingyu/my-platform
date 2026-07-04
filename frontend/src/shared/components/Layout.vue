@@ -9,7 +9,7 @@ import {
 } from 'naive-ui'
 import {
   SettingsOutline, MoonOutline, SunnyOutline, LogOutOutline,
-  PersonOutline, MenuOutline,
+  PersonOutline, MenuOutline, GlobeOutline,
 } from '@vicons/ionicons5'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
@@ -69,6 +69,7 @@ function getIcon(iconName: string) {
   const icons: Record<string, any> = {
     Settings: SettingsOutline,
     User: PersonOutline,
+    Globe: GlobeOutline,
   }
   return icons[iconName] || SettingsOutline
 }

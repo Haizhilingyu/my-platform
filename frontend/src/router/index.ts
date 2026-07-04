@@ -62,6 +62,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/modules/sys/views/audit/index.vue'),
         meta: { title: '审计日志', permission: 'sys:audit:list' },
       },
+      {
+        path: 'sys/session',
+        name: 'SysSession',
+        component: () => import('@/modules/sys/views/session/index.vue'),
+        meta: { title: '在线会话' },
+      },
     ],
   },
   {

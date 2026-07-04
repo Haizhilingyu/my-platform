@@ -3,6 +3,7 @@ import { NConfigProvider, NMessageProvider, NDialogProvider, NNotificationProvid
 import { darkTheme, type GlobalThemeOverrides } from 'naive-ui'
 import { useThemeStore } from '@/stores/theme'
 import { computed } from 'vue'
+import MessageCenter from '@/shared/components/MessageCenter.vue'
 
 const themeStore = useThemeStore()
 
@@ -30,6 +31,7 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => ({
       <NMessageProvider>
         <NDialogProvider>
           <NNotificationProvider>
+            <MessageCenter />
             <RouterView />
           </NNotificationProvider>
         </NDialogProvider>
