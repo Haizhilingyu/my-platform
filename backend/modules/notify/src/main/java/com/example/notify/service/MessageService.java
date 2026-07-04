@@ -1,8 +1,10 @@
 package com.example.notify.service;
 
+import com.example.common.exception.NotFoundException;
 import com.example.notify.domain.NotifyMessage;
 import com.example.notify.domain.NotifyRecipient;
 import com.example.notify.domain.NotifyUserInbox;
+import com.example.notify.dto.InboxVO;
 import com.example.notify.dto.PublishDTO;
 import com.example.notify.dto.PushMessage;
 import com.example.notify.enums.MessageLevel;
@@ -19,10 +21,17 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.socket.TextMessage;
@@ -141,4 +150,76 @@ public class MessageService {
   }
 
   public record PublishResult(Long messageId, int recipientCount) {}
+
+  @Transactional(readOnly = true)
+  public Page<InboxVO> queryInbox(
+      Long userId,
+      MessageLevel level,
+      Boolean readStatus,
+      String keyword,
+      int pageNum,
+      int pageSize) {
+    Pageable pageable = PageRequest.of(pageNum - 1, pageSize, Sort.by(Sort.Direction.DESC, "seq"));
+    Page<NotifyUserInbox> page =
+        inboxRepository.findInboxPage(userId, level, readStatus, keyword, pageable);
+
+    Set<Long> messageIds =
+        page.getContent().stream().map(NotifyUserInbox::getMessageId).collect(Collectors.toSet());
+    Map<Long, NotifyMessage> messageMap =
+        messageRepository.findAllById(messageIds).stream()
+            .collect(Collectors.toMap(NotifyMessage::getId, Function.identity()));
+
+    List<InboxVO> voList =
+        page.getContent().stream().map(toInboxVO(messageMap)).collect(Collectors.toList());
+    return new PageImpl<>(voList, pageable, page.getTotalElements());
+  }
+
+  @Transactional(readOnly = true)
+  public long countUnread(Long userId) {
+    return inboxRepository.countByUserIdAndReadStatusFalse(userId);
+  }
+
+  @Transactional
+  public void markRead(Long userId, Long inboxId) {
+    NotifyUserInbox inbox =
+        inboxRepository
+            .findByIdAndUserId(inboxId, userId)
+            .orElseThrow(() -> new NotFoundException("收件箱消息", inboxId));
+    if (!Boolean.TRUE.equals(inbox.getReadStatus())) {
+      inbox.setReadStatus(true);
+      inbox.setReadTime(LocalDateTime.now());
+      inboxRepository.save(inbox);
+    }
+  }
+
+  @Transactional
+  public void batchMarkRead(Long userId, List<Long> ids) {
+    List<NotifyUserInbox> entries = inboxRepository.findByIdInAndUserId(ids, userId);
+    LocalDateTime now = LocalDateTime.now();
+    entries.stream()
+        .filter(e -> !Boolean.TRUE.equals(e.getReadStatus()))
+        .forEach(
+            e -> {
+              e.setReadStatus(true);
+              e.setReadTime(now);
+            });
+    inboxRepository.saveAll(entries);
+  }
+
+  private Function<NotifyUserInbox, InboxVO> toInboxVO(Map<Long, NotifyMessage> messageMap) {
+    return inbox -> {
+      NotifyMessage msg = messageMap.get(inbox.getMessageId());
+      InboxVO vo = new InboxVO();
+      vo.setId(inbox.getId());
+      vo.setMessageId(inbox.getMessageId());
+      vo.setSeq(inbox.getSeq());
+      vo.setTitle(msg != null ? msg.getTitle() : null);
+      vo.setContent(msg != null ? msg.getContent() : null);
+      vo.setLevel(msg != null ? msg.getLevel() : null);
+      vo.setBusinessType(msg != null ? msg.getBusinessType() : null);
+      vo.setReadStatus(inbox.getReadStatus());
+      vo.setCreatedAt(inbox.getCreatedAt());
+      return vo;
+    };
+  }
 }
