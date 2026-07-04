@@ -68,7 +68,7 @@ function handleUserAction(key: string) {
 </script>
 
 <template>
-  <NLayout has-sider style="height: 100vh">
+  <NLayout has-sider class="h-screen">
     <!-- 侧边栏 -->
     <NLayoutSider
       bordered
@@ -115,7 +115,7 @@ function handleUserAction(key: string) {
 
           <!-- 用户菜单 -->
           <NDropdown :options="userOptions" trigger="click" @select="handleUserAction">
-            <NSpace align="center" style="cursor: pointer">
+            <NSpace align="center" class="cursor-pointer">
               <NAvatar round size="small" color="rgb(var(--color-primary))">
                 {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
               </NAvatar>

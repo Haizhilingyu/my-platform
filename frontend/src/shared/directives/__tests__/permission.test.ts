@@ -64,8 +64,6 @@ describe('v-permission 指令', () => {
   })
 
   it('should remove element when user has no permissions at all', () => {
-    const store = useAuthStore()
-
     const el = createEl()
     vPermission.mounted(el, createMockBinding('sys:user:add'))
 

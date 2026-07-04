@@ -123,7 +123,7 @@ onMounted(fetchData)
     </div>
   </NCard>
 
-  <NModal v-model:show="showModal" :title="editingId ? '编辑单位' : '新增单位'" preset="card" style="width: 500px">
+  <NModal v-model:show="showModal" :title="editingId ? '编辑单位' : '新增单位'" preset="card" :style="{ width: '500px' }">
     <NForm label-placement="left" :label-width="80">
       <NFormItem label="上级单位">
         <NSelect v-model:value="form.parentId" :options="flattenUnits(tree)" placeholder="顶级单位" clearable />

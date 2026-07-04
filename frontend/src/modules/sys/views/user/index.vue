@@ -163,7 +163,7 @@ onMounted(() => {
     <NSpace class="mb-4" justify="space-between">
       <NSpace>
         <NInput v-model:value="query.keyword" placeholder="搜索用户名/姓名/电话" clearable
-          @clear="fetchData" @keyup.enter="fetchData" style="width: 250px" />
+          @clear="fetchData" @keyup.enter="fetchData" class="w-[250px]" />
         <NButton type="primary" @click="fetchData">查询</NButton>
       </NSpace>
       <NButton v-permission="'sys:user:add'" type="primary" @click="handleAdd">新增用户</NButton>
@@ -186,7 +186,7 @@ onMounted(() => {
     />
   </NCard>
 
-  <NModal v-model:show="showModal" :title="editingId ? '编辑用户' : '新增用户'" preset="card" style="width: 500px">
+  <NModal v-model:show="showModal" :title="editingId ? '编辑用户' : '新增用户'" preset="card" :style="{ width: '500px' }">
     <NForm label-placement="left" :label-width="80">
       <NFormItem v-if="!editingId" label="用户名" required>
         <NInput v-model:value="form.username" placeholder="请输入用户名" />

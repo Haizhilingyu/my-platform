@@ -148,7 +148,7 @@ onMounted(fetchData)
     </div>
   </NCard>
 
-  <NModal v-model:show="showModal" :title="editingId ? '编辑菜单' : '新增菜单'" preset="card" style="width: 550px">
+  <NModal v-model:show="showModal" :title="editingId ? '编辑菜单' : '新增菜单'" preset="card" :style="{ width: '550px' }">
     <NForm label-placement="left" :label-width="90">
       <NFormItem label="上级菜单">
         <NSelect v-model:value="form.parentId" :options="flattenMenus(tree)" placeholder="顶级菜单" clearable />

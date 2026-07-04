@@ -144,7 +144,7 @@ onMounted(fetchData)
     <NDataTable :columns="columns" :data="data" :loading="loading" />
   </NCard>
 
-  <NModal v-model:show="showModal" :title="editingId ? '编辑角色' : '新增角色'" preset="card" style="width: 500px">
+  <NModal v-model:show="showModal" :title="editingId ? '编辑角色' : '新增角色'" preset="card" :style="{ width: '500px' }">
     <NForm label-placement="left" :label-width="80">
       <NFormItem label="角色编码" required>
         <NInput v-model:value="form.roleCode" :disabled="!!editingId" placeholder="如 admin" />
@@ -165,7 +165,7 @@ onMounted(fetchData)
     </NForm>
   </NModal>
 
-  <NModal v-model:show="showPermModal" title="分配权限" preset="card" style="width: 500px">
+  <NModal v-model:show="showPermModal" title="分配权限" preset="card" :style="{ width: '500px' }">
     <NTree
       key-field="key"
       :data="flattenMenuTree(menuTree)"

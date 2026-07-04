@@ -101,7 +101,7 @@ onMounted(fetchData)
     <NDataTable :columns="columns" :data="data" :loading="loading" />
   </NCard>
 
-  <NModal v-model:show="showModal" :title="editingId ? '编辑配置' : '新增配置'" preset="card" style="width: 500px">
+  <NModal v-model:show="showModal" :title="editingId ? '编辑配置' : '新增配置'" preset="card" :style="{ width: '500px' }">
     <NForm label-placement="left" :label-width="80">
       <NFormItem label="配置键" required>
         <NInput v-model:value="form.configKey" :disabled="!!editingId" placeholder="sys.password.min-length" />
