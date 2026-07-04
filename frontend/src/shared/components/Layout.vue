@@ -4,24 +4,32 @@ import { useRouter, useRoute } from 'vue-router'
 import {
   NLayout, NLayoutHeader, NLayoutSider, NLayoutContent,
   NMenu, NButton, NIcon, NSpace, NDropdown, NAvatar, NText,
-  NDrawer, NDrawerContent,
+  NDrawer, NDrawerContent, NBadge, NPopover, NTag, NSpin,
   type MenuOption,
 } from 'naive-ui'
 import {
   SettingsOutline, MoonOutline, SunnyOutline, LogOutOutline,
-  PersonOutline, MenuOutline, GlobeOutline,
+  PersonOutline, MenuOutline, GlobeOutline, NotificationsOutline,
 } from '@vicons/ionicons5'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
+import { useNotifyStore } from '@/stores/notify'
 import { useBreakpoint } from '@/shared/composables/useBreakpoint'
+import { notifyApi, type NotifyInboxVO, type NotifyLevel } from '@/shared/api/notify'
 import type { MenuTreeNode } from '@/modules/sys/api/types'
 
 const themeStore = useThemeStore()
 const authStore = useAuthStore()
+const notifyStore = useNotifyStore()
 const router = useRouter()
 const route = useRoute()
 const collapsed = ref(false)
 const drawerVisible = ref(false)
+
+// 消息中心：铃铛下拉的最近未读列表（懒加载，打开时拉取）
+const bellPopoverShow = ref(false)
+const recentMessages = ref<NotifyInboxVO[]>([])
+const recentLoading = ref(false)
 
 // 响应式断点：mobile <768, tablet 768-1023, desktop >=1024。
 // - desktop: 用户可折叠的 240px sider（默认展开）
@@ -93,6 +101,42 @@ function handleUserAction(key: string) {
     authStore.logout()
     router.push('/login')
   }
+}
+
+// 消息级别 → 标签类型/文案（与 message/index.vue 约定一致）
+function levelTagType(level: NotifyLevel): 'error' | 'warning' | 'info' {
+  if (level === 'URGENT') return 'error'
+  if (level === 'IMPORTANT') return 'warning'
+  return 'info'
+}
+
+function levelLabel(level: NotifyLevel): string {
+  if (level === 'URGENT') return '紧急'
+  if (level === 'IMPORTANT') return '重要'
+  return '普通'
+}
+
+// 打开铃铛下拉时拉取最近 5 条未读；端点未上线时静默置空
+async function fetchRecentMessages(): Promise<void> {
+  recentLoading.value = true
+  try {
+    const res = await notifyApi.inbox({ pageNum: 1, pageSize: 5, readStatus: false })
+    recentMessages.value = res.data.list
+  } catch {
+    recentMessages.value = []
+  } finally {
+    recentLoading.value = false
+  }
+}
+
+function handleBellPopoverShow(show: boolean): void {
+  bellPopoverShow.value = show
+  if (show) void fetchRecentMessages()
+}
+
+function goToInbox(): void {
+  bellPopoverShow.value = false
+  router.push('/sys/message')
 }
 </script>
 
@@ -168,6 +212,62 @@ function handleUserAction(key: string) {
               </NIcon>
             </template>
           </NButton>
+
+          <!-- 消息中心：铃铛 + 未读徽标 + 最近未读下拉 -->
+          <NPopover
+            v-model:show="bellPopoverShow"
+            trigger="click"
+            placement="bottom-end"
+            :width="320"
+            @update:show="handleBellPopoverShow"
+          >
+            <template #trigger>
+              <NBadge :value="notifyStore.unreadCount" :max="99" :offset="[-4, 4]">
+                <NButton quaternary circle aria-label="消息中心">
+                  <template #icon>
+                    <NIcon>
+                      <NotificationsOutline />
+                    </NIcon>
+                  </template>
+                </NButton>
+              </NBadge>
+            </template>
+
+            <div class="py-1">
+              <div
+                class="px-3 py-2 text-sm font-semibold border-b border-[rgb(var(--color-border))]"
+              >
+                未读消息
+              </div>
+              <NSpin :show="recentLoading">
+                <div
+                  v-if="!recentLoading && !recentMessages.length"
+                  class="px-3 py-6 text-center text-sm opacity-60"
+                >
+                  暂无未读消息
+                </div>
+                <ul v-else class="max-h-[300px] overflow-auto">
+                  <li
+                    v-for="m in recentMessages"
+                    :key="m.id"
+                    class="px-3 py-2 cursor-pointer hover:bg-[rgb(var(--color-surface-hover))] border-b border-[rgb(var(--color-border))] last:border-b-0"
+                    @click="goToInbox"
+                  >
+                    <div class="flex items-center gap-2 mb-1">
+                      <NTag :type="levelTagType(m.level)" size="small" :bordered="false">
+                        {{ levelLabel(m.level) }}
+                      </NTag>
+                      <NText class="truncate text-sm">{{ m.title || '(无标题)' }}</NText>
+                    </div>
+                    <NText depth="3" class="text-xs">{{ m.createdAt }}</NText>
+                  </li>
+                </ul>
+              </NSpin>
+              <div class="px-3 py-2 border-t border-[rgb(var(--color-border))]">
+                <NButton text type="primary" block @click="goToInbox">查看全部</NButton>
+              </div>
+            </div>
+          </NPopover>
 
           <!-- 用户菜单 -->
           <NDropdown :options="userOptions" trigger="click" @select="handleUserAction">
