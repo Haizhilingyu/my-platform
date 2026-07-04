@@ -1,5 +1,6 @@
 package com.example.sys.controller;
 
+import com.example.common.cache.RedisCacheService;
 import com.example.common.exception.BizException;
 import com.example.common.result.Result;
 import com.example.common.security.CurrentUser;
@@ -13,8 +14,12 @@ import com.example.sys.dto.UserVO;
 import com.example.sys.service.MenuService;
 import com.example.sys.service.PermissionService;
 import com.example.sys.service.UserService;
+import io.jsonwebtoken.Claims;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -26,19 +31,22 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 认证 Controller。负责登录、获取当前用户信息（权限、菜单）。
+ * 认证 Controller。负责登录、登出、获取当前用户信息（权限、菜单）。
  */
-@Tag(name = "认证", description = "登录、获取当前用户权限和菜单")
+@Tag(name = "认证", description = "登录、登出、获取当前用户权限和菜单")
 @RestController
 @RequestMapping("/sys/auth")
 @RequiredArgsConstructor
 public class AuthController {
+
+    static final String BLACKLIST_KEY_PREFIX = "jwt:blacklist:";
 
     private final UserService userService;
     private final PermissionService permissionService;
     private final MenuService menuService;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final RedisCacheService redisCacheService;
 
     @Operation(summary = "登录")
     @PostMapping("/login")
@@ -56,6 +64,25 @@ public class AuthController {
 
         UserVO vo = UserVO.of(user);
         return Result.ok(new LoginVO(token, "Bearer", vo));
+    }
+
+    @Operation(summary = "登出", description = "将当前 token 的 jti 加入 Redis 黑名单，使其立即失效")
+    @PostMapping("/logout")
+    public Result<Void> logout(HttpServletRequest request) {
+        String token = jwtUtil.extractToken(request.getHeader("Authorization"));
+        if (token != null && jwtUtil.isValid(token)) {
+            Claims claims = jwtUtil.parse(token);
+            String jti = claims.getId();
+            if (jti != null) {
+                Instant expiry = claims.getExpiration().toInstant();
+                long remainingSeconds = Duration.between(Instant.now(), expiry).toSeconds();
+                if (remainingSeconds > 0) {
+                    redisCacheService.set(
+                            BLACKLIST_KEY_PREFIX + jti, "1", Duration.ofSeconds(remainingSeconds));
+                }
+            }
+        }
+        return Result.ok();
     }
 
     @Operation(summary = "获取当前用户信息")

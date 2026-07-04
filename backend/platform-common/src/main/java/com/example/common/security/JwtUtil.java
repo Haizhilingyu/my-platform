@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import javax.crypto.SecretKey;
 
 /**
@@ -32,6 +33,7 @@ public class JwtUtil {
     public String generate(Long userId, String username, Long unitId, List<String> roles) {
         Date now = new Date();
         var builder = Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(String.valueOf(userId))
                 .claim("username", username)
                 .claim("roles", roles);

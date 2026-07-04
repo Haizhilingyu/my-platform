@@ -1,5 +1,6 @@
 package com.example.platform.security;
 
+import com.example.common.cache.RedisCacheService;
 import com.example.common.security.JwtUtil;
 import com.example.common.security.PermissionLoader;
 import lombok.RequiredArgsConstructor;
@@ -27,11 +28,13 @@ public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
     private final PermissionLoader permissionLoader;
+    private final RedisCacheService redisCacheService;
 
     /**
      * 公开路径白名单。不需要认证即可访问。
      *
      * <p><b>注意</b>：修改此列表会影响 E2E 测试和前端路由守卫，需谨慎。
+     * {@code /sys/auth/logout} 不在此列表中——登出要求携带有效 token。
      */
     static final String[] PUBLIC_PATHS = {
             "/sys/auth/login",
@@ -39,7 +42,8 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/actuator/**",
-            "/favicon.ico"
+            "/favicon.ico",
+            "/ws/**"
     };
 
     @Bean
@@ -51,7 +55,7 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_PATHS).permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new JwtAuthFilter(jwtUtil, permissionLoader),
+                .addFilterBefore(new JwtAuthFilter(jwtUtil, permissionLoader, redisCacheService),
                         UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

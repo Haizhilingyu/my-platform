@@ -1,5 +1,6 @@
 package com.example.platform.security;
 
+import com.example.common.cache.RedisCacheService;
 import com.example.common.security.CurrentUser;
 import com.example.common.security.JwtUtil;
 import com.example.common.security.PermissionLoader;
@@ -23,12 +24,19 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *
  * <p>由 {@link SecurityConfig} 注册到过滤器链，位于
  * {@code UsernamePasswordAuthenticationFilter} 之前。
+ *
+ * <p>Token 黑名单校验：解析成功后检查 {@code jwt:blacklist:{jti}} 是否存在。
+ * 命中黑名单（已登出）则不注入认证上下文，请求将以 401 拒绝。
  */
 @RequiredArgsConstructor
 class JwtAuthFilter extends OncePerRequestFilter {
 
+    /** Redis 黑名单 key 前缀。完整 key 为 {@code jwt:blacklist:{jti}}。 */
+    static final String BLACKLIST_KEY_PREFIX = "jwt:blacklist:";
+
     private final JwtUtil jwtUtil;
     private final PermissionLoader permissionLoader;
+    private final RedisCacheService redisCacheService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -39,22 +47,29 @@ class JwtAuthFilter extends OncePerRequestFilter {
 
         if (token != null && jwtUtil.isValid(token)) {
             var claims = jwtUtil.parse(token);
-            Long userId = Long.valueOf(claims.getSubject());
-            String username = claims.get("username", String.class);
-            Long unitId = claims.get("unitId", Long.class);
+            String jti = claims.getId();
+            boolean blacklisted = jti != null
+                    && redisCacheService.exists(BLACKLIST_KEY_PREFIX + jti);
 
-            @SuppressWarnings("unchecked")
-            List<String> roleList = claims.get("roles", List.class);
-            Set<String> roles = roleList != null ? new HashSet<>(roleList) : new HashSet<>();
+            if (!blacklisted) {
+                Long userId = Long.valueOf(claims.getSubject());
+                String username = claims.get("username", String.class);
+                Long unitId = claims.get("unitId", Long.class);
 
-            Set<String> permissions = permissionLoader.loadPermissions(userId);
+                @SuppressWarnings("unchecked")
+                List<String> roleList = claims.get("roles", List.class);
+                Set<String> roles = roleList != null ? new HashSet<>(roleList) : new HashSet<>();
 
-            CurrentUser.set(new CurrentUser.UserInfo(userId, username, unitId, roles, permissions));
+                Set<String> permissions = permissionLoader.loadPermissions(userId);
 
-            var authToken = new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
-            var context = new SecurityContextImpl();
-            context.setAuthentication(authToken);
-            SecurityContextHolder.setContext(context);
+                CurrentUser.set(new CurrentUser.UserInfo(userId, username, unitId, roles, permissions));
+
+                var authToken =
+                        new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
+                var context = new SecurityContextImpl();
+                context.setAuthentication(authToken);
+                SecurityContextHolder.setContext(context);
+            }
         }
 
         try {
