@@ -90,8 +90,7 @@ public class UnitService {
         nodes.stream()
             .collect(Collectors.groupingBy(n -> n.getParentId() == null ? 0L : n.getParentId()));
 
-    List<UnitTreeNode> roots = parentIdMap.getOrDefault(0L, new ArrayList<>());
-    roots.addAll(nodes.stream().filter(n -> n.getParentId() == null).toList());
+    List<UnitTreeNode> roots = new ArrayList<>(parentIdMap.getOrDefault(0L, new ArrayList<>()));
 
     for (UnitTreeNode node : nodes) {
       List<UnitTreeNode> children = parentIdMap.get(node.getId());

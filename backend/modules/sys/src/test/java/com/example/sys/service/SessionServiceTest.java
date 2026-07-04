@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.SetOperations;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 @DisplayName("SessionService 在线会话管理")
 class SessionServiceTest {
@@ -32,10 +33,13 @@ class SessionServiceTest {
   @SuppressWarnings("unchecked")
   private final RedisTemplate<String, Object> redisTemplate = mock(RedisTemplate.class);
 
-  @SuppressWarnings("unchecked")
-  private final SetOperations<String, Object> setOps = mock(SetOperations.class);
+  private final StringRedisTemplate stringRedisTemplate = mock(StringRedisTemplate.class);
 
-  private final SessionService service = new SessionService(redisCacheService, redisTemplate, TTL);
+  @SuppressWarnings("unchecked")
+  private final SetOperations<String, String> stringSetOps = mock(SetOperations.class);
+
+  private final SessionService service =
+      new SessionService(redisCacheService, redisTemplate, stringRedisTemplate, TTL);
 
   private LoginSuccessEvent event(String userAgent) {
     return new LoginSuccessEvent(
@@ -49,7 +53,7 @@ class SessionServiceTest {
     @Test
     @DisplayName("写入 session:active:{jti}（TTL=配置有效期）+ SADD 用户索引 + 刷新索引TTL")
     void recordSession_storesSessionAndIndex() {
-      when(redisTemplate.opsForSet()).thenReturn(setOps);
+      when(stringRedisTemplate.opsForSet()).thenReturn(stringSetOps);
 
       service.recordSession(event("Mozilla/5.0 Chrome/120.0"));
 
@@ -63,8 +67,8 @@ class SessionServiceTest {
       assertThat(stored.ip()).isEqualTo("10.0.0.1");
       assertThat(stored.deviceType()).isEqualTo("Chrome");
 
-      verify(setOps).add(SessionService.USER_SESSIONS_KEY_PREFIX + 1L, "jti-123");
-      verify(redisTemplate).expire(SessionService.USER_SESSIONS_KEY_PREFIX + 1L, TTL);
+      verify(stringSetOps).add(SessionService.USER_SESSIONS_KEY_PREFIX + 1L, "jti-123");
+      verify(stringRedisTemplate).expire(SessionService.USER_SESSIONS_KEY_PREFIX + 1L, TTL);
     }
   }
 
@@ -75,9 +79,9 @@ class SessionServiceTest {
     @Test
     @DisplayName("返回用户所有活跃会话，清理已过期的索引残留")
     void listSessions_returnsActiveAndCleansStale() {
-      when(redisTemplate.opsForSet()).thenReturn(setOps);
+      when(stringRedisTemplate.opsForSet()).thenReturn(stringSetOps);
       String userKey = SessionService.USER_SESSIONS_KEY_PREFIX + 1L;
-      when(setOps.members(userKey)).thenReturn(Set.of("jti-1", "jti-2"));
+      when(stringSetOps.members(userKey)).thenReturn(Set.of("jti-1", "jti-2"));
 
       SessionInfo info1 =
           new SessionInfo(
@@ -98,14 +102,14 @@ class SessionServiceTest {
 
       assertThat(result).hasSize(1);
       assertThat(result.get(0).jti()).isEqualTo("jti-1");
-      verify(setOps).remove(eq(userKey), eq("jti-2"));
+      verify(stringSetOps).remove(eq(userKey), eq("jti-2"));
     }
 
     @Test
     @DisplayName("无索引 → 空列表")
     void listSessions_emptyIndex() {
-      when(redisTemplate.opsForSet()).thenReturn(setOps);
-      when(setOps.members(any())).thenReturn(Set.of());
+      when(stringRedisTemplate.opsForSet()).thenReturn(stringSetOps);
+      when(stringSetOps.members(any())).thenReturn(Set.of());
 
       var result = service.listSessions(99L);
 
@@ -120,7 +124,7 @@ class SessionServiceTest {
     @Test
     @DisplayName("写入黑名单（TTL=剩余有效期）+ 删除会话 + 移除索引")
     void revokeSession_blacklistsAndDeletes() {
-      when(redisTemplate.opsForSet()).thenReturn(setOps);
+      when(stringRedisTemplate.opsForSet()).thenReturn(stringSetOps);
       SessionInfo info =
           new SessionInfo(
               "jti-1",
@@ -140,7 +144,7 @@ class SessionServiceTest {
       verify(redisCacheService)
           .set(eq(SessionService.BLACKLIST_KEY_PREFIX + "jti-1"), eq("1"), any(Duration.class));
       verify(redisCacheService).delete(SessionService.SESSION_KEY_PREFIX + "jti-1");
-      verify(setOps).remove(SessionService.USER_SESSIONS_KEY_PREFIX + 1L, "jti-1");
+      verify(stringSetOps).remove(SessionService.USER_SESSIONS_KEY_PREFIX + 1L, "jti-1");
     }
 
     @Test
@@ -157,7 +161,7 @@ class SessionServiceTest {
     @Test
     @DisplayName("剩余 TTL 为 0/负 → 不写黑名单（token 已过期）但仍清理记录")
     void revokeSession_zeroTtl_skipsBlacklist() {
-      when(redisTemplate.opsForSet()).thenReturn(setOps);
+      when(stringRedisTemplate.opsForSet()).thenReturn(stringSetOps);
       SessionInfo info =
           new SessionInfo(
               "jti-2",

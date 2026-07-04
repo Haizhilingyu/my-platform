@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -46,24 +47,29 @@ public class SessionService {
 
   private final RedisCacheService redisCacheService;
   private final RedisTemplate<String, Object> redisTemplate;
+  private final StringRedisTemplate stringRedisTemplate;
   private final Duration sessionTtl;
 
   @Autowired
   public SessionService(
       RedisCacheService redisCacheService,
       RedisTemplate<String, Object> redisTemplate,
+      StringRedisTemplate stringRedisTemplate,
       @Value("${app.security.jwt.expiration:86400000}") long jwtExpirationMillis) {
     this.redisCacheService = redisCacheService;
     this.redisTemplate = redisTemplate;
+    this.stringRedisTemplate = stringRedisTemplate;
     this.sessionTtl = Duration.ofMillis(jwtExpirationMillis);
   }
 
   SessionService(
       RedisCacheService redisCacheService,
       RedisTemplate<String, Object> redisTemplate,
+      StringRedisTemplate stringRedisTemplate,
       Duration sessionTtl) {
     this.redisCacheService = redisCacheService;
     this.redisTemplate = redisTemplate;
+    this.stringRedisTemplate = stringRedisTemplate;
     this.sessionTtl = sessionTtl;
   }
 
@@ -89,22 +95,21 @@ public class SessionService {
     String userKey = USER_SESSIONS_KEY_PREFIX + event.userId();
 
     redisCacheService.set(sessionKey, info, sessionTtl);
-    redisTemplate.opsForSet().add(userKey, event.jti());
-    redisTemplate.expire(userKey, sessionTtl);
+    stringRedisTemplate.opsForSet().add(userKey, event.jti());
+    stringRedisTemplate.expire(userKey, sessionTtl);
   }
 
   /** 列出用户的所有活跃会话（自动清理已过期的索引残留）。 */
   public List<SessionInfo> listSessions(Long userId) {
     String userKey = USER_SESSIONS_KEY_PREFIX + userId;
-    Set<Object> members = redisTemplate.opsForSet().members(userKey);
+    Set<String> members = stringRedisTemplate.opsForSet().members(userKey);
     if (members == null || members.isEmpty()) {
       return List.of();
     }
 
     List<SessionInfo> sessions = new ArrayList<>();
     List<String> stale = new ArrayList<>();
-    for (Object member : members) {
-      String jti = String.valueOf(member);
+    for (String jti : members) {
       Optional<SessionInfo> info =
           redisCacheService.get(SESSION_KEY_PREFIX + jti, SessionInfo.class);
       if (info.isPresent()) {
@@ -114,7 +119,7 @@ public class SessionService {
       }
     }
     if (!stale.isEmpty()) {
-      redisTemplate.opsForSet().remove(userKey, stale.toArray());
+      stringRedisTemplate.opsForSet().remove(userKey, stale.toArray());
     }
     return sessions;
   }
@@ -143,7 +148,7 @@ public class SessionService {
     }
 
     redisCacheService.delete(sessionKey);
-    redisTemplate.opsForSet().remove(USER_SESSIONS_KEY_PREFIX + info.userId(), jti);
+    stringRedisTemplate.opsForSet().remove(USER_SESSIONS_KEY_PREFIX + info.userId(), jti);
   }
 
   /** 从 User-Agent 解析设备类型。 */
