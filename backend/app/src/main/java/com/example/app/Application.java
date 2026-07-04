@@ -7,10 +7,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 /** 应用启动入口。 */
 @SpringBootApplication(
     scanBasePackages = {
-      "com.example.app",
-      "com.example.sys",
-      "com.example.common",
-      "com.example.notify"
+      "com.example.*"
     })
 @EnableJpaAuditing
 public class Application {

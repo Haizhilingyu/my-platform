@@ -36,6 +36,17 @@ spring:
       password: ${REDIS_PASSWORD:${SPRING_DATA_REDIS_PASSWORD:}}
       database: 0
 
+  mvc:
+    # 让未知路径（无 controller + 无静态文件）抛出 NoHandlerFoundException，
+    # 触发 ErrorController 处理（SpaErrorController 据此做 SPA fallback）。
+    throw-exception-if-no-handler-found: true
+
+  web:
+    resources:
+      # 静态资源位置：优先 jar 内嵌 classpath:/static/，其次容器外挂卷 file:/app/static/optional/
+      # 后者支持不重新打 jar 更新前端（挂载卷覆盖）。
+      static-locations: classpath:/static/,file:/app/static/optional/
+
 server:
   port: 8090
 

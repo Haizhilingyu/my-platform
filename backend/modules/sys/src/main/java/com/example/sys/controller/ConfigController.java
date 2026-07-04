@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** 系统配置 Controller。 */
 @RestController
-@RequestMapping("/sys/config")
+@RequestMapping("/api/sys/config")
 @RequiredArgsConstructor
 public class ConfigController {
 

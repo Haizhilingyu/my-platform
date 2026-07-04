@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** 菜单管理 Controller。 */
 @RestController
-@RequestMapping("/sys/menu")
+@RequestMapping("/api/sys/menu")
 @RequiredArgsConstructor
 public class MenuController {
 

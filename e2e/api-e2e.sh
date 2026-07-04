@@ -42,14 +42,14 @@ command -v jq >/dev/null 2>&1 || { echo "${RED}错误：未安装 jq${RESET}"; e
 # Spring Security 6 在 anyRequest().authenticated() 且无自定义 entry point 时，
 # 未认证访问直接返回 403（空 body）。这证明安全过滤生效。
 # ------------------------------------------------------------------
-code=$(curl -s -o /dev/null -w '%{http_code}' "${BASE}/sys/auth/me")
-assert_case "无 token 访问 /sys/auth/me 应返回 403（安全过滤生效）" \
+code=$(curl -s -o /dev/null -w '%{http_code}' "${BASE}/api/sys/auth/me")
+assert_case "无 token 访问 /api/sys/auth/me 应返回 403（安全过滤生效）" \
   $([ "$code" = "403" ] && echo 0 || echo 1)
 
 # ------------------------------------------------------------------
 # 用例 2：错误密码登录 → 期望 401 + 业务错误 JSON
 # ------------------------------------------------------------------
-resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/sys/auth/login" \
+resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/api/sys/auth/login" \
   -H 'Content-Type: application/json' \
   -d '{"username":"admin","password":"wrong-password"}')
 code=$(echo "$resp" | tail -1)
@@ -64,7 +64,7 @@ assert_case "错误密码 message 应含『用户名或密码错误』" \
 # ------------------------------------------------------------------
 # 用例 3：正确登录 admin/admin123 → 200 + LoginVO 结构
 # ------------------------------------------------------------------
-resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/sys/auth/login" \
+resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/api/sys/auth/login" \
   -H 'Content-Type: application/json' \
   -d '{"username":"admin","password":"admin123"}')
 code=$(echo "$resp" | tail -1)
@@ -87,57 +87,57 @@ if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
 fi
 
 # ------------------------------------------------------------------
-# 用例 4：带 token 调 /sys/auth/me → 200, user.id==1
+# 用例 4：带 token 调 /api/sys/auth/me → 200, user.id==1
 # ------------------------------------------------------------------
-resp=$(curl -s -w $'\n%{http_code}' "${BASE}/sys/auth/me" \
+resp=$(curl -s -w $'\n%{http_code}' "${BASE}/api/sys/auth/me" \
   -H "Authorization: Bearer ${TOKEN}")
 code=$(echo "$resp" | tail -1)
 body=$(echo "$resp" | sed '$d')
 me_id=$(echo "$body" | jq -r '.data.id // empty' 2>/dev/null)
 me_user=$(echo "$body" | jq -r '.data.username // empty' 2>/dev/null)
-assert_case "带 token 调 /sys/auth/me 应返回 200" $([ "$code" = "200" ] && echo 0 || echo 1)
-assert_case "/sys/auth/me user.id 应为 1" $([ "$me_id" = "1" ] && echo 0 || echo 1)
-assert_case "/sys/auth/me user.username 应为 admin" $([ "$me_user" = "admin" ] && echo 0 || echo 1)
+assert_case "带 token 调 /api/sys/auth/me 应返回 200" $([ "$code" = "200" ] && echo 0 || echo 1)
+assert_case "/api/sys/auth/me user.id 应为 1" $([ "$me_id" = "1" ] && echo 0 || echo 1)
+assert_case "/api/sys/auth/me user.username 应为 admin" $([ "$me_user" = "admin" ] && echo 0 || echo 1)
 
 # ------------------------------------------------------------------
-# 用例 5：带 token 调 /sys/auth/permissions → 200, 权限集非空
+# 用例 5：带 token 调 /api/sys/auth/permissions → 200, 权限集非空
 # ------------------------------------------------------------------
-resp=$(curl -s -w $'\n%{http_code}' "${BASE}/sys/auth/permissions" \
+resp=$(curl -s -w $'\n%{http_code}' "${BASE}/api/sys/auth/permissions" \
   -H "Authorization: Bearer ${TOKEN}")
 code=$(echo "$resp" | tail -1)
 body=$(echo "$resp" | sed '$d')
 perm_count=$(echo "$body" | jq '.data | length' 2>/dev/null)
-assert_case "带 token 调 /sys/auth/permissions 应返回 200" $([ "$code" = "200" ] && echo 0 || echo 1)
+assert_case "带 token 调 /api/sys/auth/permissions 应返回 200" $([ "$code" = "200" ] && echo 0 || echo 1)
 assert_case "权限集应非空" $([ -n "$perm_count" ] && [ "$perm_count" -gt 0 ] && echo 0 || echo 1)
 
 # ------------------------------------------------------------------
-# 用例 6：带 token 调 /sys/auth/menus → 200, 菜单树含「系统管理」
+# 用例 6：带 token 调 /api/sys/auth/menus → 200, 菜单树含「系统管理」
 # ------------------------------------------------------------------
-resp=$(curl -s -w $'\n%{http_code}' "${BASE}/sys/auth/menus" \
+resp=$(curl -s -w $'\n%{http_code}' "${BASE}/api/sys/auth/menus" \
   -H "Authorization: Bearer ${TOKEN}")
 code=$(echo "$resp" | tail -1)
 body=$(echo "$resp" | sed '$d')
 has_sys=$(echo "$body" | jq -r '[.data[]?.menuName] | index("系统管理") != null' 2>/dev/null)
-assert_case "带 token 调 /sys/auth/menus 应返回 200" $([ "$code" = "200" ] && echo 0 || echo 1)
+assert_case "带 token 调 /api/sys/auth/menus 应返回 200" $([ "$code" = "200" ] && echo 0 || echo 1)
 assert_case "菜单树应含『系统管理』目录" $([ "$has_sys" = "true" ] && echo 0 || echo 1)
 
 # ------------------------------------------------------------------
-# 用例 7：带 token 调 /sys/user → 200, 列表含 admin
+# 用例 7：带 token 调 /api/sys/user → 200, 列表含 admin
 # ------------------------------------------------------------------
-resp=$(curl -s -w $'\n%{http_code}' "${BASE}/sys/user" \
+resp=$(curl -s -w $'\n%{http_code}' "${BASE}/api/sys/user" \
   -H "Authorization: Bearer ${TOKEN}")
 code=$(echo "$resp" | tail -1)
 body=$(echo "$resp" | sed '$d')
 # 分页或数组结构都兼容：在整段 body 里找 username == admin
 has_admin=$(echo "$body" | jq -r '[.. | .username? // empty] | index("admin") != null' 2>/dev/null)
-assert_case "带 token 调 /sys/user（有权限）应返回 200" $([ "$code" = "200" ] && echo 0 || echo 1)
+assert_case "带 token 调 /api/sys/user（有权限）应返回 200" $([ "$code" = "200" ] && echo 0 || echo 1)
 assert_case "用户列表应含 admin" $([ "$has_admin" = "true" ] && echo 0 || echo 1)
 
 # ------------------------------------------------------------------
 # 用例 8：无效 token 访问受保护接口 → 期望 403
 # 无效 token 同样被安全层拒绝（Spring Security 6 默认 403）。
 # ------------------------------------------------------------------
-code=$(curl -s -o /dev/null -w '%{http_code}' "${BASE}/sys/auth/me" \
+code=$(curl -s -o /dev/null -w '%{http_code}' "${BASE}/api/sys/auth/me" \
   -H "Authorization: Bearer an.invalid.token")
 assert_case "无效 token 访问受保护接口应返回 403" \
   $([ "$code" = "403" ] && echo 0 || echo 1)

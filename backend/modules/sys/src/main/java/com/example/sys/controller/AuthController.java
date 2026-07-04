@@ -39,7 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** 认证 Controller。负责登录、登出、获取当前用户信息（权限、菜单）。 */
 @Tag(name = "认证", description = "登录、登出、获取当前用户权限和菜单")
 @RestController
-@RequestMapping("/sys/auth")
+@RequestMapping("/api/sys/auth")
 @RequiredArgsConstructor
 public class AuthController {
 

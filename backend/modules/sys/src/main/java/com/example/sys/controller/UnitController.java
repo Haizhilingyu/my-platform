@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** 单位管理 Controller。 */
 @RestController
-@RequestMapping("/sys/unit")
+@RequestMapping("/api/sys/unit")
 @RequiredArgsConstructor
 public class UnitController {
 

@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>仅平台内部使用，要求登录且持有 {@code sys:notify:publish} 权限。
  */
 @RestController
-@RequestMapping("/sys/notify")
+@RequestMapping("/api/sys/notify")
 @RequiredArgsConstructor
 public class InternalNotifyController {
 

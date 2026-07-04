@@ -30,14 +30,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 外部应用客户端管理 CRUD API。供管理后台（T21 前端）调用，路径 {@code /sys/openapp/clients}。
+ * 外部应用客户端管理 CRUD API。供管理后台（T21 前端）调用，路径 {@code /api/sys/openapp/clients}。
  *
  * <p>权限：{@code sys:openapp:list/add/edit/delete}（V32 migration 已绑定 admin）。
  *
  * <p>密钥策略：BCrypt 哈希存库，明文仅在 create / reset-secret 响应中返回一次。
  */
 @RestController
-@RequestMapping("/sys/openapp/clients")
+@RequestMapping("/api/sys/openapp/clients")
 @RequiredArgsConstructor
 public class OpenAppClientController {
 

@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** 角色管理 Controller。 */
 @RestController
-@RequestMapping("/sys/role")
+@RequestMapping("/api/sys/role")
 @RequiredArgsConstructor
 public class RoleController {
 

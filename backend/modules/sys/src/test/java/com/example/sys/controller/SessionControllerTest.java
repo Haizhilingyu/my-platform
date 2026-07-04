@@ -51,7 +51,7 @@ class SessionControllerTest {
   }
 
   @Test
-  @DisplayName("GET /sys/auth/sessions → 返回当前用户会话列表")
+  @DisplayName("GET /api/sys/auth/sessions → 返回当前用户会话列表")
   void mySessions_returnsCurrentUserSessions() {
     when(sessionService.listSessions(1L)).thenReturn(List.of(info("jti-1", 1L)));
 
@@ -63,7 +63,7 @@ class SessionControllerTest {
   }
 
   @Test
-  @DisplayName("POST /sys/auth/sessions/{jti}/revoke → 撤销自己的会话")
+  @DisplayName("POST /api/sys/auth/sessions/{jti}/revoke → 撤销自己的会话")
   void revokeMySession_ownSession_succeeds() {
     when(sessionService.getSession("jti-1")).thenReturn(Optional.of(info("jti-1", 1L)));
 
@@ -74,7 +74,7 @@ class SessionControllerTest {
   }
 
   @Test
-  @DisplayName("POST /sys/auth/sessions/{jti}/revoke → 撤销他人会话 → 403")
+  @DisplayName("POST /api/sys/auth/sessions/{jti}/revoke → 撤销他人会话 → 403")
   void revokeMySession_otherUserSession_forbidden() {
     when(sessionService.getSession("jti-x")).thenReturn(Optional.of(info("jti-x", 999L)));
 
@@ -85,7 +85,7 @@ class SessionControllerTest {
   }
 
   @Test
-  @DisplayName("POST /sys/auth/sessions/{jti}/revoke → 会话不存在 → 403")
+  @DisplayName("POST /api/sys/auth/sessions/{jti}/revoke → 会话不存在 → 403")
   void revokeMySession_notFound_forbidden() {
     when(sessionService.getSession("ghost")).thenReturn(Optional.empty());
 
@@ -95,7 +95,7 @@ class SessionControllerTest {
   }
 
   @Test
-  @DisplayName("GET /sys/user/{id}/sessions → 返回目标用户会话（管理员）")
+  @DisplayName("GET /api/sys/user/{id}/sessions → 返回目标用户会话（管理员）")
   void userSessions_returnsTargetUserSessions() {
     when(sessionService.listSessions(2L)).thenReturn(List.of(info("jti-2", 2L)));
 
@@ -107,7 +107,7 @@ class SessionControllerTest {
   }
 
   @Test
-  @DisplayName("POST /sys/user/{id}/sessions/{jti}/revoke → 管理员强制踢出")
+  @DisplayName("POST /api/sys/user/{id}/sessions/{jti}/revoke → 管理员强制踢出")
   void revokeUserSession_adminForceKickout() {
     Result<Void> result = controller.revokeUserSession(2L, "jti-2");
 

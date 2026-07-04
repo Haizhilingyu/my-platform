@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** 审计日志查询 Controller。 */
 @Tag(name = "审计日志", description = "查询系统审计日志")
 @RestController
-@RequestMapping("/sys/audit")
+@RequestMapping("/api/sys/audit")
 @RequiredArgsConstructor
 public class AuditLogController {
 
