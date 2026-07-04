@@ -2,14 +2,18 @@
 import { ref, onMounted, h } from 'vue'
 import {
   NCard, NButton, NSpace, NModal, NForm, NFormItem,
-  NInput, NSwitch, NTag, useMessage,
+  NInput, NSelect, NSwitch, NTag, NTree, NEmpty,
+  useMessage, type TreeOption,
 } from 'naive-ui'
 import { unitApi, type UnitDTO } from '@/modules/sys/api/unit'
 import type { UnitTreeNode } from '@/modules/sys/api/types'
+import { useAuthStore } from '@/stores/auth'
 
+const authStore = useAuthStore()
 const message = useMessage()
 const loading = ref(false)
 const tree = ref<UnitTreeNode[]>([])
+const expandedKeys = ref<number[]>([])
 
 const showModal = ref(false)
 const editingId = ref<number | null>(null)
@@ -20,12 +24,14 @@ async function fetchData() {
   try {
     const res = await unitApi.tree()
     tree.value = res.data
+    // 默认展开第一层
+    expandedKeys.value = tree.value.map(n => n.id)
   } finally {
     loading.value = false
   }
 }
 
-function flattenUnits(units: UnitTreeNode[], prefix = ''): any[] {
+function flattenUnits(units: UnitTreeNode[], prefix = ''): { label: string, value: number }[] {
   return units.flatMap(u => [
     { label: prefix + u.unitName, value: u.id },
     ...(u.children?.length ? flattenUnits(u.children, prefix + '  ') : []),
@@ -34,7 +40,7 @@ function flattenUnits(units: UnitTreeNode[], prefix = ''): any[] {
 
 function handleAdd(parentId?: number) {
   editingId.value = null
-  form.value = { parentId: parentId, unitCode: '', unitName: '', sort: 0, status: 1 }
+  form.value = { parentId, unitCode: '', unitName: '', sort: 0, status: 1 }
   showModal.value = true
 }
 
@@ -77,27 +83,39 @@ async function handleDelete(row: UnitTreeNode) {
   }
 }
 
-function renderTree(units: UnitTreeNode[]): any[] {
-  return units.map(u => ({
-    key: u.id,
-    label: () => h('div', { class: 'flex items-center justify-between py-1' }, [
-      h('div', { class: 'flex items-center gap-2' }, [
-        h(NTag, { size: 'small' }, { default: () => u.unitCode }),
-        h('span', { class: u.status === 0 ? 'line-through opacity-50' : '' }, u.unitName),
-      ]),
-      h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, { size: 'tiny', text: true, type: 'primary',
-            onClick: () => handleAdd(u.id) }, { default: () => '新增' }),
-          h(NButton, { size: 'tiny', text: true, type: 'primary',
-            onClick: () => handleEdit(u) }, { default: () => '编辑' }),
-          h(NButton, { size: 'tiny', text: true, type: 'error',
-            onClick: () => handleDelete(u) }, { default: () => '删除' }),
-        ],
-      }),
+function handleExpand(keys: Array<string | number>) {
+  expandedKeys.value = keys as number[]
+}
+
+function renderLabel({ option }: { option: TreeOption }) {
+  const node = option as unknown as UnitTreeNode
+  return h('div', {
+    class: 'flex items-center justify-between gap-2 w-full pr-2',
+  }, [
+    h('div', { class: 'flex items-center gap-2 min-w-0' }, [
+      h(NTag, { size: 'small' }, { default: () => node.unitCode }),
+      h('span', {
+        class: node.status === 0 ? 'line-through opacity-50' : '',
+      }, node.unitName),
     ]),
-    children: u.children?.length ? renderTree(u.children) : undefined,
-  }))
+    h('div', {
+      class: 'flex items-center gap-2 shrink-0',
+      onClick: (e: Event) => e.stopPropagation(),
+    }, [
+      authStore.hasPermission('sys:unit:add') && h(NButton, {
+        size: 'tiny', text: true, type: 'primary',
+        onClick: () => handleAdd(node.id),
+      }, { default: () => '新增' }),
+      authStore.hasPermission('sys:unit:edit') && h(NButton, {
+        size: 'tiny', text: true, type: 'primary',
+        onClick: () => handleEdit(node),
+      }, { default: () => '编辑' }),
+      authStore.hasPermission('sys:unit:delete') && h(NButton, {
+        size: 'tiny', text: true, type: 'error',
+        onClick: () => handleDelete(node),
+      }, { default: () => '删除' }),
+    ]),
+  ])
 }
 
 onMounted(fetchData)
@@ -109,18 +127,19 @@ onMounted(fetchData)
       <NButton v-permission="'sys:unit:add'" type="primary" @click="handleAdd()">新增单位</NButton>
     </NSpace>
 
-    <div v-if="!loading">
-      <template v-for="node in renderTree(tree)" :key="node.key">
-        <div class="border-b border-[rgb(var(--color-border))] last:border-0 py-2">
-          <div class="font-medium">{{ node.label() }}</div>
-          <div v-if="node.children" class="pl-8">
-            <div v-for="child in node.children" :key="child.key" class="border-b border-[rgb(var(--color-border))] last:border-0 py-2">
-              {{ child.label() }}
-            </div>
-          </div>
-        </div>
-      </template>
-    </div>
+    <NTree
+      v-if="tree.length"
+      :data="tree"
+      :expanded-keys="expandedKeys"
+      :render-label="renderLabel"
+      key-field="id"
+      label-field="unitName"
+      children-field="children"
+      block-line
+      expand-on-click
+      @update:expanded-keys="handleExpand"
+    />
+    <NEmpty v-else-if="!loading" description="暂无单位数据" />
   </NCard>
 
   <NModal v-model:show="showModal" :title="editingId ? '编辑单位' : '新增单位'" preset="card" :style="{ width: '500px' }">

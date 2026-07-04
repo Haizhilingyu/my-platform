@@ -2,15 +2,19 @@
 import { ref, onMounted, h } from 'vue'
 import {
   NCard, NButton, NSpace, NModal, NForm, NFormItem,
-  NInput, NSelect, NSwitch, NTag, useMessage,
+  NInput, NSelect, NSwitch, NTag, NTree, NEmpty,
+  useMessage, type TreeOption,
 } from 'naive-ui'
 import { menuApi, type MenuDTO } from '@/modules/sys/api/menu'
 import type { MenuTreeNode } from '@/modules/sys/api/types'
+import { useAuthStore } from '@/stores/auth'
 
+const authStore = useAuthStore()
 const message = useMessage()
 
 const loading = ref(false)
 const tree = ref<MenuTreeNode[]>([])
+const expandedKeys = ref<number[]>([])
 
 const showModal = ref(false)
 const editingId = ref<number | null>(null)
@@ -29,12 +33,14 @@ async function fetchData() {
   try {
     const res = await menuApi.tree()
     tree.value = res.data
+    // 默认展开第一层
+    expandedKeys.value = tree.value.map(n => n.id)
   } finally {
     loading.value = false
   }
 }
 
-function flattenMenus(menus: MenuTreeNode[], prefix = ''): any[] {
+function flattenMenus(menus: MenuTreeNode[], prefix = ''): { label: string, value: number }[] {
   return menus.flatMap(m => [
     { label: prefix + m.menuName, value: m.id },
     ...(m.children?.length ? flattenMenus(m.children, prefix + '  ') : []),
@@ -93,36 +99,48 @@ async function handleDelete(row: MenuTreeNode) {
   }
 }
 
+function handleExpand(keys: Array<string | number>) {
+  expandedKeys.value = keys as number[]
+}
+
 function typeLabel(type: string) {
   return { DIRECTORY: '目录', PAGE: '页面', BUTTON: '按钮' }[type] || type
 }
 
 function typeColor(type: string) {
-  return { DIRECTORY: 'info', PAGE: 'success', BUTTON: 'warning' }[type] as any || 'default'
+  return ({ DIRECTORY: 'info', PAGE: 'success', BUTTON: 'warning' } as const)[type as 'DIRECTORY' | 'PAGE' | 'BUTTON'] || 'default'
 }
 
-function renderTree(menus: MenuTreeNode[]): any[] {
-  return menus.map(m => ({
-    key: m.id,
-    label: () => h('div', { class: 'flex items-center justify-between py-1' }, [
-      h('div', { class: 'flex items-center gap-2' }, [
-        h(NTag, { size: 'small', type: typeColor(m.menuType) }, { default: () => typeLabel(m.menuType) }),
-        h('span', { class: m.status === 0 ? 'line-through opacity-50' : '' }, m.menuName),
-        m.permission && h('span', { class: 'text-xs opacity-50' }, m.permission),
-      ]),
-      h(NSpace, { size: 'small' }, {
-        default: () => [
-          h(NButton, { size: 'tiny', text: true, type: 'primary',
-            onClick: () => handleAdd(m.id) }, { default: () => '新增' }),
-          h(NButton, { size: 'tiny', text: true, type: 'primary',
-            onClick: () => handleEdit(m) }, { default: () => '编辑' }),
-          h(NButton, { size: 'tiny', text: true, type: 'error',
-            onClick: () => handleDelete(m) }, { default: () => '删除' }),
-        ],
-      }),
+function renderLabel({ option }: { option: TreeOption }) {
+  const node = option as unknown as MenuTreeNode
+  return h('div', {
+    class: 'flex items-center justify-between gap-2 w-full pr-2',
+  }, [
+    h('div', { class: 'flex items-center gap-2 min-w-0' }, [
+      h(NTag, { size: 'small', type: typeColor(node.menuType) }, { default: () => typeLabel(node.menuType) }),
+      h('span', {
+        class: node.status === 0 ? 'line-through opacity-50' : '',
+      }, node.menuName),
+      node.permission && h('span', { class: 'text-xs opacity-50' }, node.permission),
     ]),
-    children: m.children?.length ? renderTree(m.children) : undefined,
-  }))
+    h('div', {
+      class: 'flex items-center gap-2 shrink-0',
+      onClick: (e: Event) => e.stopPropagation(),
+    }, [
+      authStore.hasPermission('sys:menu:add') && h(NButton, {
+        size: 'tiny', text: true, type: 'primary',
+        onClick: () => handleAdd(node.id),
+      }, { default: () => '新增' }),
+      authStore.hasPermission('sys:menu:edit') && h(NButton, {
+        size: 'tiny', text: true, type: 'primary',
+        onClick: () => handleEdit(node),
+      }, { default: () => '编辑' }),
+      authStore.hasPermission('sys:menu:delete') && h(NButton, {
+        size: 'tiny', text: true, type: 'error',
+        onClick: () => handleDelete(node),
+      }, { default: () => '删除' }),
+    ]),
+  ])
 }
 
 onMounted(fetchData)
@@ -134,18 +152,19 @@ onMounted(fetchData)
       <NButton v-permission="'sys:menu:add'" type="primary" @click="handleAdd()">新增菜单</NButton>
     </NSpace>
 
-    <div v-if="!loading">
-      <template v-for="node in renderTree(tree)" :key="node.key">
-        <div class="border-b border-[rgb(var(--color-border))] last:border-0">
-          <div class="py-2 font-medium">{{ node.label() }}</div>
-          <div v-if="node.children" class="pl-8">
-            <div v-for="child in node.children" :key="child.key" class="border-b border-[rgb(var(--color-border))] last:border-0">
-              <div class="py-2">{{ child.label() }}</div>
-            </div>
-          </div>
-        </div>
-      </template>
-    </div>
+    <NTree
+      v-if="tree.length"
+      :data="tree"
+      :expanded-keys="expandedKeys"
+      :render-label="renderLabel"
+      key-field="id"
+      label-field="menuName"
+      children-field="children"
+      block-line
+      expand-on-click
+      @update:expanded-keys="handleExpand"
+    />
+    <NEmpty v-else-if="!loading" description="暂无菜单数据" />
   </NCard>
 
   <NModal v-model:show="showModal" :title="editingId ? '编辑菜单' : '新增菜单'" preset="card" :style="{ width: '550px' }">
