@@ -10,16 +10,17 @@ Operations guide for deploying and running **My Platform** in production. Covers
 
 | Component | Host | Port | Notes |
 | --- | --- | --- | --- |
-| Backend (Spring Boot) | container `my-platform-backend` | 8090 (host 8095) | Java 21, port from `server.port` |
-| Frontend (nginx) | container `my-platform-frontend` | 80 (host 8088) | Serves built Vue 3 dist |
+| App (Spring Boot + embedded SPA) | container `my-platform-app` | 8090 (host 8095) | Java 21. Single fat jar serves Vue 3 dist from `classpath:/static/` plus REST API + WebSocket on one port |
 | PostgreSQL | NAS `192.168.1.2` | 5532 | Database `platform` |
 | Redis | NAS `192.168.1.2` | 6380 | Auth enabled on NAS |
 | Nexus | NAS `192.168.1.2` | 8081 | Maven, PyPI, Docker registry |
-| Docker registry | NAS `192.168.1.2` | 8082 | `platform-backend`, `platform-frontend` images |
+| Docker registry | NAS `192.168.1.2` | 8082 | `platform-app` image (single image, frontend + backend merged) |
 | OpenLDAP | NAS `192.168.1.2` | 389 | Optional login method |
 | Gitea + Actions | self-hosted | — | Runs `ci.yml`, `deploy.yml`, `sdk-release.yml` |
 
 Deploy target lives at `/volume1/docker/my-platform` on the NAS. The `deploy.yml` workflow SSHes in, runs `docker compose pull && docker compose up -d`, and prints `docker compose ps`.
+
+The app image is a three-stage multi-stage build (`docker/Dockerfile`): node builds the Vue 3 dist, Maven builds the fat jar with the dist injected into `BOOT-INF/classes/static/`, and a JRE runtime serves everything. No separate nginx container is needed — Spring Boot's embedded Tomcat serves the SPA, REST API (`/api/**`), OAuth2 (`/oauth2/**`), and WebSocket (`/ws/notify`) on a single port.
 
 ---
 
@@ -97,7 +98,7 @@ These live as Gitea Action secrets, not in `.env`. They never touch the app cont
    REDIS_PASSWORD=<random>
    ```
 5. Configure Gitea secrets `NEXUS_USER`, `NEXUS_PASS`, `DEPLOY_USER`, `DEPLOY_PASS`.
-6. Push to `main`. The `deploy.yml` workflow builds both images, pushes them to the NAS registry at `192.168.1.2:8082`, then rolls the compose stack.
+6. Push to `main`. The `deploy.yml` workflow builds the single `platform-app` image (frontend + backend merged), pushes it to the NAS registry at `192.168.1.2:8082`, then rolls the compose stack.
 
 Flyway runs on first boot and creates all tables (see section 5).
 
@@ -152,9 +153,9 @@ Flyway is on by default (`spring.flyway.enabled=true`) with `baseline-on-migrate
 
 Nothing to do. On boot, Flyway reads `flyway_schema_history`, applies pending scripts in order, then the app starts. `ddl-auto=validate` means Hibernate only checks entities against the migrated schema and never alters tables itself.
 
-### Multiple backend instances
+### Multiple app instances
 
-When more than one backend replica starts at the same time, they all try to migrate. Flyway protects the history table with a database-level advisory lock (`flyway_schema_history` row lock), so only one instance runs migrations while the others wait, retry, then proceed once the lock is free.
+When more than one app replica starts at the same time, they all try to migrate. Flyway protects the history table with a database-level advisory lock (`flyway_schema_history` row lock), so only one instance runs migrations while the others wait, retry, then proceed once the lock is free.
 
 Recommendations for a clean multi-replica boot:
 
@@ -191,7 +192,7 @@ redis-cli -h 192.168.1.2 -p 6380 -a "$REDIS_PASSWORD" PING
 From inside the container:
 
 ```
-docker compose exec backend sh -c 'echo PING | redis-cli -h $SPRING_DATA_REDIS_HOST -p $SPRING_DATA_REDIS_PORT -a "$REDIS_PASSWORD"'
+docker compose exec app sh -c 'echo PING | redis-cli -h $SPRING_DATA_REDIS_HOST -p $SPRING_DATA_REDIS_PORT -a "$REDIS_PASSWORD"'
 ```
 
 ### Variable precedence

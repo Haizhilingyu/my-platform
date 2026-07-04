@@ -30,28 +30,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build & Push Backend Image
+      - name: Build & Push App Image
         uses: docker/build-push-action@v6
         with:
-          context: ./backend
-          file: ./docker/Dockerfile.backend
+          context: .
+          file: ./docker/Dockerfile
           push: true
           tags: |
-            192.168.1.2:8082/platform-backend:${{ steps.tag.outputs.IMAGE_TAG }}
-            192.168.1.2:8082/platform-backend:latest
-          build-args: |
-            NEXUS_USER=${{ secrets.NEXUS_USER }}
-            NEXUS_PASS=${{ secrets.NEXUS_PASS }}
-
-      - name: Build & Push Frontend Image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          file: ./docker/Dockerfile.frontend
-          push: true
-          tags: |
-            192.168.1.2:8082/platform-frontend:${{ steps.tag.outputs.IMAGE_TAG }}
-            192.168.1.2:8082/platform-frontend:latest
+            192.168.1.2:8082/platform-app:${{ steps.tag.outputs.IMAGE_TAG }}
+            192.168.1.2:8082/platform-app:latest
 
       - name: Deploy to NAS
         uses: appleboy/ssh-action@v1

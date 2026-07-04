@@ -1,9 +1,10 @@
 services:
-  backend:
+  app:
     build:
-      context: /volume1/docker/my-platform
-      dockerfile: /volume1/docker/my-platform/docker/Dockerfile.backend
-    container_name: my-platform-backend
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: 192.168.1.2:8082/platform-app:latest
+    container_name: my-platform-app
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
@@ -16,20 +17,8 @@ services:
       SPRING_DATA_REDIS_PASSWORD: ${SPRING_DATA_REDIS_PASSWORD:-}
       APP_SECURITY_JWT_SECRET: ${APP_SECURITY_JWT_SECRET:?需在 .env 设置 APP_SECURITY_JWT_SECRET}
     ports:
+      # 单端口同时服务前端 SPA + API + WebSocket
       - "8095:8090"
-    networks:
-      - my-platform
-
-  frontend:
-    build:
-      context: /volume1/docker/my-platform
-      dockerfile: /volume1/docker/my-platform/docker/Dockerfile.frontend
-    container_name: my-platform-frontend
-    restart: unless-stopped
-    ports:
-      - "8088:80"
-    depends_on:
-      - backend
     networks:
       - my-platform
 
