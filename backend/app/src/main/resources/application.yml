@@ -31,7 +31,9 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:192.168.1.2}
       port: ${SPRING_DATA_REDIS_PORT:6380}
-      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      # 凭证外部化：REDIS_PASSWORD 优先；兼容历史变量 SPRING_DATA_REDIS_PASSWORD。
+      # 无密码则留空（本地开发）。生产/NAS 通过环境变量注入（见 docker/.env.example）。
+      password: ${REDIS_PASSWORD:${SPRING_DATA_REDIS_PASSWORD:}}
       database: 0
 
 server:
