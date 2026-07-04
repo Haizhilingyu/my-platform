@@ -5,10 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 /** 应用启动入口。 */
-@SpringBootApplication(
-    scanBasePackages = {
-      "com.example.*"
-    })
+@SpringBootApplication(scanBasePackages = {"com.example.*"})
 @EnableJpaAuditing
 public class Application {
 

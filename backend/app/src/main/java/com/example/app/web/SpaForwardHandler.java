@@ -11,17 +11,17 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
- * SPA 路由 fallback：拦截 {@link NoResourceFoundException}，将非 API/基础设施路径转发到
- * {@code /index.html}（由 Spring Boot 静态资源处理器服务，Vue Router 接管客户端路由）。
+ * SPA 路由 fallback：拦截 {@link NoResourceFoundException}，将非 API/基础设施路径转发到 {@code /index.html}（由 Spring
+ * Boot 静态资源处理器服务，Vue Router 接管客户端路由）。
  *
- * <p><b>为什么需要这个类</b>：Spring Boot 3.2+ 的静态资源处理器在找不到文件时抛出
- * {@code NoResourceFoundException}。{@code GlobalExceptionHandler}（{@code @RestControllerAdvice}）
- * 有一个 catch-all {@code @ExceptionHandler(Exception.class)} 会捕获它并返回 500 JSON，
- * 导致 SPA 深链接（如 {@code /sys/user}、{@code /dashboard}）返回 500 而非 index.html。
+ * <p><b>为什么需要这个类</b>：Spring Boot 3.2+ 的静态资源处理器在找不到文件时抛出 {@code NoResourceFoundException}。{@code
+ * GlobalExceptionHandler}（{@code @RestControllerAdvice}） 有一个 catch-all
+ * {@code @ExceptionHandler(Exception.class)} 会捕获它并返回 500 JSON， 导致 SPA 深链接（如 {@code
+ * /sys/user}、{@code /dashboard}）返回 500 而非 index.html。
  *
- * <p>本类以 {@link Ordered#HIGHEST_PRECEDENCE} 运行，优先于 {@code GlobalExceptionHandler}。
- * 注意：必须是 {@code @ControllerAdvice}（非 {@code @RestControllerAdvice}），因为
- * {@code @RestControllerAdvice} 会把返回的 String 当作 JSON body 而非视图名。
+ * <p>本类以 {@link Ordered#HIGHEST_PRECEDENCE} 运行，优先于 {@code GlobalExceptionHandler}。 注意：必须是
+ * {@code @ControllerAdvice}（非 {@code @RestControllerAdvice}），因为 {@code @RestControllerAdvice} 会把返回的
+ * String 当作 JSON body 而非视图名。
  *
  * <p>对于 API/基础设施路径的 {@code NoResourceFoundException}，返回 404 JSON（不转发到 SPA）。
  */

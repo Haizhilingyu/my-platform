@@ -20,21 +20,21 @@ import org.springframework.web.context.request.WebRequest;
  * <p>当请求未匹配任何 controller 且静态资源也不存在时，Spring Boot 转发到 {@code /error}。 本类区分两类请求：
  *
  * <ol>
- *   <li>SPA 页面路由（如 {@code /login}、{@code /dashboard}、{@code /sys/user}）→ forward 到
- *       {@code /index.html}，返回 200，让 Vue Router 接管渲染。
- *   <li>API/基础设施路径（{@code /api/**}、{@code /openapi/**}、{@code /oauth2/**}、{@code /ws/**}
- *       等）→ 返回 JSON 错误（{@link DefaultErrorAttributes} 格式），避免把 SPA HTML 当作 API 响应。
+ *   <li>SPA 页面路由（如 {@code /login}、{@code /dashboard}、{@code /sys/user}）→ forward 到 {@code
+ *       /index.html}，返回 200，让 Vue Router 接管渲染。
+ *   <li>API/基础设施路径（{@code /api/**}、{@code /openapi/**}、{@code /oauth2/**}、{@code /ws/**} 等）→ 返回
+ *       JSON 错误（{@link DefaultErrorAttributes} 格式），避免把 SPA HTML 当作 API 响应。
  * </ol>
  *
  * <p>必须配合 {@code application.yml} 中 {@code spring.mvc.throw-exception-if-no-handler-found=true}
  * 使用；否则未知路径会被静态资源处理器吞掉而非转发到 {@code /error}。
  *
- * <p>本 {@code @Controller} + {@code @RequestMapping("/error")} 会覆盖 Spring Boot 默认的
- * {@code BasicErrorController}（后者由 {@code @ConditionalOnMissingBean(ErrorController.class)} 守卫）。
+ * <p>本 {@code @Controller} + {@code @RequestMapping("/error")} 会覆盖 Spring Boot 默认的 {@code
+ * BasicErrorController}（后者由 {@code @ConditionalOnMissingBean(ErrorController.class)} 守卫）。
  *
- * <p><b>循环守卫</b>：当 {@code /index.html} 本身缺失（前端未构建 / static 目录空）时，SPA 路由 404 →
- * forward 到 {@code /index.html} → 又 404 → 重新进入 {@code /error} → 无限递归。 本类在方法入口检测
- * {@code ERROR_REQUEST_URI == "/index.html"}，命中则直接返回 404 JSON，打破循环。
+ * <p><b>循环守卫</b>：当 {@code /index.html} 本身缺失（前端未构建 / static 目录空）时，SPA 路由 404 → forward 到 {@code
+ * /index.html} → 又 404 → 重新进入 {@code /error} → 无限递归。 本类在方法入口检测 {@code ERROR_REQUEST_URI ==
+ * "/index.html"}，命中则直接返回 404 JSON，打破循环。
  */
 @Controller
 public class SpaErrorController implements ErrorController {
@@ -81,8 +81,7 @@ public class SpaErrorController implements ErrorController {
     // API / infrastructure errors → JSON error response (DefaultErrorAttributes format)
     WebRequest webRequest = new ServletWebRequest(request);
     Map<String, Object> body =
-        errorAttributes.getErrorAttributes(
-            webRequest, ErrorAttributeOptions.of(Include.MESSAGE));
+        errorAttributes.getErrorAttributes(webRequest, ErrorAttributeOptions.of(Include.MESSAGE));
     if (log.isDebugEnabled()) {
       log.debug("error-handler status={} uri={} body={}", status, requestUri, body);
     }
