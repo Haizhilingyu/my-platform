@@ -21,6 +21,10 @@
         </dependency>
         <dependency>
             <groupId>com.example</groupId>
+            <artifactId>platform-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.example</groupId>
             <artifactId>sys-module</artifactId>
         </dependency>
     </dependencies>

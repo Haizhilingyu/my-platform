@@ -13,6 +13,7 @@
 
     <modules>
         <module>platform-common</module>
+        <module>platform-security</module>
         <module>platform-starter</module>
         <module>modules/sys</module>
         <module>app</module>
@@ -82,6 +83,11 @@
             <dependency>
                 <groupId>com.example</groupId>
                 <artifactId>platform-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.example</groupId>
+                <artifactId>platform-security</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
