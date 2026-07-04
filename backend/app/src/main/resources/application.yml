@@ -46,6 +46,16 @@ app:
       secret: ${APP_SECURITY_JWT_SECRET:my-platform-secret-key-must-be-at-least-32-bytes-long-for-hs256}
       expiration: 86400000
 
+# LDAP 登录（默认关闭；显式置 PLATFORM_LOGIN_LDAP_ENABLED=true 启用，对接 OpenLDAP 192.168.1.2:389）
+platform:
+  login:
+    ldap:
+      enabled: ${PLATFORM_LOGIN_LDAP_ENABLED:false}
+      url: ${PLATFORM_LOGIN_LDAP_URL:ldap://192.168.1.2:389}
+      user-dn-pattern: ${PLATFORM_LOGIN_LDAP_USER_DN_PATTERN:uid={0},dc=devenv,dc=local}
+      auto-create-user: ${PLATFORM_LOGIN_LDAP_AUTO_CREATE_USER:true}
+      default-role-code: ${PLATFORM_LOGIN_LDAP_DEFAULT_ROLE_CODE:user}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

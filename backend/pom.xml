@@ -17,6 +17,7 @@
     <module>modules/openapp</module>
     <module>modules/audit</module>
     <module>modules/notify</module>
+    <module>modules/login-ldap</module>
     <module>app</module>
   </modules>
 
@@ -134,6 +135,11 @@
       <dependency>
         <groupId>com.example</groupId>
         <artifactId>openapp-module</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.example</groupId>
+        <artifactId>login-ldap-module</artifactId>
         <version>${project.version}</version>
       </dependency>
 

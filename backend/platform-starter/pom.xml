@@ -37,5 +37,9 @@
       <groupId>com.example</groupId>
       <artifactId>openapp-module</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.example</groupId>
+      <artifactId>login-ldap-module</artifactId>
+    </dependency>
   </dependencies>
 </project>
