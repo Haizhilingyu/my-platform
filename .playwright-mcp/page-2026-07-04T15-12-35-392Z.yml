@@ -1,0 +1,91 @@
+- generic [ref=f2e5]:
+  - complementary [ref=f2e6]:
+    - generic [ref=f2e7]:
+      - img [ref=f2e8]:
+        - img [ref=f2e9]
+      - generic [ref=f2e11]: My Platform
+    - menu [ref=f2e12]:
+      - menu [ref=f2e13] [cursor=pointer]:
+        - menuitem "系统管理" [ref=f2e14]:
+          - img [ref=f2e15]:
+            - img [ref=f2e16]
+          - text: 系统管理
+          - img [ref=f2e19]
+        - menu [ref=f2e21]:
+          - menuitem "用户管理" [ref=f2e22]:
+            - img [ref=f2e23]:
+              - img [ref=f2e24]
+            - text: 用户管理
+          - menuitem "角色管理" [ref=f2e27]:
+            - img [ref=f2e28]:
+              - img [ref=f2e29]
+            - text: 角色管理
+          - menuitem "菜单管理" [ref=f2e31]:
+            - img [ref=f2e32]:
+              - img [ref=f2e33]
+            - text: 菜单管理
+          - menuitem "单位管理" [ref=f2e35]:
+            - img [ref=f2e36]:
+              - img [ref=f2e37]
+            - text: 单位管理
+          - menuitem "系统配置" [ref=f2e39]:
+            - img [ref=f2e40]:
+              - img [ref=f2e41]
+            - text: 系统配置
+          - menuitem "在线会话" [ref=f2e43]:
+            - img [ref=f2e44]:
+              - img [ref=f2e45]
+            - text: 在线会话
+          - menuitem "外部应用" [ref=f2e50]:
+            - img [ref=f2e51]:
+              - img [ref=f2e52]
+            - text: 外部应用
+    - img [ref=f2e56] [cursor=pointer]
+  - generic [ref=f2e60]:
+    - generic [ref=f2e61]:
+      - generic [ref=f2e63]: 角色管理
+      - button [ref=f2e64] [cursor=pointer]:
+        - img [ref=f2e66]:
+          - img [ref=f2e67]
+      - button "消息中心" [ref=f2e70] [cursor=pointer]:
+        - img [ref=f2e72]:
+          - img [ref=f2e73]
+      - generic [ref=f2e77] [cursor=pointer]: A
+      - text: 超级管理员
+    - generic [ref=f2e79]:
+      - button "新增角色" [ref=f2e80] [cursor=pointer]:
+        - generic [ref=f2e81]: 新增角色
+      - generic [ref=f2e82]:
+        - table [ref=f2e85]:
+          - rowgroup [ref=f2e93]:
+            - row "角色编码 角色名称 数据范围 状态 备注 操作" [ref=f2e94]:
+              - columnheader "角色编码" [ref=f2e95]:
+                - generic [ref=f2e97]: 角色编码
+              - columnheader "角色名称" [ref=f2e98]:
+                - generic [ref=f2e100]: 角色名称
+              - columnheader "数据范围" [ref=f2e101]:
+                - generic [ref=f2e103]: 数据范围
+              - columnheader "状态" [ref=f2e104]:
+                - generic [ref=f2e106]: 状态
+              - columnheader "备注" [ref=f2e107]:
+                - generic [ref=f2e109]: 备注
+              - columnheader "操作" [ref=f2e110]:
+                - generic [ref=f2e112]: 操作
+          - rowgroup [ref=f2e113]:
+            - row "admin 超级管理员 全部数据 启用 权限 编辑 删除" [ref=f2e114]:
+              - cell "admin" [ref=f2e115]
+              - cell "超级管理员" [ref=f2e116]
+              - cell "全部数据" [ref=f2e117]:
+                - generic [ref=f2e119]: 全部数据
+              - cell "启用" [ref=f2e120]:
+                - generic [ref=f2e122]: 启用
+              - cell [ref=f2e123]
+              - cell "权限 编辑 删除" [ref=f2e124]:
+                - button "权限" [ref=f2e125] [cursor=pointer]:
+                  - generic [ref=f2e126]: 权限
+                - button "编辑" [ref=f2e127] [cursor=pointer]:
+                  - generic [ref=f2e128]: 编辑
+                - button "删除" [ref=f2e129] [cursor=pointer]:
+                  - generic [ref=f2e130]: 删除
+        - img "loading" [ref=f2e132]:
+          - img [ref=f2e135]

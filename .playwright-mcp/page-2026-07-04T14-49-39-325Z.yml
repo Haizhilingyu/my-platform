@@ -1,0 +1,40 @@
+- generic [ref=f2e5]:
+  - heading "My Platform" [ref=f2e6]:
+    - heading "My Platform" [ref=f2e7]:
+      - generic [ref=f2e8]:
+        - img [ref=f2e9]:
+          - img [ref=f2e10]
+        - generic [ref=f2e13]: My Platform
+  - generic [ref=f2e16]:
+    - generic [ref=f2e24] [cursor=pointer]: 账号密码登录
+    - generic [ref=f2e28]:
+      - generic [ref=f2e29]:
+        - generic [ref=f2e31]: 用户名
+        - generic [ref=f2e34]:
+          - img [ref=f2e36]:
+            - img [ref=f2e37]
+          - generic [ref=f2e40]:
+            - textbox "请输入用户名" [ref=f2e41]
+            - generic:
+              - generic: 请输入用户名
+      - generic [ref=f2e45]:
+        - generic [ref=f2e47]: 密码
+        - generic [ref=f2e50]:
+          - img [ref=f2e52]:
+            - img [ref=f2e53]
+          - generic [ref=f2e56]:
+            - textbox "请输入密码" [ref=f2e57]
+            - generic:
+              - generic: 请输入密码
+          - img [ref=f2e61] [cursor=pointer]
+      - generic [ref=f2e68]:
+        - generic [ref=f2e70]: 验证码
+        - generic [ref=f2e72]:
+          - generic [ref=f2e75]:
+            - textbox "请输入验证码" [ref=f2e76]
+            - generic:
+              - generic: 请输入验证码
+          - button "点击刷新验证码" [ref=f2e77] [cursor=pointer]:
+            - img "点击刷新验证码" [ref=f2e78]
+      - button "登录" [ref=f2e80] [cursor=pointer]:
+        - generic [ref=f2e81]: 登录

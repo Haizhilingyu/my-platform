@@ -1,0 +1,39 @@
+- generic [ref=e5]:
+  - heading "My Platform" [ref=e6]:
+    - heading "My Platform" [ref=e7]:
+      - generic [ref=e8]:
+        - img [ref=e9]:
+          - img [ref=e10]
+        - generic [ref=e13]: My Platform
+  - generic [ref=e16]:
+    - generic [ref=e24] [cursor=pointer]: 账号密码登录
+    - generic [ref=e28]:
+      - generic [ref=e29]:
+        - generic [ref=e31]: 用户名
+        - generic [ref=e34]:
+          - img [ref=e36]:
+            - img [ref=e37]
+          - textbox "请输入用户名" [ref=e41]: admin
+      - generic [ref=e45]:
+        - generic [ref=e47]: 密码
+        - generic [ref=e50]:
+          - img [ref=e52]:
+            - img [ref=e53]
+          - textbox "请输入密码" [ref=e57]: admin123
+          - img [ref=e61] [cursor=pointer]
+      - generic [ref=e68]:
+        - generic [ref=e70]: 验证码
+        - generic [ref=e72]:
+          - generic [ref=e75]:
+            - textbox "请输入验证码" [ref=e76]
+            - generic:
+              - generic: 请输入验证码
+          - button "点击刷新验证码" [ref=e95] [cursor=pointer]:
+            - img "点击刷新验证码" [ref=e103]
+      - alert [ref=e104]:
+        - button "close" [ref=e105] [cursor=pointer]:
+          - img [ref=e107]
+        - img [ref=e113]
+        - generic [ref=e118]: 系统内部错误
+      - button "登录" [ref=e86] [cursor=pointer]:
+        - generic [ref=e87]: 登录

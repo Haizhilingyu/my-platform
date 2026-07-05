@@ -81,7 +81,7 @@ public class RedisConfig {
     mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
     mapper.activateDefaultTyping(
         LaissezFaireSubTypeValidator.instance,
-        ObjectMapper.DefaultTyping.NON_FINAL,
+        ObjectMapper.DefaultTyping.EVERYTHING,
         JsonTypeInfo.As.PROPERTY);
     // 支持 Java 8 date/time（LocalDateTime 等），SessionInfo 缓存序列化必需
     mapper.registerModule(new JavaTimeModule());

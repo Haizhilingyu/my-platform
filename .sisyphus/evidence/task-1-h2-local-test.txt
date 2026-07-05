@@ -1,0 +1,100 @@
+# Task 1 — H2 测试 profile + V2 兼容修复 + 基线验证（Wave 0 门）
+
+**Date:** 2026-07-04
+**Status:** ✅ PASS — baseline green, IT verified
+
+## 1. Deliverables
+
+| 文件 | 类型 | 说明 |
+|---|---|---|
+| `backend/app/src/test/resources/application-test.yml` | 新增 | H2 内存库 + PostgreSQL 兼容模式 test profile |
+| `backend/modules/sys/src/main/resources/db/migration/V2__sys_init_data.sql` | 修改 | 7 处 `ON CONFLICT ... DO NOTHING` → `INSERT ... SELECT ... WHERE NOT EXISTS`（H2+PG 双兼容） |
+| `backend/app/src/test/java/com/example/app/ApplicationContextLoadsTest.java` | 新增 | Wave 0 基线冒烟测试（@SpringBootTest + test profile） |
+| `backend/app/src/test/java/com/example/app/FlywayConsistencyIT.java` | 新增 | Testcontainers PG16 vs H2 逐表行数一致性 IT（@Testcontainers disabledWithoutDocker） |
+| `backend/app/pom.xml` | 修改 | +H2(test)、+testcontainers(test)、+maven-failsafe-plugin |
+
+## 2. 基线验证：`mvn clean test -Dspring.profiles.active=test`（全后端 reactor）
+
+**结果：BUILD SUCCESS（EXIT=0），耗时 01:27 min**
+
+```
+[INFO] Reactor Summary for My Platform Parent 1.0.0-SNAPSHOT:
+[INFO] My Platform Parent ................................. SUCCESS [  0.732 s]
+[INFO] Platform Common .................................... SUCCESS [ 20.120 s]
+[INFO] Sys Module ......................................... SUCCESS [ 26.661 s]
+[INFO] Platform Starter ................................... SUCCESS [  0.294 s]
+[INFO] Application ........................................ SUCCESS [ 38.496 s]
+[INFO] BUILD SUCCESS
+```
+
+测试通过数（共 24）：
+- platform-common: 10（Result 3 / 权限切面 3 / 异常体系 4）
+- sys: 12（用户服务 7 / 权限服务 2 / 菜单树 3）
+- app: 2（ApplicationContextLoadsTest 1 + ModulithVerificationTest 1）
+
+### 关键日志证据（均符合验收）
+
+**① 无任何远程 DB 连接尝试** — `grep "Connection refused 192.168.1.2\|postgresql://192"` 命中数：0
+```
+>>> NONE FOUND (good)
+```
+
+**② H2 在使用中**（非 PostgreSQL）：
+```
+HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+org.flywaydb.core.FlywayExecutor : Database: jdbc:h2:mem:testdb (H2 2.2)
+```
+
+**③ Flyway 成功执行 V1+V2 迁移**：
+```
+o.f.core.internal.command.DbMigrate : Migrating schema "public" to version "1 - sys init"
+o.f.core.internal.command.DbMigrate : Migrating schema "public" to version "2 - sys init data"
+o.f.core.internal.command.DbMigrate : Successfully applied 2 migrations to schema "public", now at version v2
+```
+
+**④ 冒烟测试上下文加载成功**（隐式完成 Flyway 迁移 + Hibernate validate + 无远程 Redis/PG）：
+```
+c.e.app.ApplicationContextLoadsTest : Started ApplicationContextLoadsTest in 24.017 seconds
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0 -- in com.example.app.ApplicationContextLoadsTest
+```
+
+## 3. 集成测试验证：`FlywayConsistencyIT`（Testcontainers PG16 vs H2）
+
+**命令：** `mvn verify -pl app -am -Dit.test=FlywayConsistencyIT -DfailIfNoTests=false`
+
+### 模式 A — 默认（ryuk 启用）：优雅跳过
+本机 Docker Desktop 上 Testcontainers 的 ryuk 资源回收容器启动报 `Status 500`（`tc.testcontainers/ryuk:0.11.0 -- Could not start container`），导致 `DockerAvailableDetector.isDockerAvailable` 判定 Docker 不可用，`@Testcontainers(disabledWithoutDocker=true)` **优雅跳过**（构建不失败）：
+```
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 1 -- in com.example.app.FlywayConsistencyIT
+BUILD SUCCESS
+```
+→ 满足"无 Docker 时优雅跳过、不阻塞构建"的验收。
+
+### 模式 B — `TESTCONTAINERS_RYUK_DISABLED=true`：实跑通过
+设置 `TESTCONTAINERS_RYUK_DISABLED=true` 绕过 ryuk 后，IT 实跑并 **PASS**：
+```
+tc.postgres:16-alpine : Creating container for image: postgres:16-alpine
+tc.postgres:16-alpine : Container postgres:16-alpine started in PT9.732887S
+tc.postgres:16-alpine : Container is started (JDBC URL: jdbc:postgresql://localhost:50558/platform)
+
+# PG 侧
+o.f.core.internal.command.DbMigrate : Successfully applied 2 migrations to schema "public", now at version v2
+# H2 侧
+o.f.core.internal.command.DbMigrate : Successfully applied 2 migrations to schema "public", now at version v2
+
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0 -- in com.example.app.FlywayConsistencyIT
+BUILD SUCCESS
+```
+→ 两个不变量均成立：
+1. H2 与 PG16 逐表行数完全一致（`sys_unit/sys_user/sys_role/sys_user_role/sys_menu/sys_role_menu/sys_config`）
+2. PG 行数与预期种子一致（unit=1, user=1, role=1, user_role=1, menu=23, role_menu=23, config=4）
+
+## 4. 环境备注（Gotchas）
+
+- **Docker Desktop ryuk 500**：本机（macOS Docker Desktop 28.4.0）Testcontainers 的 ryuk 容器启动 500。绕过方式：`export TESTCONTAINERS_RYUK_DISABLED=true`。这是环境特性，不影响 IT 代码正确性；CI 环境通常无此问题。
+- **git hooksPath**：`core.hooksPath = frontend/.husky/_`（husky 前端钩子），后端 `.githooks/pre-commit` 未激活，故本次提交不触发后端 spotless 钩子（但 `mvn test` 的 validate 阶段已跑 spotless:check + checkstyle 并通过）。
+- **H2 版本提示**：Flyway 警告 `H2 2.2.224 newer than tested 2.2.220`，仅为提示，不影响迁移成功。
+- **Hibernate dialect**：`H2Dialect does not need to be specified explicitly`（HHH90000025）——显式指定 dialect 仍可工作，仅为告警。
+
+## 5. 结论
+T1 Wave 0 基线门通过：`mvn test -Dspring.profiles.active=test` 全绿（24 测试）、无远程 DB 连接、H2 + Flyway V1/V2 正常工作；FlywayConsistencyIT 验证 V2 重写在 PG16 与 H2 上播种结果一致。下游 T2–T30 已解锁。

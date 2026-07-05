@@ -47,7 +47,7 @@ test.describe('审计日志', () => {
   test('按操作类型筛选审计日志', async ({ page }) => {
     await loggedInPage(page, '/sys/audit')
     await page.getByPlaceholder('操作人').waitFor({ timeout: 10_000 })
-    await page.locator('.n-base-selection').first().click()
+    await page.locator('.n-base-selection').filter({ hasText: '操作类型' }).click()
     await page.getByText('LOGIN').first().click()
     await page.getByRole('button', { name: '查询' }).click()
     await expect(page.getByText('LOGIN').first()).toBeVisible({ timeout: 10_000 })

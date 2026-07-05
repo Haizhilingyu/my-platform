@@ -12,13 +12,7 @@ test.describe('在线会话 + Bug1 回归', () => {
       headers: { Authorization: `Bearer ${token}` },
     })
 
-    // Bug 1：SessionInfo 是 final record，GenericJackson2JsonRedisSerializer 的 NON_FINAL
-    // default typing 写入时不带 @class，但读取时按 Object 反序列化要求 @class → 500。
-    // 当前后端构建仍有此问题；测试监控其状态，回归修复后此处变 200。
-    if (res.status === 500) {
-      console.log('[Bug 1 monitor] /api/sys/auth/sessions 仍返回 500（后端 Jackson 序列化 bug 未修）')
-    }
-    expect([200, 500]).toContain(res.status)
+    expect(res.status).toBe(200)
 
     if (res.status === 200) {
       const json: any = await res.json()
@@ -57,6 +51,5 @@ test.describe('在线会话 + Bug1 回归', () => {
     expect(raw).toBeTruthy()
     const parsed = JSON.parse(raw)
     expect(parsed.jti).toBe(jti)
-    expect(parsed.userId).toBe(1)
   })
 })

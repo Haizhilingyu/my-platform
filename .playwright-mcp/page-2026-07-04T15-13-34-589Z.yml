@@ -1,0 +1,29 @@
+- generic [ref=f3e27]:
+  - generic [ref=f3e28]:
+    - generic [ref=f3e29]:
+      - button [ref=f3e69] [cursor=pointer]:
+        - img [ref=f3e71]:
+          - img [ref=f3e72]
+      - generic [ref=f3e30]: 首页
+    - button [ref=f3e31] [cursor=pointer]:
+      - img [ref=f3e33]:
+        - img [ref=f3e34]
+    - button "消息中心" [ref=f3e37] [cursor=pointer]:
+      - img [ref=f3e39]:
+        - img [ref=f3e40]
+    - generic [ref=f3e44] [cursor=pointer]: A
+  - generic [ref=f3e46]:
+    - generic [ref=f3e47]: 欢迎回来，超级管理员！
+    - generic [ref=f3e48]:
+      - generic [ref=f3e51]:
+        - generic [ref=f3e52]: 用户数量
+        - generic [ref=f3e53]: "0"
+      - generic [ref=f3e56]:
+        - generic [ref=f3e57]: 角色数量
+        - generic [ref=f3e58]: "0"
+      - generic [ref=f3e61]:
+        - generic [ref=f3e62]: 菜单数量
+        - generic [ref=f3e63]: "1"
+      - generic [ref=f3e66]:
+        - generic [ref=f3e67]: 权限数量
+        - generic [ref=f3e68]: "27"

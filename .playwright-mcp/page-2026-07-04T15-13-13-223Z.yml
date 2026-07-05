@@ -1,0 +1,40 @@
+- generic [ref=f3e5]:
+  - complementary [ref=f3e6]:
+    - generic [ref=f3e7]:
+      - img [ref=f3e8]:
+        - img [ref=f3e9]
+      - generic [ref=f3e11]: My Platform
+    - menu [ref=f3e12]:
+      - menu [ref=f3e13] [cursor=pointer]:
+        - menuitem "系统管理" [ref=f3e14]:
+          - img [ref=f3e15]:
+            - img [ref=f3e16]
+          - text: 系统管理
+          - img [ref=f3e19]
+    - img [ref=f3e23] [cursor=pointer]
+  - generic [ref=f3e27]:
+    - generic [ref=f3e28]:
+      - generic [ref=f3e30]: 首页
+      - button [ref=f3e31] [cursor=pointer]:
+        - img [ref=f3e33]:
+          - img [ref=f3e34]
+      - button "消息中心" [ref=f3e37] [cursor=pointer]:
+        - img [ref=f3e39]:
+          - img [ref=f3e40]
+      - generic [ref=f3e44] [cursor=pointer]: A
+      - text: 超级管理员
+    - generic [ref=f3e46]:
+      - generic [ref=f3e47]: 欢迎回来，超级管理员！
+      - generic [ref=f3e48]:
+        - generic [ref=f3e51]:
+          - generic [ref=f3e52]: 用户数量
+          - generic [ref=f3e53]: "0"
+        - generic [ref=f3e56]:
+          - generic [ref=f3e57]: 角色数量
+          - generic [ref=f3e58]: "0"
+        - generic [ref=f3e61]:
+          - generic [ref=f3e62]: 菜单数量
+          - generic [ref=f3e63]: "1"
+        - generic [ref=f3e66]:
+          - generic [ref=f3e67]: 权限数量
+          - generic [ref=f3e68]: "27"

@@ -36,10 +36,12 @@ test('登录后移动端侧栏收起为抽屉', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 720 })
   await uiLogin(page)
 
-  await page.getByText('系统管理').first().click()
-  await expect(page.getByText('用户管理').first()).toBeVisible({ timeout: 5_000 })
+  await expect(page).toHaveURL(/\/dashboard/)
 
-  await page.screenshot({ path: 'test-results/responsive-mobile-menu.png' })
+  const sider = page.locator('.n-layout-sider').first()
+  await expect(sider).toBeHidden({ timeout: 5_000 })
+
+  await page.screenshot({ path: 'test-results/responsive-mobile-collapsed.png' })
 })
 
 test('用户管理页在平板尺寸下表格横向滚动', async ({ page }) => {
