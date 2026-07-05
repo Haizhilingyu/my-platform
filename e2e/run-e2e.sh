@@ -1,212 +1,127 @@
 #!/usr/bin/env bash
 # ============================================================================
-# 端到端测试总编排脚本
+# E2E 测试总编排脚本
 #
-# 流程：启动后端 → 就绪检查 → 启动前端 → 就绪检查 →
-#       Layer 1 (API 链路) → Layer 2 (Playwright UI) → 汇总
+# 流程：
+#   1. 启动 docker-compose 本地栈（postgres + redis + app 合并镜像）
+#   2. 等待应用就绪
+#   3. e2e 目录 npm install + npx playwright install
+#   4. 运行 Playwright UI + DB 集成测试（Layer 2）
+#   5. 汇总退出
 #
-# 中间件使用 NAS 现有环境（后端默认 profile：
-#   PG 192.168.1.2:5532 / Redis 192.168.1.2:6380）
+# 中间件连接信息（默认）：
+#   PostgreSQL localhost:5533  user=postgres pass=Postgres@2025 db=platform
+#   Redis     localhost:6381   (no password)
+#   App       localhost:8090   (合并镜像，SPA + API + WebSocket)
 #
-# 用法：bash e2e/run-e2e.sh
-# 退出码：0 全部通过；非 0 表示有失败或环境异常
+# 用法：bash e2e/run-e2e.sh [--keep-stack]
+#   --keep-stack  测试结束后不销毁 docker compose 栈，便于本地调试
+# 退出码：0 全部通过；非 0 表示失败或环境异常
 # ============================================================================
 set -uo pipefail
 
 GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; BOLD='\033[1m'; RESET='\033[0m'
 
-# 绕过代理：测试目标都是 localhost，本机若有全局 HTTP_PROXY（如 Clash）会返回 502。
+# 绕过代理：测试目标都是 localhost，本机若有全局 HTTP_PROXY（如 Clash）会返回 502
 export NO_PROXY='localhost,127.0.0.1'
 export no_proxy='localhost,127.0.0.1'
 unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY 2>/dev/null || true
 
-# 项目根目录（脚本位于 <root>/e2e/）
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 E2E_DIR="${ROOT}/e2e"
+DOCKER_DIR="${ROOT}/docker"
 LOG_DIR="${E2E_DIR}/logs"
 mkdir -p "$LOG_DIR"
 
-BACKEND_JAR="${ROOT}/backend/app/target/app-1.0.0-SNAPSHOT.jar"
-BACKEND_PORT=8090
-FRONTEND_PORT=5173
-BACKEND_URL="http://localhost:${BACKEND_PORT}"
-FRONTEND_URL="http://localhost:${FRONTEND_PORT}"
+APP_URL="http://localhost:8090"
+KEEP_STACK=false
+for arg in "$@"; do
+  case "$arg" in
+    --keep-stack) KEEP_STACK=true ;;
+  esac
+done
 
-# 数据库 / Redis 连接覆盖（可选）。默认留空，使用 application.yml 里的配置。
-# 通过 Spring 的 relaxed binding 环境变量覆盖，不修改任何源文件。
-# 例：DB_PASSWORD=Postgres@2025 bash e2e/run-e2e.sh
-declare -a JAVA_OPTS=()
-[ -n "${DB_URL:-}" ]          && JAVA_OPTS+=("-Dspring.datasource.url=${DB_URL}")
-[ -n "${DB_USERNAME:-}" ]     && JAVA_OPTS+=("-Dspring.datasource.username=${DB_USERNAME}")
-[ -n "${DB_PASSWORD:-}" ]     && JAVA_OPTS+=("-Dspring.datasource.password=${DB_PASSWORD}")
-[ -n "${REDIS_HOST:-}" ]      && JAVA_OPTS+=("-Dspring.data.redis.host=${REDIS_HOST}")
-[ -n "${REDIS_PORT:-}" ]      && JAVA_OPTS+=("-Dspring.data.redis.port=${REDIS_PORT}")
-[ -n "${REDIS_PASSWORD:-}" ]  && JAVA_OPTS+=("-Dspring.data.redis.password=${REDIS_PASSWORD}")
-[ -n "${SPRING_PROFILES:-}" ] && JAVA_OPTS+=("-Dspring.profiles.active=${SPRING_PROFILES}")
-
-# 默认禁用 Redis 健康指标：当前业务代码不依赖 Redis（仅引入了 starter），
-# NAS 上的 Redis 需要密码但密码不在项目配置中，禁用后 /actuator/health 不再因 Redis 报 DOWN。
-# 若提供了 REDIS_PASSWORD，则保持开启（业务真要用 Redis 时）。
-if [ -z "${REDIS_PASSWORD:-}" ]; then
-  JAVA_OPTS+=("-Dmanagement.health.redis.enabled=false")
-fi
-
-PIDS=()
 OVERALL_RC=0
 
-# ---------------------------------------------------------------------------
-# 清理：退出时 kill 所有后台进程
-# ---------------------------------------------------------------------------
 cleanup() {
   echo ""
-  echo -e "${YELLOW}>>> 清理后台进程${RESET}"
-  # set -u 下空数组展开需容错
-  if [ "${#PIDS[@]}" -gt 0 ]; then
-    for pid in "${PIDS[@]}"; do
-      if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-        kill "$pid" 2>/dev/null || true
-        echo "  已终止 pid=$pid"
-      fi
-    done
+  if [ "$KEEP_STACK" = "true" ]; then
+    echo -e "${YELLOW}>>> --keep-stack 已指定，保留 docker compose 栈${RESET}"
+  else
+    echo -e "${YELLOW}>>> 清理 docker compose 栈${RESET}"
+    (cd "$DOCKER_DIR" && docker compose -f docker-compose.local.yml down 2>/dev/null || true)
   fi
-  # 兜底：按端口清理（防止进程已 fork）
-  for port in "$BACKEND_PORT" "$FRONTEND_PORT"; do
-    lsof -ti tcp:"$port" 2>/dev/null | xargs kill 2>/dev/null || true
-  done
 }
 trap cleanup EXIT
 
-# ---------------------------------------------------------------------------
-# 轮询就绪：第一个参数为 URL，第二个为超时秒数
-# ---------------------------------------------------------------------------
-wait_for() {
-  local url="$1" timeout="$2" label="$3"
-  local elapsed=0
-  echo -e "${YELLOW}>>> 等待 ${label} 就绪（最多 ${timeout}s）${RESET}"
-  while [ "$elapsed" -lt "$timeout" ]; do
-    if curl -sf -o /dev/null "$url" 2>/dev/null; then
-      echo -e "${GREEN}>>> ${label} 已就绪（${elapsed}s）${RESET}"
-      return 0
-    fi
-    sleep 2
-    elapsed=$((elapsed + 2))
-  done
-  echo -e "${RED}>>> ${label} 在 ${timeout}s 内未就绪${RESET}"
-  return 1
-}
-
-# ---------------------------------------------------------------------------
-# 后端健康检查：/actuator/health 返回 {"status":"UP"}
-# ---------------------------------------------------------------------------
-wait_for_backend_health() {
-  local timeout="$1" elapsed=0
-  echo -e "${YELLOW}>>> 等待后端健康检查 UP（最多 ${timeout}s）${RESET}"
-  while [ "$elapsed" -lt "$timeout" ]; do
-    local status
-    status=$(curl -sf "${BACKEND_URL}/actuator/health" 2>/dev/null | jq -r '.status // empty' 2>/dev/null)
-    if [ "$status" = "UP" ]; then
-      echo -e "${GREEN}>>> 后端健康检查 UP（${elapsed}s）${RESET}"
-      return 0
-    fi
-    sleep 2
-    elapsed=$((elapsed + 2))
-  done
-  echo -e "${RED}>>> 后端在 ${timeout}s 内未 UP${RESET}"
-  return 1
-}
-
-echo -e "${BOLD}=============== 端到端测试 ===============${RESET}"
+echo -e "${BOLD}=============== E2E 测试 ===============${RESET}"
 echo "项目根目录: ${ROOT}"
 
-# ---------------------------------------------------------------------------
-# 0. 前置检查：jar 存在 + 端口空闲 + 工具可用
-# ---------------------------------------------------------------------------
 command -v curl >/dev/null 2>&1 || { echo -e "${RED}缺少 curl${RESET}"; exit 2; }
-command -v jq   >/dev/null 2>&1 || { echo -e "${RED}缺少 jq${RESET}"; exit 2; }
+command -v docker >/dev/null 2>&1 || { echo -e "${RED}缺少 docker${RESET}"; exit 2; }
 
-if [ ! -f "$BACKEND_JAR" ]; then
-  echo -e "${RED}后端 jar 不存在：${BACKEND_JAR}${RESET}"
-  echo -e "请先执行：cd backend && mvn package -DskipTests -Dspotless.check.skip=true -Dcheckstyle.skip=true -Dspotbugs.skip=true -Djacoco.skip=true"
-  exit 2
-fi
+# ---------------------------------------------------------------------------
+# 1. 启动 docker compose 栈
+# ---------------------------------------------------------------------------
+echo -e "${BOLD}--- [1/4] 启动 docker compose 栈 ---${RESET}"
+cd "$DOCKER_DIR"
+docker compose -f docker-compose.local.yml down -v 2>/dev/null || true
+docker compose -f docker-compose.local.yml up -d --build || {
+  echo -e "${RED}docker compose 启动失败${RESET}"
+  OVERALL_RC=1
+  exit 1
+}
+cd "$E2E_DIR"
 
-for port in "$BACKEND_PORT" "$FRONTEND_PORT"; do
-  if lsof -ti tcp:"$port" >/dev/null 2>&1; then
-    echo -e "${YELLOW}>>> 端口 ${port} 已被占用，复用现有服务${RESET}"
+# ---------------------------------------------------------------------------
+# 2. 等待应用就绪
+# ---------------------------------------------------------------------------
+echo -e "${BOLD}--- [2/4] 等待应用就绪 ---${RESET}"
+READY=false
+for i in $(seq 1 60); do
+  if curl -sf "${APP_URL}/api/sys/auth/login-methods" >/dev/null 2>&1; then
+    echo -e "${GREEN}>>> 应用已就绪（${i}*2s）${RESET}"
+    READY=true
+    break
   fi
+  sleep 2
 done
-
-# ---------------------------------------------------------------------------
-# 1. 启动后端
-# ---------------------------------------------------------------------------
-if ! lsof -ti tcp:"$BACKEND_PORT" >/dev/null 2>&1; then
-  echo -e "${BOLD}--- [1/4] 启动后端 ---${RESET}"
-  echo "  jar: ${BACKEND_JAR}"
-  if [ "${#JAVA_OPTS[@]}" -gt 0 ]; then
-    java "${JAVA_OPTS[@]}" -jar "$BACKEND_JAR" >"${LOG_DIR}/backend.log" 2>&1 &
-  else
-    java -jar "$BACKEND_JAR" >"${LOG_DIR}/backend.log" 2>&1 &
-  fi
-  BACKEND_PID=$!
-  PIDS+=("$BACKEND_PID")
-  echo "  后端 pid=${BACKEND_PID}"
-  wait_for_backend_health 90 || { echo -e "${RED}后端启动失败，见 ${LOG_DIR}/backend.log${RESET}"; OVERALL_RC=1; exit 1; }
-else
-  echo -e "${BOLD}--- [1/4] 后端已在运行，跳过启动 ---${RESET}"
+if [ "$READY" != "true" ]; then
+  echo -e "${RED}>>> 应用在 120s 内未就绪${RESET}"
+  docker compose -f "$DOCKER_DIR/docker-compose.local.yml" logs app | tail -50 || true
+  OVERALL_RC=1
+  exit 1
 fi
 
 # ---------------------------------------------------------------------------
-# 2. 启动前端 dev server
+# 3. 安装 E2E 依赖
 # ---------------------------------------------------------------------------
-if ! lsof -ti tcp:"$FRONTEND_PORT" >/dev/null 2>&1; then
-  echo -e "${BOLD}--- [2/4] 启动前端 dev server ---${RESET}"
-  (cd "${ROOT}/frontend" && npm run dev >"${LOG_DIR}/frontend.log" 2>&1) &
-  FRONTEND_PID=$!
-  PIDS+=("$FRONTEND_PID")
-  echo "  前端 pid=${FRONTEND_PID}"
-  wait_for "$FRONTEND_URL" 60 "前端 dev server" || { echo -e "${RED}前端启动失败，见 ${LOG_DIR}/frontend.log${RESET}"; OVERALL_RC=1; exit 1; }
-else
-  echo -e "${BOLD}--- [2/4] 前端已在运行，跳过启动 ---${RESET}"
+echo -e "${BOLD}--- [3/4] 安装 E2E 依赖 ---${RESET}"
+cd "$E2E_DIR"
+if [ ! -d node_modules ]; then
+  npm install || { echo -e "${RED}npm install 失败${RESET}"; OVERALL_RC=1; exit 1; }
 fi
+npx playwright install chromium || { echo -e "${RED}playwright 浏览器安装失败${RESET}"; OVERALL_RC=1; exit 1; }
 
 # ---------------------------------------------------------------------------
-# 3. Layer 1：API 链路 e2e
+# 4. 运行 Playwright 测试
 # ---------------------------------------------------------------------------
-echo -e "${BOLD}--- [3/4] Layer 1: API 链路 e2e ---${RESET}"
-LAYER1_RC=0
-bash "${E2E_DIR}/api-e2e.sh" "$BACKEND_URL" || LAYER1_RC=$?
-if [ "$LAYER1_RC" -ne 0 ]; then
-  echo -e "${RED}Layer 1 存在失败${RESET}"
+echo -e "${BOLD}--- [4/4] Playwright 测试 ---${RESET}"
+TEST_RC=0
+npx playwright test --reporter=list "$@" 2>&1 | tee "$LOG_DIR/playwright.log" || TEST_RC=$?
+
+# 过滤掉 --keep-stack，避免传给 playwright
+if [ "$TEST_RC" -ne 0 ]; then
+  echo -e "${RED}>>> Playwright 测试存在失败${RESET}"
   OVERALL_RC=1
 else
-  echo -e "${GREEN}Layer 1 全部通过${RESET}"
+  echo -e "${GREEN}>>> Playwright 测试全部通过${RESET}"
 fi
 
-# ---------------------------------------------------------------------------
-# 4. Layer 2：Playwright UI e2e
-# ---------------------------------------------------------------------------
-echo -e "${BOLD}--- [4/4] Layer 2: Playwright UI e2e ---${RESET}"
-# @playwright/test 装在 frontend/node_modules，e2e 配置在项目根下的 e2e/，
-# 通过 NODE_PATH 让配置文件能解析到依赖，--prefix 复用 frontend 的 playwright CLI。
-LAYER2_RC=0
-(cd "${E2E_DIR}" \
-  && NODE_PATH="${ROOT}/frontend/node_modules" \
-     npx --prefix "${ROOT}/frontend" playwright test --reporter=list) || LAYER2_RC=$?
-if [ "$LAYER2_RC" -ne 0 ]; then
-  echo -e "${RED}Layer 2 存在失败${RESET}"
-  OVERALL_RC=1
-else
-  echo -e "${GREEN}Layer 2 全部通过${RESET}"
-fi
-
-# ---------------------------------------------------------------------------
-# 汇总
-# ---------------------------------------------------------------------------
 echo ""
-echo -e "${BOLD}=============== 端到端测试汇总 ===============${RESET}"
-[ "$LAYER1_RC" -eq 0 ] && echo -e "Layer 1 (API 链路):  ${GREEN}PASS${RESET}" || echo -e "Layer 1 (API 链路):  ${RED}FAIL${RESET}"
-[ "$LAYER2_RC" -eq 0 ] && echo -e "Layer 2 (Playwright): ${GREEN}PASS${RESET}" || echo -e "Layer 2 (Playwright): ${RED}FAIL${RESET}"
-echo "日志目录: ${LOG_DIR}/"
-echo -e "${BOLD}=============================================${RESET}"
+echo -e "${BOLD}=============== E2E 汇总 ===============${RESET}"
+[ "$OVERALL_RC" -eq 0 ] && echo -e "结果: ${GREEN}PASS${RESET}" || echo -e "结果: ${RED}FAIL${RESET}"
+echo "日志: ${LOG_DIR}/playwright.log"
+echo -e "${BOLD}========================================${RESET}"
 
 exit $OVERALL_RC

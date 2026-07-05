@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "./.tsbuild",
+    "types": ["node"]
+  },
+  "include": ["fixtures/**/*.ts", "tests/**/*.ts", "global-setup.ts", "global-teardown.ts", "playwright.config.ts"]
+}
