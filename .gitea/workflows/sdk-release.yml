@@ -115,7 +115,7 @@ jobs:
           NEXUS_PASS: ${{ secrets.NEXUS_PASS }}
         run: |
           twine upload \
-            --repository-url http://192.168.1.2:8081/repository/pypi-hosted/ \
+            --repository-url http://<NAS_IP>:8081/repository/pypi-hosted/ \
             --non-interactive \
             -u "$NEXUS_USER" -p "$NEXUS_PASS" \
             dist/*

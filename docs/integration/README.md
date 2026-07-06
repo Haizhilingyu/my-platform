@@ -28,7 +28,7 @@ matches your stack and skip the rest.
 | JWKS (token signing keys) | `GET  http://localhost:8090/oauth2/jwks` |
 | RP-Initiated Logout | `GET  http://localhost:8090/oauth2/logout` |
 | Publish message | `POST http://localhost:8090/openapi/notify/publish` |
-| Nexus (private artifacts) | `http://192.168.1.2:8081` |
+| Nexus (private artifacts) | `http://<NAS_IP>:8081` |
 
 ## Authentication overview
 

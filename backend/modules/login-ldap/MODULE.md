@@ -2,7 +2,7 @@
 
 ## 功能概述
 提供基于 **OpenLDAP** 用户绑定认证的登录方式（`LoginMethodProvider` SPI 实现）。
-用户在 LDAP 服务器（如 `ldap://192.168.1.2:389`）中维护账号密码，登录时通过 LDAP bind 校验凭据；
+用户在 LDAP 服务器（如 `ldap://<NAS_IP>:389`）中维护账号密码，登录时通过 LDAP bind 校验凭据；
 认证通过后查/建本地 `sys_user`，生成与账号密码登录完全一致的 JWT + `LoginVO`。
 
 **只读认证**：本模块只做 LDAP bind 校验和属性读取，不向 LDAP 写任何数据。
@@ -11,7 +11,7 @@
 - platform-common（`LoginMethodProvider` SPI、`JwtUtil`、`LoginSuccessEvent`）
 - sys-module（`SysUser`/`SysRole`/`SysUserRole` 实体与 Repository、`PermissionService`、`LoginVO`）
 - spring-ldap-core（版本 3.2.7，由 spring-boot-dependencies BOM 管理）
-- OpenLDAP 服务器（运行时外部依赖，默认 `192.168.1.2:389`）
+- OpenLDAP 服务器（运行时外部依赖，默认 `<NAS_IP>:389`）
 
 ## Maven 依赖
 ```xml
@@ -34,7 +34,7 @@
 | 属性 | 默认值 | 说明 |
 |---|---|---|
 | `platform.login.ldap.enabled` | `false` | **总开关**，必须显式置 `true` 才启用 |
-| `platform.login.ldap.url` | `ldap://localhost:389` | LDAP 服务器地址（建议 `ldap://192.168.1.2:389`） |
+| `platform.login.ldap.url` | `ldap://localhost:389` | LDAP 服务器地址（建议 `ldap://<NAS_IP>:389`） |
 | `platform.login.ldap.user-dn-pattern` | `uid={0},dc=devenv,dc=local` | 用户 DN 模板，`{0}` 替换为用户名 |
 | `platform.login.ldap.auto-create-user` | `true` | 首次 LDAP 登录且本地无用户时自动创建本地 SysUser |
 | `platform.login.ldap.default-role-code` | `user` | 自动建号分配的默认角色编码（需 sys_role 中存在且启用） |
@@ -45,14 +45,14 @@ platform:
   login:
     ldap:
       enabled: ${PLATFORM_LOGIN_LDAP_ENABLED:false}
-      url: ${PLATFORM_LOGIN_LDAP_URL:ldap://192.168.1.2:389}
+      url: ${PLATFORM_LOGIN_LDAP_URL:ldap://<NAS_IP>:389}
       user-dn-pattern: ${PLATFORM_LOGIN_LDAP_USER_DN_PATTERN:uid={0},dc=devenv,dc=local}
       auto-create-user: ${PLATFORM_LOGIN_LDAP_AUTO_CREATE_USER:true}
       default-role-code: ${PLATFORM_LOGIN_LDAP_DEFAULT_ROLE_CODE:user}
 ```
 
 ## OpenLDAP 连接信息（开发环境）
-- 地址：`192.168.1.2:389`
+- 地址：`<NAS_IP>:389`
 - Base DN：`dc=devenv,dc=local`
 - 管理员 DN：`cn=admin,dc=devenv,dc=local`（密码 `LDAP@2025`，仅 LDAP 运维用，本模块不使用）
 - 测试用户：`uid=hai`（即 `uid=hai,dc=devenv,dc=local`）

@@ -10,7 +10,7 @@
 #   5. 汇总退出
 #
 # 中间件连接信息（默认）：
-#   PostgreSQL localhost:5533  user=postgres pass=Postgres@2025 db=platform
+#   PostgreSQL localhost:5533  user=postgres pass=${PG_PASSWORD:-changeme} db=platform
 #   Redis     localhost:6381   (no password)
 #   App       localhost:8090   (合并镜像，SPA + API + WebSocket)
 #

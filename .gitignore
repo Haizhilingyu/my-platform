@@ -54,3 +54,6 @@ client-sdk-c/*.exe
 # Sensitive configs (use .example templates instead)
 docker/docker-compose.local.yml
 backend/app/src/main/resources/application-dev.yml
+
+# opencode/sisyphus work products (internal)
+.sisyphus/

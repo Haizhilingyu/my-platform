@@ -26,16 +26,16 @@ for the authorization-code flow (web apps acting for a user).
 
 ## Step 2. Install the SDK
 
-The SDK ships to the platform Nexus PyPI at `192.168.1.2:8081`. Point pip at
+The SDK ships to the platform Nexus PyPI at `<NAS_IP>:8081`. Point pip at
 it and install:
 
 ```bash
 # One-time: add the private index to ~/.pip/pip.conf
 cat >> ~/.pip/pip.conf <<'INI'
 [global]
-index-url = http://192.168.1.2:8081/repository/pypi-hosted/simple
+index-url = http://<NAS_IP>:8081/repository/pypi-hosted/simple
 extra-index-url = https://pypi.org/simple
-trusted-host = 192.168.1.2
+trusted-host = <NAS_IP>
 INI
 
 pip install my-platform-client

@@ -16,7 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
  * <ol>
  *   <li>Flyway 能在 H2 上成功执行 V1+V2 迁移（日志可见 "Successfully applied 2 migrations"）
  *   <li>Hibernate validate 校验实体与 Flyway 建出的表结构一致
- *   <li>不产生任何远程 PG（192.168.1.2:5532）或 Redis 连接尝试
+ *   <li>不产生任何远程 PG（<NAS_IP>:5532）或 Redis 连接尝试
  * </ol>
  *
  * 上下文成功加载即代表基线通过。

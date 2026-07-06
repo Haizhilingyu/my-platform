@@ -3,16 +3,16 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: 192.168.1.2:8082/platform-app:latest
+    image: <NAS_IP>:8082/platform-app:latest
     container_name: my-platform-app
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://192.168.1.2:5532/platform}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://<NAS_IP>:5532/platform}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres}
       # 数据库/Redis/JWT 凭证从宿主机环境变量注入，避免明文密码进入版本库
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?需在 .env 设置 SPRING_DATASOURCE_PASSWORD}
-      SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST:-192.168.1.2}
+      SPRING_DATA_REDIS_HOST: ${SPRING_DATA_REDIS_HOST:-<NAS_IP>}
       SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT:-6380}
       SPRING_DATA_REDIS_PASSWORD: ${SPRING_DATA_REDIS_PASSWORD:-}
       APP_SECURITY_JWT_SECRET: ${APP_SECURITY_JWT_SECRET:?需在 .env 设置 APP_SECURITY_JWT_SECRET}

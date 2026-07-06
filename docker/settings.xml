@@ -17,7 +17,7 @@
       <repositories>
         <repository>
           <id>nexus-public</id>
-          <url>http://192.168.1.2:8081/repository/maven-public/</url>
+          <url>http://<NAS_IP>:8081/repository/maven-public/</url>
         </repository>
       </repositories>
     </profile>

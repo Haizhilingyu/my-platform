@@ -37,13 +37,13 @@ jobs:
           file: ./docker/Dockerfile
           push: true
           tags: |
-            192.168.1.2:8082/platform-app:${{ steps.tag.outputs.IMAGE_TAG }}
-            192.168.1.2:8082/platform-app:latest
+            <NAS_IP>:8082/platform-app:${{ steps.tag.outputs.IMAGE_TAG }}
+            <NAS_IP>:8082/platform-app:latest
 
       - name: Deploy to NAS
         uses: appleboy/ssh-action@v1
         with:
-          host: 192.168.1.2
+          host: <NAS_IP>
           username: ${{ secrets.DEPLOY_USER }}
           password: ${{ secrets.DEPLOY_PASS }}
           script: |

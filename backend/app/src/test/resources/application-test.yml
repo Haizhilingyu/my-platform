@@ -6,7 +6,7 @@
 #   - CASE_INSENSITIVE_IDENTIFIERS=TRUE  宽容匹配标识符大小写，避免 validate 阶段歧义
 #   - DB_CLOSE_DELAY=-1          JVM 生命周期内保持内存库存活（多连接 / 多 session 共享同一实例）
 #   - ddl-auto=validate          schema 由 Flyway 管理；Hibernate 仅校验实体与表结构一致
-#   - Redis host 指向 localhost   Lettuce 连接懒初始化，上下文启动不会真正连远端 192.168.1.2
+#   - Redis host 指向 localhost   Lettuce 连接懒初始化，上下文启动不会真正连远端 <NAS_IP>
 spring:
   datasource:
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE

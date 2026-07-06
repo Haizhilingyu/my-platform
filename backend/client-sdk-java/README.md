@@ -13,7 +13,7 @@ Runtime dependencies: only `jackson-databind` (HTTP uses the built-in `java.net.
 
 ### From Nexus (private)
 
-Add to your `pom.xml` (the platform Nexus at `192.168.1.2:8081`):
+Add to your `pom.xml` (the platform Nexus at `<NAS_IP>:8081`):
 
 ```xml
 <dependencies>
@@ -112,4 +112,4 @@ mvn test
 mvn deploy
 ```
 
-`distributionManagement` in `pom.xml` points to the platform Nexus (`192.168.1.2:8081`).
+`distributionManagement` in `pom.xml` points to the platform Nexus (`<NAS_IP>:8081`).

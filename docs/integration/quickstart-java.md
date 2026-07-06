@@ -27,14 +27,14 @@ for the authorization-code flow (web apps acting for a user).
 
 ## Step 2. Add the SDK to your project
 
-The SDK ships to the platform Nexus at `192.168.1.2:8081`. Add the repository
+The SDK ships to the platform Nexus at `<NAS_IP>:8081`. Add the repository
 and the dependency to your `pom.xml`:
 
 ```xml
 <repositories>
   <repository>
     <id>platform-nexus</id>
-    <url>http://192.168.1.2:8081/repository/maven-public/</url>
+    <url>http://<NAS_IP>:8081/repository/maven-public/</url>
   </repository>
 </repositories>
 

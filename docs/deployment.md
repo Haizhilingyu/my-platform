@@ -11,11 +11,11 @@ Operations guide for deploying and running **My Platform** in production. Covers
 | Component | Host | Port | Notes |
 | --- | --- | --- | --- |
 | App (Spring Boot + embedded SPA) | container `my-platform-app` | 8090 (host 8095) | Java 21. Single fat jar serves Vue 3 dist from `classpath:/static/` plus REST API + WebSocket on one port |
-| PostgreSQL | NAS `192.168.1.2` | 5532 | Database `platform` |
-| Redis | NAS `192.168.1.2` | 6380 | Auth enabled on NAS |
-| Nexus | NAS `192.168.1.2` | 8081 | Maven, PyPI, Docker registry |
-| Docker registry | NAS `192.168.1.2` | 8082 | `platform-app` image (single image, frontend + backend merged) |
-| OpenLDAP | NAS `192.168.1.2` | 389 | Optional login method |
+| PostgreSQL | NAS `<NAS_IP>` | 5532 | Database `platform` |
+| Redis | NAS `<NAS_IP>` | 6380 | Auth enabled on NAS |
+| Nexus | NAS `<NAS_IP>` | 8081 | Maven, PyPI, Docker registry |
+| Docker registry | NAS `<NAS_IP>` | 8082 | `platform-app` image (single image, frontend + backend merged) |
+| OpenLDAP | NAS `<NAS_IP>` | 389 | Optional login method |
 | Gitea + Actions | self-hosted | — | Runs `ci.yml`, `deploy.yml`, `sdk-release.yml` |
 
 Deploy target lives at `/volume1/docker/my-platform` on the NAS. The `deploy.yml` workflow SSHes in, runs `docker compose pull && docker compose up -d`, and prints `docker compose ps`.
@@ -32,7 +32,7 @@ Copy `docker/.env.example` to `docker/.env` and fill in real values. The compose
 
 | Variable | Description | Default | Source |
 | --- | --- | --- | --- |
-| `SPRING_DATASOURCE_URL` | JDBC URL | `jdbc:postgresql://192.168.1.2:5532/platform` | `application.yml` |
+| `SPRING_DATASOURCE_URL` | JDBC URL | `jdbc:postgresql://<NAS_IP>:5532/platform` | `application.yml` |
 | `SPRING_DATASOURCE_USERNAME` | DB user | `postgres` | `application.yml` |
 | `SPRING_DATASOURCE_PASSWORD` | **Required.** DB password | `postgres` (dev only) | `.env` |
 
@@ -42,7 +42,7 @@ The compose file enforces `SPRING_DATASOURCE_PASSWORD` and `APP_SECURITY_JWT_SEC
 
 | Variable | Description | Default | Notes |
 | --- | --- | --- | --- |
-| `SPRING_DATA_REDIS_HOST` | Redis host | `192.168.1.2` | |
+| `SPRING_DATA_REDIS_HOST` | Redis host | `<NAS_IP>` | |
 | `SPRING_DATA_REDIS_PORT` | Redis port | `6380` | |
 | `REDIS_PASSWORD` | **Recommended.** Redis password | (empty) | Takes priority over the legacy var |
 | `SPRING_DATA_REDIS_PASSWORD` | Legacy password var | (empty) | Kept for backward compat; `REDIS_PASSWORD` wins |
@@ -68,7 +68,7 @@ Off by default. Flip `PLATFORM_LOGIN_LDAP_ENABLED=true` to activate against the 
 | Variable | Description | Default |
 | --- | --- | --- |
 | `PLATFORM_LOGIN_LDAP_ENABLED` | Master switch | `false` |
-| `PLATFORM_LOGIN_LDAP_URL` | LDAP endpoint | `ldap://192.168.1.2:389` |
+| `PLATFORM_LOGIN_LDAP_URL` | LDAP endpoint | `ldap://<NAS_IP>:389` |
 | `PLATFORM_LOGIN_LDAP_USER_DN_PATTERN` | DN template, `{0}` is the username | `uid={0},dc=devenv,dc=local` |
 | `PLATFORM_LOGIN_LDAP_AUTO_CREATE_USER` | Create a local `SysUser` on first LDAP login | `true` |
 | `PLATFORM_LOGIN_LDAP_DEFAULT_ROLE_CODE` | Role assigned to auto-created users | `user` |
@@ -98,7 +98,7 @@ These live as Gitea Action secrets, not in `.env`. They never touch the app cont
    REDIS_PASSWORD=<random>
    ```
 5. Configure Gitea secrets `NEXUS_USER`, `NEXUS_PASS`, `DEPLOY_USER`, `DEPLOY_PASS`.
-6. Push to `main`. The `deploy.yml` workflow builds the single `platform-app` image (frontend + backend merged), pushes it to the NAS registry at `192.168.1.2:8082`, then rolls the compose stack.
+6. Push to `main`. The `deploy.yml` workflow builds the single `platform-app` image (frontend + backend merged), pushes it to the NAS registry at `<NAS_IP>:8082`, then rolls the compose stack.
 
 Flyway runs on first boot and creates all tables (see section 5).
 
@@ -132,7 +132,7 @@ The single source of truth is the `openapp_jwk` table. Back it up with a normal 
 
 ```
 # example: logical backup of the JWK table
-pg_dump -h 192.168.1.2 -p 5532 -U postgres -t openapp_jwk platform > openapp_jwk_$(date +%F).sql
+pg_dump -h <NAS_IP> -p 5532 -U postgres -t openapp_jwk platform > openapp_jwk_$(date +%F).sql
 ```
 
 ### Rotating `JWK_ENCRYPTION_KEY`
@@ -185,7 +185,7 @@ Redis backs the Spring Session store (T25) that keeps user sessions alive across
 From the backend host:
 
 ```
-redis-cli -h 192.168.1.2 -p 6380 -a "$REDIS_PASSWORD" PING
+redis-cli -h <NAS_IP> -p 6380 -a "$REDIS_PASSWORD" PING
 # expect: PONG
 ```
 
@@ -284,7 +284,7 @@ The handshake path stays the same. The registry is what changes from an in-memor
 
 ## 9. LDAP Connection (OpenLDAP)
 
-The `login-ldap` module adds LDAP as a password login method against the NAS OpenLDAP at `192.168.1.2:389`. It is disabled by default and must be turned on explicitly.
+The `login-ldap` module adds LDAP as a password login method against the NAS OpenLDAP at `<NAS_IP>:389`. It is disabled by default and must be turned on explicitly.
 
 ### Enabling LDAP
 
@@ -292,7 +292,7 @@ Set these in `docker/.env`:
 
 ```
 PLATFORM_LOGIN_LDAP_ENABLED=true
-PLATFORM_LOGIN_LDAP_URL=ldap://192.168.1.2:389
+PLATFORM_LOGIN_LDAP_URL=ldap://<NAS_IP>:389
 PLATFORM_LOGIN_LDAP_USER_DN_PATTERN=uid={0},dc=devenv,dc=local
 PLATFORM_LOGIN_LDAP_AUTO_CREATE_USER=true
 PLATFORM_LOGIN_LDAP_DEFAULT_ROLE_CODE=user
@@ -309,12 +309,12 @@ The `{0}` in the user DN pattern is replaced with the submitted username, then t
 From the backend host:
 
 ```
-ldapwhoami -x -H ldap://192.168.1.2:389 \
+ldapwhoami -x -H ldap://<NAS_IP>:389 \
   -D "uid=<testuser>,dc=devenv,dc=local" -W
 # enter the testuser password; expect: dns:<dn>
 ```
 
-If `ldapwhoami` is not available, `ldapsearch -x -H ldap://192.168.1.2:389 -b "dc=devenv,dc=local" "(uid=<testuser>)"` confirms the tree is reachable and the user DN resolves.
+If `ldapwhoami` is not available, `ldapsearch -x -H ldap://<NAS_IP>:389 -b "dc=devenv,dc=local" "(uid=<testuser>)"` confirms the tree is reachable and the user DN resolves.
 
 ### Common failures
 
@@ -369,7 +369,7 @@ Decide how long you need live audit data. A typical policy is 12 to 24 months on
 
 - **Archive.** Before dropping a partition, dump it to a compressed file or object storage:
   ```
-  pg_dump -h 192.168.1.2 -p 5532 -U postgres -t audit_log_2025_06 platform | gzip > audit_log_2025_06.sql.gz
+  pg_dump -h <NAS_IP> -p 5532 -U postgres -t audit_log_2025_06 platform | gzip > audit_log_2025_06.sql.gz
   ```
 - **Drop.** Once archived and verified, detach and drop the partition:
   ```sql

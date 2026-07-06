@@ -36,10 +36,10 @@ go get github.com/my-platform/client-sdk-go
 ```
 
 Behind the scenes the platform runs a private Athens / Nexus Go proxy at
-`192.168.1.2:8081`. If your environment is not already pointed at it, set:
+`<NAS_IP>:8081`. If your environment is not already pointed at it, set:
 
 ```bash
-export GOPROXY="http://192.168.1.2:8081/repository/go-proxy/,https://proxy.golang.org,direct"
+export GOPROXY="http://<NAS_IP>:8081/repository/go-proxy/,https://proxy.golang.org,direct"
 ```
 
 No proxy access? Build from source:

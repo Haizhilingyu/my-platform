@@ -14,7 +14,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *   login:
  *     ldap:
  *       enabled: false              # 总开关，默认关闭，需显式开启
- *       url: ldap://192.168.1.2:389
+ *       url: ldap://<NAS_IP>:389
  *       user-dn-pattern: uid={0},dc=devenv,dc=local
  *       auto-create-user: true       # 首次 LDAP 登录自动创建本地 SysUser
  *       default-role-code: user      # 自动创建用户的默认角色编码
@@ -28,7 +28,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "platform.login.ldap")
 public class LdapLoginProperties {
 
-  /** LDAP 服务器地址（含端口），如 {@code ldap://192.168.1.2:389}。 */
+  /** LDAP 服务器地址（含端口），如 {@code ldap://<NAS_IP>:389}。 */
   private String url = "ldap://localhost:389";
 
   /**

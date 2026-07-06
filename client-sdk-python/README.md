@@ -15,9 +15,9 @@ Configure pip to use the private repository (e.g. `~/.pip/pip.conf`):
 
 ```ini
 [global]
-index-url = http://192.168.1.2:8081/repository/pypi-hosted/simple
+index-url = http://<NAS_IP>:8081/repository/pypi-hosted/simple
 extra-index-url = https://pypi.org/simple
-trusted-host = 192.168.1.2
+trusted-host = <NAS_IP>
 ```
 
 Then:
@@ -117,7 +117,7 @@ pytest
 ```bash
 python setup.py sdist bdist_wheel
 twine upload \
-  --repository-url http://192.168.1.2:8081/repository/pypi-hosted/ \
+  --repository-url http://<NAS_IP>:8081/repository/pypi-hosted/ \
   -u "$NEXUS_USER" -p "$NEXUS_PASS" \
   dist/*
 ```

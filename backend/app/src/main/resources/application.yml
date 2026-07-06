@@ -5,7 +5,7 @@ spring:
   datasource:
     # 凭证外部化：未设置环境变量时使用默认值（本地/容器内开发友好），
     # 生产/NAS 通过 SPRING_DATASOURCE_* 环境变量注入真实凭证（见 docker/docker-compose*.yml）。
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://192.168.1.2:5532/platform}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://<NAS_IP>:5532/platform}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -29,7 +29,7 @@ spring:
 
   data:
     redis:
-      host: ${SPRING_DATA_REDIS_HOST:192.168.1.2}
+      host: ${SPRING_DATA_REDIS_HOST:<NAS_IP>}
       port: ${SPRING_DATA_REDIS_PORT:6380}
       # 凭证外部化：REDIS_PASSWORD 优先；兼容历史变量 SPRING_DATA_REDIS_PASSWORD。
       # 无密码则留空（本地开发）。生产/NAS 通过环境变量注入（见 docker/.env.example）。
@@ -57,12 +57,12 @@ app:
       secret: ${APP_SECURITY_JWT_SECRET:changeme-must-be-at-least-32-bytes-long-for-hs256}
       expiration: 86400000
 
-# LDAP 登录（默认关闭；显式置 PLATFORM_LOGIN_LDAP_ENABLED=true 启用，对接 OpenLDAP 192.168.1.2:389）
+# LDAP 登录（默认关闭；显式置 PLATFORM_LOGIN_LDAP_ENABLED=true 启用，对接 OpenLDAP <NAS_IP>:389）
 platform:
   login:
     ldap:
       enabled: ${PLATFORM_LOGIN_LDAP_ENABLED:false}
-      url: ${PLATFORM_LOGIN_LDAP_URL:ldap://192.168.1.2:389}
+      url: ${PLATFORM_LOGIN_LDAP_URL:ldap://<NAS_IP>:389}
       user-dn-pattern: ${PLATFORM_LOGIN_LDAP_USER_DN_PATTERN:uid={0},dc=devenv,dc=local}
       auto-create-user: ${PLATFORM_LOGIN_LDAP_AUTO_CREATE_USER:true}
       default-role-code: ${PLATFORM_LOGIN_LDAP_DEFAULT_ROLE_CODE:user}
