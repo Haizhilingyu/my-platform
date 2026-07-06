@@ -2,15 +2,19 @@ package com.example.common.exception;
 
 import com.example.common.result.Result;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -49,6 +53,44 @@ public class GlobalExceptionHandler {
       errors.put(error.getField(), error.getDefaultMessage());
     }
     return ResponseEntity.badRequest().body(Result.fail(400, "参数校验失败"));
+  }
+
+  /**
+   * 处理 {@code @Validated} 方法参数级约束校验失败（如 {@code @RequestParam @Min}）。
+   *
+   * <p>返回 400 与 {@link #handleValidation} 完全一致的 Result 信封结构。
+   */
+  @ExceptionHandler(ConstraintViolationException.class)
+  public ResponseEntity<Result<Map<String, String>>> handleConstraintViolation(
+      ConstraintViolationException ex) {
+    Map<String, String> errors = new HashMap<>();
+    for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
+      errors.put(violation.getPropertyPath().toString(), violation.getMessage());
+    }
+    return ResponseEntity.badRequest().body(Result.fail(400, "参数校验失败"));
+  }
+
+  /**
+   * 处理请求体 JSON 不可读 / 无法解析的情况。
+   *
+   * <p>返回 400 + 通用「请求体格式错误」提示，不泄露内部类名等敏感信息，可安全用于生产环境。
+   */
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<Result<Void>> handleHttpMessageNotReadable(
+      HttpMessageNotReadableException ex) {
+    return ResponseEntity.badRequest().body(Result.fail(400, "请求体格式错误"));
+  }
+
+  /**
+   * 处理缺少必需的 {@code @RequestParam} 参数的情况。
+   *
+   * <p>返回 400 + 包含缺失参数名的提示信息。
+   */
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<Result<Void>> handleMissingServletRequestParameter(
+      MissingServletRequestParameterException ex) {
+    return ResponseEntity.badRequest()
+        .body(Result.fail(400, "缺少必需的请求参数: " + ex.getParameterName()));
   }
 
   @ExceptionHandler(Exception.class)

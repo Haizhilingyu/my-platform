@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/platform
     username: postgres
-    password: postgres
+    password: ${SPRING_DATASOURCE_PASSWORD:-postgres}
   data:
     redis:
       host: localhost

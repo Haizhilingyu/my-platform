@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: platform
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Postgres@2025
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
     ports:
       - "5533:5432"
     volumes:
@@ -39,10 +39,10 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/platform
       SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: Postgres@2025
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      APP_SECURITY_JWT_SECRET: my-platform-secret-key-must-be-at-least-32-bytes-long-for-hs256
+      APP_SECURITY_JWT_SECRET: ${APP_SECURITY_JWT_SECRET:-changeme-at-least-32-chars}
     ports:
       - "8090:8090"
 

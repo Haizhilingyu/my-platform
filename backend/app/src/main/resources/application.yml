@@ -54,7 +54,7 @@ app:
   security:
     jwt:
       # 密钥外部化：生产环境务必通过 APP_SECURITY_JWT_SECRET 注入随机密钥。
-      secret: ${APP_SECURITY_JWT_SECRET:my-platform-secret-key-must-be-at-least-32-bytes-long-for-hs256}
+      secret: ${APP_SECURITY_JWT_SECRET:changeme-must-be-at-least-32-bytes-long-for-hs256}
       expiration: 86400000
 
 # LDAP 登录（默认关闭；显式置 PLATFORM_LOGIN_LDAP_ENABLED=true 启用，对接 OpenLDAP 192.168.1.2:389）
