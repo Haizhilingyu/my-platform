@@ -52,7 +52,7 @@ public class GlobalExceptionHandler {
     for (FieldError error : ex.getBindingResult().getFieldErrors()) {
       errors.put(error.getField(), error.getDefaultMessage());
     }
-    return ResponseEntity.badRequest().body(Result.fail(400, "参数校验失败"));
+    return ResponseEntity.badRequest().body(Result.fail(400, "参数校验失败", errors));
   }
 
   /**
@@ -67,7 +67,7 @@ public class GlobalExceptionHandler {
     for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
       errors.put(violation.getPropertyPath().toString(), violation.getMessage());
     }
-    return ResponseEntity.badRequest().body(Result.fail(400, "参数校验失败"));
+    return ResponseEntity.badRequest().body(Result.fail(400, "参数校验失败", errors));
   }
 
   /**

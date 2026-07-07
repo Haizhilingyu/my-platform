@@ -1,5 +1,7 @@
 package com.example.common.login;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.util.Map;
 
 /**
@@ -19,11 +21,11 @@ import java.util.Map;
  * @param attributes 扩展属性映射，承载非通用字段：LDAP 域、SSO token 等。 由各 {@link LoginMethodProvider} 自行解析所需的键。
  */
 public record LoginRequest(
-    String method,
-    String username,
-    String password,
-    String captchaId,
-    String captchaCode,
+    @Size(max = 32, message = "登录方式长度不能超过32") String method,
+    @NotBlank(message = "用户名不能为空") @Size(max = 32, message = "用户名长度不能超过32") String username,
+    @NotBlank(message = "密码不能为空") @Size(max = 32, message = "密码长度不能超过32") String password,
+    @Size(max = 64, message = "验证码标识长度不能超过64") String captchaId,
+    @Size(max = 6, message = "验证码长度不能超过6") String captchaCode,
     Map<String, Object> attributes) {
 
   /** 便捷工厂：构造密码登录请求（method="password"，无验证码，无扩展属性）。 */

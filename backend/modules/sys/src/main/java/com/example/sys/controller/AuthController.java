@@ -25,6 +25,7 @@ import io.jsonwebtoken.Claims;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -59,7 +60,7 @@ public class AuthController {
   @Operation(summary = "登录", description = "根据 method 路由到对应 LoginMethodProvider，默认 password")
   @Auditable(action = "LOGIN")
   @PostMapping("/login")
-  public Result<LoginVO> login(@RequestBody LoginRequest request) {
+  public Result<LoginVO> login(@RequestBody @Valid LoginRequest request) {
     if (captchaEnabled() && !captchaService.validate(request.captchaId(), request.captchaCode())) {
       if (request.captchaId() == null || request.captchaCode() == null) {
         throw new BizException(400, "请输入验证码");

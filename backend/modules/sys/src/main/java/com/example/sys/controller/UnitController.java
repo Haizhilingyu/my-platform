@@ -46,7 +46,7 @@ public class UnitController {
 
   @RequiresPermission("sys:unit:edit")
   @PutMapping("/{id}")
-  public Result<Void> update(@PathVariable Long id, @RequestBody UnitDTO dto) {
+  public Result<Void> update(@PathVariable Long id, @RequestBody @Valid UnitDTO dto) {
     unitService.update(id, dto);
     return Result.ok();
   }

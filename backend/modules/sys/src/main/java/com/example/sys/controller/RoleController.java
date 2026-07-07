@@ -6,8 +6,10 @@ import com.example.sys.domain.SysRole;
 import com.example.sys.dto.RoleDTO;
 import com.example.sys.service.RoleService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/sys/role")
 @RequiredArgsConstructor
+@Validated
 public class RoleController {
 
   private final RoleService roleService;
@@ -45,7 +48,7 @@ public class RoleController {
 
   @RequiresPermission("sys:role:edit")
   @PutMapping("/{id}")
-  public Result<Void> update(@PathVariable Long id, @RequestBody RoleDTO dto) {
+  public Result<Void> update(@PathVariable Long id, @RequestBody @Valid RoleDTO dto) {
     roleService.update(id, dto);
     return Result.ok();
   }
@@ -59,7 +62,8 @@ public class RoleController {
 
   @RequiresPermission("sys:role:perm")
   @PostMapping("/{id}/menus")
-  public Result<Void> assignMenus(@PathVariable Long id, @RequestBody List<Long> menuIds) {
+  public Result<Void> assignMenus(
+      @PathVariable Long id, @RequestBody @NotEmpty(message = "菜单ID列表不能为空") List<Long> menuIds) {
     roleService.assignMenus(id, menuIds);
     return Result.ok();
   }

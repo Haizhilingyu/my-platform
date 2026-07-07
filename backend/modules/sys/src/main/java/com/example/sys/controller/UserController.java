@@ -11,10 +11,14 @@ import com.example.sys.dto.UserVO;
 import com.example.sys.service.LoginSecurityService;
 import com.example.sys.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/sys/user")
 @RequiredArgsConstructor
+@Validated
 public class UserController {
 
   private final UserService userService;
@@ -61,7 +66,7 @@ public class UserController {
 
   @RequiresPermission("sys:user:edit")
   @PutMapping("/{id}")
-  public Result<Void> update(@PathVariable Long id, @RequestBody UserUpdateDTO dto) {
+  public Result<Void> update(@PathVariable Long id, @RequestBody @Valid UserUpdateDTO dto) {
     userService.update(id, dto);
     return Result.ok();
   }
@@ -75,14 +80,15 @@ public class UserController {
 
   @RequiresPermission("sys:user:delete")
   @DeleteMapping("/batch")
-  public Result<Void> deleteBatch(@RequestBody List<Long> ids) {
+  public Result<Void> deleteBatch(@RequestBody @NotEmpty(message = "删除ID列表不能为空") List<Long> ids) {
     userService.deleteBatch(ids);
     return Result.ok();
   }
 
   @RequiresPermission("sys:user:role")
   @PostMapping("/{id}/roles")
-  public Result<Void> assignRoles(@PathVariable Long id, @RequestBody List<Long> roleIds) {
+  public Result<Void> assignRoles(
+      @PathVariable Long id, @RequestBody @NotEmpty(message = "角色ID列表不能为空") List<Long> roleIds) {
     userService.assignRoles(id, roleIds);
     return Result.ok();
   }
@@ -95,7 +101,12 @@ public class UserController {
 
   @RequiresPermission("sys:user:reset")
   @PostMapping("/{id}/reset-password")
-  public Result<Void> resetPassword(@PathVariable Long id, @RequestParam String newPassword) {
+  public Result<Void> resetPassword(
+      @PathVariable Long id,
+      @RequestParam
+          @NotBlank(message = "新密码不能为空")
+          @Size(min = 6, max = 32, message = "密码长度需在6-32之间")
+          String newPassword) {
     userService.resetPassword(id, newPassword);
     return Result.ok();
   }

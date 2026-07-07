@@ -46,7 +46,7 @@ public class MenuController {
 
   @RequiresPermission("sys:menu:edit")
   @PutMapping("/{id}")
-  public Result<Void> update(@PathVariable Long id, @RequestBody MenuDTO dto) {
+  public Result<Void> update(@PathVariable Long id, @RequestBody @Valid MenuDTO dto) {
     menuService.update(id, dto);
     return Result.ok();
   }

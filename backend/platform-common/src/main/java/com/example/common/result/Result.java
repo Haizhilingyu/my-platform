@@ -28,6 +28,11 @@ public record Result<T>(int code, String message, T data) {
     return new Result<>(code, message, null);
   }
 
+  /** 失败响应（带数据，例如校验错误明细）。 */
+  public static <T> Result<T> fail(int code, String message, T data) {
+    return new Result<>(code, message, data);
+  }
+
   public boolean isSuccess() {
     return this.code == SUCCESS_CODE;
   }
