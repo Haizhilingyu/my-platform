@@ -17,6 +17,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import { useNotifyStore } from '@/stores/notify'
 import { useBreakpoint } from '@/shared/composables/useBreakpoint'
+import { formatDateTime } from '@/shared/utils/datetime'
 import { notifyApi, type NotifyInboxVO, type NotifyLevel } from '@/shared/api/notify'
 import type { MenuTreeNode } from '@/modules/sys/api/types'
 
@@ -267,7 +268,7 @@ function goToInbox(): void {
                       </NTag>
                       <NText class="truncate text-sm">{{ m.title || '(无标题)' }}</NText>
                     </div>
-                    <NText depth="3" class="text-xs">{{ m.createdAt }}</NText>
+                    <NText depth="3" class="text-xs">{{ formatDateTime(m.createdAt) }}</NText>
                   </li>
                 </ul>
               </NSpin>

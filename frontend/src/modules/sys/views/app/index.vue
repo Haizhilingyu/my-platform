@@ -13,6 +13,7 @@ import {
   type OpenAppSecretResult,
 } from '@/shared/api/openapp'
 import { useAuthStore } from '@/stores/auth'
+import { formatDateTime } from '@/shared/utils/datetime'
 import { useBreakpoint } from '@/shared/composables/useBreakpoint'
 import {
   requiredRule, maxLengthRule,
@@ -252,11 +253,6 @@ async function copyText(text: string) {
   }
 }
 
-function formatTime(ts: string | null): string {
-  if (!ts) return '-'
-  return ts.replace('T', ' ').slice(0, 19)
-}
-
 const columns = computed<DataTableColumns<OpenAppClientVO>>(() => [
   { title: 'Client ID', key: 'clientId', width: 220, ellipsis: { tooltip: true } },
   { title: '应用名称', key: 'clientName', width: 150 },
@@ -289,7 +285,7 @@ const columns = computed<DataTableColumns<OpenAppClientVO>>(() => [
             { default: () => (row.enabled ? '启用' : '禁用') },
           ),
   },
-  { title: '创建时间', key: 'createdAt', width: 160, render: (row) => formatTime(row.createdAt) },
+  { title: '创建时间', key: 'createdAt', width: 160, render: (row) => formatDateTime(row.createdAt) },
   {
     title: '操作',
     key: 'actions',

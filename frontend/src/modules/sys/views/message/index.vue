@@ -6,6 +6,7 @@ import {
 } from 'naive-ui'
 import { notifyApi, type NotifyInboxQuery, type NotifyInboxVO, type NotifyLevel } from '@/shared/api/notify'
 import { useNotifyStore } from '@/stores/notify'
+import { formatDateTime } from '@/shared/utils/datetime'
 
 const message = useMessage()
 const notifyStore = useNotifyStore()
@@ -137,7 +138,7 @@ const columns = computed<DataTableColumns<NotifyInboxVO>>(() => [
       ),
   },
   { title: '业务类型', key: 'businessType', width: 120 },
-  { title: '发送时间', key: 'createdAt', width: 180 },
+  { title: '发送时间', key: 'createdAt', width: 180, render: (row) => formatDateTime(row.createdAt) },
   {
     title: '状态',
     key: 'readStatus',

@@ -5,6 +5,7 @@ import {
   NGrid, NGi, NTag, NEmpty, NCode, type DataTableColumns,
 } from 'naive-ui'
 import { auditApi, type AuditLogVO, type AuditLogQuery } from '@/modules/sys/api/audit'
+import { formatDateTime } from '@/shared/utils/datetime'
 
 const loading = ref(false)
 const data = ref<AuditLogVO[]>([])
@@ -93,6 +94,10 @@ function prettyParams(row: AuditLogVO): string {
   }
 }
 
+function truncateUa(ua: string, max = 45): string {
+  return ua.length > max ? ua.slice(0, max) + '…' : ua
+}
+
 const columns = computed<DataTableColumns<AuditLogVO>>(() => [
   { title: '操作人', key: 'actor', width: 120 },
   {
@@ -106,6 +111,12 @@ const columns = computed<DataTableColumns<AuditLogVO>>(() => [
   { title: '对象 ID', key: 'targetId', width: 100 },
   { title: 'IP', key: 'ip', width: 130 },
   {
+    title: '设备', key: 'userAgent', width: 150,
+    render: (row) => row.userAgent
+      ? h('span', { class: 'text-xs text-gray-600' }, truncateUa(row.userAgent))
+      : '-',
+  },
+  {
     title: '结果', key: 'result', width: 80,
     render: (row) => h(NTag, {
       type: row.result === 'success' ? 'success' : 'error',
@@ -114,7 +125,7 @@ const columns = computed<DataTableColumns<AuditLogVO>>(() => [
   },
   {
     title: '时间', key: 'createdAt', width: 170,
-    render: (row) => new Date(row.createdAt).toLocaleString('zh-CN'),
+    render: (row) => formatDateTime(row.createdAt),
   },
 ])
 
@@ -201,7 +212,7 @@ onMounted(fetchData)
       :columns="columns"
       :data="data"
       :loading="loading"
-      :scroll-x="940"
+      :scroll-x="1100"
       :row-key="rowKey"
       :expanded-row-keys="expandedKeys"
       :render-expand="renderExpand"

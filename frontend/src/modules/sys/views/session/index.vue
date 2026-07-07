@@ -12,6 +12,7 @@ import {
 import { sessionApi, type SessionInfo } from '@/modules/sys/api/session'
 import { userApi } from '@/modules/sys/api/user'
 import { useAuthStore } from '@/stores/auth'
+import { formatDateTime } from '@/shared/utils/datetime'
 
 const authStore = useAuthStore()
 const message = useMessage()
@@ -134,15 +135,6 @@ function deviceTagType(deviceType: string): 'default' | 'success' | 'info' | 'wa
   return 'info'
 }
 
-function formatTime(iso: string): string {
-  if (!iso) return '-'
-  try {
-    return new Date(iso).toLocaleString('zh-CN')
-  } catch {
-    return iso
-  }
-}
-
 function truncate(ua: string, max = 40): string {
   if (!ua) return '-'
   return ua.length > max ? ua.slice(0, max) + '…' : ua
@@ -163,11 +155,11 @@ function buildColumns(scope: 'self' | 'admin'): DataTableColumns<SessionInfo> {
     { title: 'IP', key: 'ip', width: 140 },
     {
       title: '登录时间', key: 'loginAt', width: 170,
-      render: (row) => formatTime(row.loginAt),
+      render: (row) => formatDateTime(row.loginAt),
     },
     {
       title: '过期时间', key: 'expiresAt', width: 170,
-      render: (row) => formatTime(row.expiresAt),
+      render: (row) => formatDateTime(row.expiresAt),
     },
     {
       title: 'User-Agent', key: 'userAgent', minWidth: 220,
