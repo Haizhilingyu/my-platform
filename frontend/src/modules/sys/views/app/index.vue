@@ -3,6 +3,7 @@ import { ref, computed, onMounted, h } from 'vue'
 import {
   NCard, NDataTable, NButton, NSpace, NInput, NSelect, NModal, NForm,
   NFormItem, NSwitch, NTag, NAlert, NIcon, useMessage, type DataTableColumns,
+  type FormInst, type FormRules,
 } from 'naive-ui'
 import { CopyOutline, TrashOutline, AddOutline } from '@vicons/ionicons5'
 import {
@@ -13,6 +14,9 @@ import {
 } from '@/shared/api/openapp'
 import { useAuthStore } from '@/stores/auth'
 import { useBreakpoint } from '@/shared/composables/useBreakpoint'
+import {
+  requiredRule, maxLengthRule,
+} from '@/shared/utils/validation'
 
 const authStore = useAuthStore()
 const message = useMessage()
@@ -35,6 +39,42 @@ const form = ref({
   grantTypes: [] as string[],
   enabled: true,
 })
+const formRef = ref<FormInst | null>(null)
+const rules: FormRules = {
+  clientName: [
+    requiredRule('应用名称不能为空'),
+    maxLengthRule(100, '应用名称长度不能超过100'),
+  ],
+  redirectUris: [
+    {
+      validator: (_rule: unknown, value: string[]) => {
+        if (!value || value.length === 0) return new Error('至少需要一个重定向URI')
+        const nonEmpty = value.filter((v) => v && v.trim())
+        if (nonEmpty.length === 0) return new Error('至少需要一个重定向URI')
+        return true
+      },
+      trigger: ['blur', 'change'],
+    },
+  ],
+  scopes: [
+    {
+      validator: (_rule: unknown, value: string[]) => {
+        if (!value || value.length === 0) return new Error('请至少选择一个权限范围')
+        return true
+      },
+      trigger: ['blur', 'change'],
+    },
+  ],
+  grantTypes: [
+    {
+      validator: (_rule: unknown, value: string[]) => {
+        if (!value || value.length === 0) return new Error('请至少选择一个授权类型')
+        return true
+      },
+      trigger: ['blur', 'change'],
+    },
+  ],
+}
 
 const showSecretModal = ref(false)
 const secretResult = ref<OpenAppSecretResult | null>(null)
@@ -121,8 +161,10 @@ function compact(arr: string[]): string[] {
 }
 
 async function handleSave() {
-  if (!form.value.clientName.trim()) {
-    message.warning('请输入应用名称')
+  try {
+    await formRef.value?.validate()
+  } catch {
+    // 校验失败：Naive UI 已在字段下方渲染错误提示，直接中断保存。
     return
   }
   saving.value = true
@@ -295,9 +337,9 @@ onMounted(fetchData)
           v-model:value="query.keyword"
           placeholder="搜索 Client ID / 应用名称"
           clearable
+          class="w-[250px]"
           @clear="fetchData"
           @keyup.enter="fetchData"
-          class="w-[250px]"
         />
         <NButton type="primary" @click="fetchData">查询</NButton>
       </NSpace>
@@ -330,12 +372,12 @@ onMounted(fetchData)
     preset="card"
     :style="modalStyle"
   >
-    <NForm :label-placement="labelPlacement" :label-width="110">
-      <NFormItem label="应用名称" required>
+    <NForm ref="formRef" :model="form" :rules="rules" :label-placement="labelPlacement" :label-width="110">
+      <NFormItem label="应用名称" required path="clientName">
         <NInput v-model:value="form.clientName" placeholder="如：移动端 App" />
       </NFormItem>
 
-      <NFormItem label="回调地址">
+      <NFormItem label="回调地址" path="redirectUris">
         <div class="w-full space-y-2">
           <div
             v-for="(_, idx) in form.redirectUris"
@@ -379,7 +421,7 @@ onMounted(fetchData)
         </div>
       </NFormItem>
 
-      <NFormItem label="授权范围">
+      <NFormItem label="授权范围" path="scopes">
         <NSelect
           v-model:value="form.scopes"
           multiple
@@ -390,7 +432,7 @@ onMounted(fetchData)
         />
       </NFormItem>
 
-      <NFormItem label="授权类型">
+      <NFormItem label="授权类型" path="grantTypes">
         <NSelect
           v-model:value="form.grantTypes"
           multiple

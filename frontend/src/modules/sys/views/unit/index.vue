@@ -3,11 +3,14 @@ import { ref, onMounted, h } from 'vue'
 import {
   NCard, NButton, NSpace, NModal, NForm, NFormItem,
   NInput, NSelect, NSwitch, NTag, NTree, NEmpty,
-  useMessage, type TreeOption,
+  useMessage, type TreeOption, type FormInst, type FormRules,
 } from 'naive-ui'
 import { unitApi, type UnitDTO } from '@/modules/sys/api/unit'
 import type { UnitTreeNode } from '@/modules/sys/api/types'
 import { useAuthStore } from '@/stores/auth'
+import {
+  requiredRule, lengthRule, maxLengthRule, patternRule, USERNAME_PATTERN,
+} from '@/shared/utils/validation'
 
 const authStore = useAuthStore()
 const message = useMessage()
@@ -18,6 +21,20 @@ const expandedKeys = ref<number[]>([])
 const showModal = ref(false)
 const editingId = ref<number | null>(null)
 const form = ref<UnitDTO>({ unitCode: '', unitName: '', sort: 0, status: 1 })
+const formRef = ref<FormInst | null>(null)
+const rules: FormRules = {
+  unitCode: [
+    requiredRule('单位编码不能为空'),
+    lengthRule(3, 50, '单位编码长度需在3-50之间'),
+    patternRule(USERNAME_PATTERN, '单位编码只能包含字母、数字、下划线'),
+  ],
+  unitName: [
+    requiredRule('单位名称不能为空'),
+    maxLengthRule(100, '单位名称长度不能超过100'),
+  ],
+  sort: [patternRule(/^\d*$/, '排序值必须是非负整数')],
+  remark: [maxLengthRule(200, '备注长度不能超过200')],
+}
 
 async function fetchData() {
   loading.value = true
@@ -58,6 +75,12 @@ function handleEdit(row: UnitTreeNode) {
 }
 
 async function handleSave() {
+  try {
+    await formRef.value?.validate()
+  } catch {
+    // 校验失败：Naive UI 已在字段下方渲染错误提示，直接中断保存。
+    return
+  }
   try {
     if (editingId.value) {
       await unitApi.update(editingId.value, form.value)
@@ -143,23 +166,23 @@ onMounted(fetchData)
   </NCard>
 
   <NModal v-model:show="showModal" :title="editingId ? '编辑单位' : '新增单位'" preset="card" :style="{ width: '500px' }">
-    <NForm label-placement="left" :label-width="80">
+    <NForm ref="formRef" :model="form" :rules="rules" label-placement="left" :label-width="80">
       <NFormItem label="上级单位">
         <NSelect v-model:value="form.parentId" :options="flattenUnits(tree)" placeholder="顶级单位" clearable />
       </NFormItem>
-      <NFormItem label="单位编码" required>
+      <NFormItem label="单位编码" required path="unitCode">
         <NInput v-model:value="form.unitCode" :disabled="!!editingId" placeholder="如 HQ" />
       </NFormItem>
-      <NFormItem label="单位名称" required>
+      <NFormItem label="单位名称" required path="unitName">
         <NInput v-model:value="form.unitName" placeholder="如 总部" />
       </NFormItem>
-      <NFormItem label="排序">
-        <NInput :value="String(form.sort ?? '')" @update:value="(v: string) => form.sort = v ? Number(v) : undefined" placeholder="0" />
+      <NFormItem label="排序" path="sort">
+        <NInput :value="String(form.sort ?? '')" placeholder="0" @update:value="(v: string) => form.sort = v ? Number(v) : undefined" />
       </NFormItem>
       <NFormItem label="状态">
         <NSwitch v-model:value="form.status" :checked-value="1" :unchecked-value="0" />
       </NFormItem>
-      <NFormItem label="备注">
+      <NFormItem label="备注" path="remark">
         <NInput v-model:value="form.remark" type="textarea" />
       </NFormItem>
       <NSpace justify="end">

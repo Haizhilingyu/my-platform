@@ -14,11 +14,14 @@ import {
   NSpin,
   NAlert,
   useMessage,
+  type FormInst,
+  type FormRules,
 } from 'naive-ui'
 import { RefreshOutline, LockClosedOutline, PersonOutline, KeyOutline } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/modules/sys/api/auth'
 import { useBreakpoint } from '@/shared/composables/useBreakpoint'
+import { requiredRule, maxLengthRule } from '@/shared/utils/validation'
 import type { LoginMethodDescriptor } from '@/modules/sys/api/types'
 import type { AxiosError } from 'axios'
 
@@ -37,6 +40,17 @@ const form = ref({
   password: '',
   captchaCode: '',
 })
+const formRef = ref<FormInst | null>(null)
+// 登录方式由后端下发，每种方式一个 Tab + 独立表单。由于 NForm 嵌在 v-for 内，
+// 字符串 ref 会被 Vue 收集成数组；这里改用函数 ref 始终拿到当前激活表单实例。
+function setFormRef(el: unknown): void {
+  formRef.value = (el as FormInst | null) ?? null
+}
+const rules: FormRules = {
+  username: [requiredRule('用户名不能为空'), maxLengthRule(32, '用户名长度不能超过32')],
+  password: [requiredRule('密码不能为空'), maxLengthRule(32, '密码长度不能超过32')],
+  captchaCode: [maxLengthRule(6, '验证码长度不能超过6')],
+}
 const captchaId = ref<string>('')
 const captchaImage = ref<string>('')
 const captchaLoading = ref(false)
@@ -91,8 +105,10 @@ async function refreshCaptcha() {
 
 async function handleLogin() {
   errorMessage.value = ''
-  if (!form.value.username || !form.value.password) {
-    errorMessage.value = '请输入用户名和密码'
+  try {
+    await formRef.value?.validate()
+  } catch {
+    // Naive UI 会在字段下方自动渲染错误信息，无需再设置 errorMessage。
     return
   }
 
@@ -157,7 +173,7 @@ function iconFor(icon: string | null) {
             :name="m.method"
             :tab="m.label"
           >
-            <NForm class="mt-2" @keyup.enter="handleLogin">
+            <NForm :ref="setFormRef" :model="form" :rules="rules" class="mt-2" @keyup.enter="handleLogin">
               <NFormItem label="用户名" path="username">
                 <NInput
                   v-model:value="form.username"

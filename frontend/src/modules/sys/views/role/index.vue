@@ -3,12 +3,16 @@ import { ref, computed, onMounted, h } from 'vue'
 import {
   NCard, NDataTable, NButton, NSpace, NModal, NForm, NFormItem,
   NInput, NSelect, NTag, useMessage, NTree, type DataTableColumns,
+  type FormInst, type FormRules,
 } from 'naive-ui'
 import { roleApi, type RoleDTO } from '@/modules/sys/api/role'
 import { menuApi } from '@/modules/sys/api/menu'
 import { unitApi } from '@/modules/sys/api/unit'
 import type { SysRole, MenuTreeNode, UnitTreeNode } from '@/modules/sys/api/types'
 import { useBreakpoint } from '@/shared/composables/useBreakpoint'
+import {
+  requiredRule, lengthRule, maxLengthRule, patternRule, USERNAME_PATTERN,
+} from '@/shared/utils/validation'
 
 const message = useMessage()
 const { isMobile } = useBreakpoint()
@@ -20,6 +24,20 @@ const data = ref<SysRole[]>([])
 const showModal = ref(false)
 const editingId = ref<number | null>(null)
 const form = ref<RoleDTO>({ roleCode: '', roleName: '', dataScope: 'SELF', status: 1 })
+const formRef = ref<FormInst | null>(null)
+const rules: FormRules = {
+  roleCode: [
+    requiredRule('角色编码不能为空'),
+    lengthRule(3, 50, '角色编码长度需在3-50之间'),
+    patternRule(USERNAME_PATTERN, '角色编码只能包含字母、数字、下划线'),
+  ],
+  roleName: [
+    requiredRule('角色名称不能为空'),
+    maxLengthRule(100, '角色名称长度不能超过100'),
+  ],
+  dataScope: [requiredRule('数据范围不能为空')],
+  remark: [maxLengthRule(200, '备注长度不能超过200')],
+}
 
 const unitTree = ref<UnitTreeNode[]>([])
 const customUnitIds = ref<number[]>([])
@@ -77,6 +95,12 @@ async function handleEdit(row: SysRole) {
 }
 
 async function handleSave() {
+  try {
+    await formRef.value?.validate()
+  } catch {
+    // 校验失败：Naive UI 已在字段下方渲染错误提示，直接中断保存。
+    return
+  }
   try {
     if (editingId.value) {
       await roleApi.update(editingId.value, form.value)
@@ -198,14 +222,14 @@ onMounted(async () => {
   </NCard>
 
   <NModal v-model:show="showModal" :title="editingId ? '编辑角色' : '新增角色'" preset="card" :style="{ width: '500px' }">
-    <NForm :label-placement="labelPlacement" :label-width="80">
-      <NFormItem label="角色编码" required>
+    <NForm ref="formRef" :model="form" :rules="rules" :label-placement="labelPlacement" :label-width="80">
+      <NFormItem label="角色编码" required path="roleCode">
         <NInput v-model:value="form.roleCode" :disabled="!!editingId" placeholder="如 admin" />
       </NFormItem>
-      <NFormItem label="角色名称" required>
+      <NFormItem label="角色名称" required path="roleName">
         <NInput v-model:value="form.roleName" placeholder="如 超级管理员" />
       </NFormItem>
-      <NFormItem label="数据范围">
+      <NFormItem label="数据范围" path="dataScope">
         <NSelect v-model:value="form.dataScope" :options="dataScopes" />
       </NFormItem>
       <NFormItem v-if="isCustomScope" label="自定义单位">
@@ -220,7 +244,7 @@ onMounted(async () => {
           @update:checked-keys="(keys: number[]) => customUnitIds = keys"
         />
       </NFormItem>
-      <NFormItem label="备注">
+      <NFormItem label="备注" path="remark">
         <NInput v-model:value="form.remark" type="textarea" placeholder="备注" />
       </NFormItem>
       <NSpace justify="end">
@@ -236,10 +260,10 @@ onMounted(async () => {
       :data="flattenMenuTree(menuTree)"
       checkable
       :checked-keys="checkedKeys"
-      @update:checked-keys="(keys: any) => checkedKeys = keys"
       cascade
       expand-on-click
       block-line
+      @update:checked-keys="(keys: any) => checkedKeys = keys"
     />
     <NSpace justify="end" class="mt-4">
       <NButton @click="showPermModal = false">取消</NButton>

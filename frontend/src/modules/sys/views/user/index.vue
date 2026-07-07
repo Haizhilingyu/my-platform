@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
+import { ref, onMounted, h, computed } from 'vue'
 import {
   NCard, NDataTable, NButton, NSpace, NInput, NSelect, NModal, NForm,
-  NFormItem, NSwitch, NTag, useMessage, type DataTableColumns,
+  NFormItem, NSwitch, NTag, useMessage, type DataTableColumns, type FormInst, type FormRules,
 } from 'naive-ui'
 import { userApi, type UserQuery } from '@/modules/sys/api/user'
 import { roleApi } from '@/modules/sys/api/role'
 import { unitApi } from '@/modules/sys/api/unit'
 import type { UserVO, SysRole, UnitTreeNode } from '@/modules/sys/api/types'
 import { useAuthStore } from '@/stores/auth'
+import {
+  requiredRule, lengthRule, maxLengthRule, patternRule, emailRule,
+  USERNAME_PATTERN, PHONE_PATTERN,
+} from '@/shared/utils/validation'
 
 const authStore = useAuthStore()
 const message = useMessage()
@@ -32,6 +36,29 @@ const form = ref({
   unitId: null as number | null,
   status: 1,
   roleIds: [] as number[],
+})
+const formRef = ref<FormInst | null>(null)
+const rules = computed<FormRules>(() => {
+  // 编辑态不展示用户名/密码字段，对应规则置空，避免误触发 required。
+  const isEdit = !!editingId.value
+  return {
+    username: isEdit
+      ? []
+      : [
+          requiredRule('用户名不能为空'),
+          lengthRule(3, 32, '用户名长度需在3-32之间'),
+          patternRule(USERNAME_PATTERN, '用户名只能包含字母、数字、下划线'),
+        ],
+    password: isEdit
+      ? []
+      : [requiredRule('密码不能为空'), lengthRule(6, 32, '密码长度需在6-32之间')],
+    realName: [maxLengthRule(50, '姓名长度不能超过50')],
+    email: [emailRule()],
+    phone: [
+      patternRule(PHONE_PATTERN, '手机号格式不正确'),
+      maxLengthRule(20, '手机号长度不能超过20'),
+    ],
+  }
 })
 
 async function fetchData() {
@@ -78,6 +105,12 @@ async function handleEdit(row: UserVO) {
 }
 
 async function handleSave() {
+  try {
+    await formRef.value?.validate()
+  } catch {
+    // 校验失败：Naive UI 已在字段下方渲染错误提示，直接中断保存。
+    return
+  }
   try {
     if (editingId.value) {
       await userApi.update(editingId.value, {
@@ -180,8 +213,10 @@ onMounted(() => {
   <NCard>
     <NSpace class="mb-4" justify="space-between">
       <NSpace>
-        <NInput v-model:value="query.keyword" placeholder="搜索用户名/姓名/电话" clearable
-          @clear="fetchData" @keyup.enter="fetchData" class="w-[250px]" />
+        <NInput
+          v-model:value="query.keyword" placeholder="搜索用户名/姓名/电话" clearable
+          class="w-[250px]" @clear="fetchData" @keyup.enter="fetchData"
+        />
         <NButton type="primary" @click="fetchData">查询</NButton>
       </NSpace>
       <NButton v-permission="'sys:user:add'" type="primary" @click="handleAdd">新增用户</NButton>
@@ -206,30 +241,34 @@ onMounted(() => {
   </NCard>
 
   <NModal v-model:show="showModal" :title="editingId ? '编辑用户' : '新增用户'" preset="card" :style="{ width: '500px' }">
-    <NForm label-placement="left" :label-width="80">
-      <NFormItem v-if="!editingId" label="用户名" required>
+    <NForm ref="formRef" :model="form" :rules="rules" label-placement="left" :label-width="80">
+      <NFormItem v-if="!editingId" label="用户名" required path="username">
         <NInput v-model:value="form.username" placeholder="请输入用户名" />
       </NFormItem>
-      <NFormItem v-if="!editingId" label="密码" required>
+      <NFormItem v-if="!editingId" label="密码" required path="password">
         <NInput v-model:value="form.password" type="password" placeholder="请输入密码" />
       </NFormItem>
-      <NFormItem label="姓名">
+      <NFormItem label="姓名" path="realName">
         <NInput v-model:value="form.realName" placeholder="请输入姓名" />
       </NFormItem>
-      <NFormItem label="邮箱">
+      <NFormItem label="邮箱" path="email">
         <NInput v-model:value="form.email" placeholder="请输入邮箱" />
       </NFormItem>
-      <NFormItem label="电话">
+      <NFormItem label="电话" path="phone">
         <NInput v-model:value="form.phone" placeholder="请输入电话" />
       </NFormItem>
       <NFormItem label="单位">
-        <NSelect v-model:value="form.unitId" :options="flattenUnits(unitTree)"
-          placeholder="请选择单位" clearable />
+        <NSelect
+          v-model:value="form.unitId" :options="flattenUnits(unitTree)"
+          placeholder="请选择单位" clearable
+        />
       </NFormItem>
       <NFormItem label="角色">
-        <NSelect v-model:value="form.roleIds" :multiple="true"
+        <NSelect
+          v-model:value="form.roleIds" :multiple="true"
           :options="roles.map(r => ({ label: r.roleName, value: r.id }))"
-          placeholder="请选择角色" />
+          placeholder="请选择角色"
+        />
       </NFormItem>
       <NFormItem v-if="editingId" label="状态">
         <NSwitch v-model:value="form.status" :checked-value="1" :unchecked-value="0" />

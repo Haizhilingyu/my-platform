@@ -3,11 +3,14 @@ import { ref, onMounted, h } from 'vue'
 import {
   NCard, NButton, NSpace, NModal, NForm, NFormItem,
   NInput, NSelect, NSwitch, NTag, NTree, NEmpty,
-  useMessage, type TreeOption,
+  useMessage, type TreeOption, type FormInst, type FormRules,
 } from 'naive-ui'
 import { menuApi, type MenuDTO } from '@/modules/sys/api/menu'
 import type { MenuTreeNode } from '@/modules/sys/api/types'
 import { useAuthStore } from '@/stores/auth'
+import {
+  requiredRule, maxLengthRule, patternRule,
+} from '@/shared/utils/validation'
 
 const authStore = useAuthStore()
 const message = useMessage()
@@ -21,6 +24,19 @@ const editingId = ref<number | null>(null)
 const form = ref<MenuDTO>({
   menuName: '', menuType: 'PAGE', sort: 0, visible: 1, status: 1,
 })
+const formRef = ref<FormInst | null>(null)
+const rules: FormRules = {
+  menuName: [
+    requiredRule('菜单名称不能为空'),
+    maxLengthRule(50, '菜单名称长度不能超过50'),
+  ],
+  menuType: [requiredRule('菜单类型不能为空')],
+  path: [maxLengthRule(200, '路由路径长度不能超过200')],
+  component: [maxLengthRule(200, '组件路径长度不能超过200')],
+  permission: [maxLengthRule(100, '权限标识长度不能超过100')],
+  icon: [maxLengthRule(100, '图标长度不能超过100')],
+  sort: [patternRule(/^\d*$/, '排序值必须是非负整数')],
+}
 
 const menuTypes = [
   { label: '目录', value: 'DIRECTORY' },
@@ -74,6 +90,12 @@ function handleEdit(row: MenuTreeNode) {
 }
 
 async function handleSave() {
+  try {
+    await formRef.value?.validate()
+  } catch {
+    // 校验失败：Naive UI 已在字段下方渲染错误提示，直接中断保存。
+    return
+  }
   try {
     if (editingId.value) {
       await menuApi.update(editingId.value, form.value)
@@ -168,30 +190,30 @@ onMounted(fetchData)
   </NCard>
 
   <NModal v-model:show="showModal" :title="editingId ? '编辑菜单' : '新增菜单'" preset="card" :style="{ width: '550px' }">
-    <NForm label-placement="left" :label-width="90">
+    <NForm ref="formRef" :model="form" :rules="rules" label-placement="left" :label-width="90">
       <NFormItem label="上级菜单">
         <NSelect v-model:value="form.parentId" :options="flattenMenus(tree)" placeholder="顶级菜单" clearable />
       </NFormItem>
-      <NFormItem label="菜单类型">
+      <NFormItem label="菜单类型" path="menuType">
         <NSelect v-model:value="form.menuType" :options="menuTypes" />
       </NFormItem>
-      <NFormItem label="菜单名称" required>
+      <NFormItem label="菜单名称" required path="menuName">
         <NInput v-model:value="form.menuName" placeholder="菜单名称" />
       </NFormItem>
-      <NFormItem v-if="form.menuType !== 'BUTTON'" label="路由路径">
+      <NFormItem v-if="form.menuType !== 'BUTTON'" label="路由路径" path="path">
         <NInput v-model:value="form.path" placeholder="/sys/user" />
       </NFormItem>
-      <NFormItem v-if="form.menuType === 'PAGE'" label="组件路径">
+      <NFormItem v-if="form.menuType === 'PAGE'" label="组件路径" path="component">
         <NInput v-model:value="form.component" placeholder="sys/user/index" />
       </NFormItem>
-      <NFormItem label="权限标识">
+      <NFormItem label="权限标识" path="permission">
         <NInput v-model:value="form.permission" placeholder="sys:user:add" />
       </NFormItem>
-      <NFormItem label="图标">
+      <NFormItem label="图标" path="icon">
         <NInput v-model:value="form.icon" placeholder="Settings" />
       </NFormItem>
-      <NFormItem label="排序">
-        <NInput :value="String(form.sort ?? '')" @update:value="(v: string) => form.sort = v ? Number(v) : undefined" placeholder="0" />
+      <NFormItem label="排序" path="sort">
+        <NInput :value="String(form.sort ?? '')" placeholder="0" @update:value="(v: string) => form.sort = v ? Number(v) : undefined" />
       </NFormItem>
       <NFormItem v-if="form.menuType !== 'BUTTON'" label="是否显示">
         <NSwitch v-model:value="form.visible" :checked-value="1" :unchecked-value="0" />
