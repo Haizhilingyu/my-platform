@@ -24,11 +24,11 @@
   <distributionManagement>
     <repository>
       <id>nexus-releases</id>
-      <url>http://<NAS_IP>:8081/repository/maven-releases/</url>
+      <url>http://&lt;NAS_IP&gt;:8081/repository/maven-releases/</url>
     </repository>
     <snapshotRepository>
       <id>nexus-snapshots</id>
-      <url>http://<NAS_IP>:8081/repository/maven-snapshots/</url>
+      <url>http://&lt;NAS_IP&gt;:8081/repository/maven-snapshots/</url>
     </snapshotRepository>
   </distributionManagement>
 
@@ -181,7 +181,7 @@
   <repositories>
     <repository>
       <id>nexus-public</id>
-      <url>http://<NAS_IP>:8081/repository/maven-public/</url>
+      <url>http://&lt;NAS_IP&gt;:8081/repository/maven-public/</url>
     </repository>
   </repositories>
 
