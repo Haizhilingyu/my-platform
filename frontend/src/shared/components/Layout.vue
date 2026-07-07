@@ -10,6 +10,8 @@ import {
 import {
   SettingsOutline, MoonOutline, SunnyOutline, LogOutOutline,
   PersonOutline, MenuOutline, GlobeOutline, NotificationsOutline,
+  ShieldCheckmarkOutline, BusinessOutline, BuildOutline,
+  DocumentTextOutline, AppsOutline,
 } from '@vicons/ionicons5'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
@@ -77,7 +79,13 @@ function getIcon(iconName: string) {
   const icons: Record<string, any> = {
     Settings: SettingsOutline,
     User: PersonOutline,
+    UserFilled: ShieldCheckmarkOutline,
+    Menu: MenuOutline,
+    OfficeBuilding: BusinessOutline,
+    Tools: BuildOutline,
     Globe: GlobeOutline,
+    Document: DocumentTextOutline,
+    Apps: AppsOutline,
   }
   return icons[iconName] || SettingsOutline
 }
@@ -151,9 +159,9 @@ function goToInbox(): void {
       :width="240"
       :collapsed="collapsed"
       show-trigger
+      :native-scrollbar="false"
       @collapse="collapsed = true"
       @expand="collapsed = false"
-      :native-scrollbar="false"
     >
       <div class="py-4 px-3 flex items-center gap-2 border-b border-[rgb(var(--color-border))]">
         <NIcon size="24" color="rgb(var(--color-primary))">

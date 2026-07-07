@@ -57,18 +57,31 @@ async function fetchAdminSessions() {
   }
 }
 
+function mapUserOptions(list: { id: number; username: string; realName?: string }[]) {
+  return list.map((u) => ({
+    label: u.realName ? `${u.username}（${u.realName}）` : u.username,
+    value: u.id,
+  }))
+}
+
+async function initUserOptions() {
+  try {
+    const res = await userApi.list({ pageNum: 1, pageSize: 5 })
+    userOptions.value = mapUserOptions(res.data.list)
+  } catch {
+    userOptions.value = []
+  }
+}
+
 async function searchUsers(query: string) {
   if (!query) {
-    userOptions.value = []
+    await initUserOptions()
     return
   }
   userSearching.value = true
   try {
     const res = await userApi.list({ keyword: query, pageNum: 1, pageSize: 20 })
-    userOptions.value = res.data.list.map((u) => ({
-      label: u.realName ? `${u.username}（${u.realName}）` : u.username,
-      value: u.id,
-    }))
+    userOptions.value = mapUserOptions(res.data.list)
   } catch {
     userOptions.value = []
   } finally {
@@ -194,6 +207,7 @@ watch(activeTab, (tab) => {
 
 onMounted(() => {
   fetchSelfSessions()
+  initUserOptions()
   if (!canManageOthers.value) {
     activeTab.value = 'self'
   }

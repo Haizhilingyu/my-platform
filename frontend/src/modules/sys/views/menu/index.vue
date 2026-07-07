@@ -2,15 +2,19 @@
 import { ref, onMounted, h } from 'vue'
 import {
   NCard, NButton, NSpace, NModal, NForm, NFormItem,
-  NInput, NSelect, NSwitch, NTag, NTree, NEmpty,
+  NInput, NSelect, NSwitch, NTag, NTree, NEmpty, NIcon,
   useMessage, type TreeOption, type FormInst, type FormRules,
+  type SelectOption,
 } from 'naive-ui'
+import {
+  SettingsOutline, PersonOutline, ShieldCheckmarkOutline,
+  MenuOutline, BusinessOutline, BuildOutline,
+  GlobeOutline, DocumentTextOutline, AppsOutline,
+} from '@vicons/ionicons5'
 import { menuApi, type MenuDTO } from '@/modules/sys/api/menu'
 import type { MenuTreeNode } from '@/modules/sys/api/types'
 import { useAuthStore } from '@/stores/auth'
-import {
-  requiredRule, maxLengthRule, patternRule,
-} from '@/shared/utils/validation'
+import { requiredRule, maxLengthRule, patternRule } from '@/shared/utils/validation'
 
 const authStore = useAuthStore()
 const message = useMessage()
@@ -30,46 +34,40 @@ const rules: FormRules = {
     requiredRule('菜单名称不能为空'),
     maxLengthRule(50, '菜单名称长度不能超过50'),
   ],
-  menuType: [requiredRule('菜单类型不能为空')],
-  path: [maxLengthRule(200, '路由路径长度不能超过200')],
-  component: [maxLengthRule(200, '组件路径长度不能超过200')],
-  permission: [maxLengthRule(100, '权限标识长度不能超过100')],
-  icon: [maxLengthRule(100, '图标长度不能超过100')],
   sort: [patternRule(/^\d*$/, '排序值必须是非负整数')],
 }
 
-const menuTypes = [
-  { label: '目录', value: 'DIRECTORY' },
-  { label: '页面', value: 'PAGE' },
-  { label: '按钮', value: 'BUTTON' },
+const iconOptions: { label: string; value: string; icon: any }[] = [
+  { label: '设置', value: 'Settings', icon: SettingsOutline },
+  { label: '用户', value: 'User', icon: PersonOutline },
+  { label: '角色权限', value: 'UserFilled', icon: ShieldCheckmarkOutline },
+  { label: '菜单', value: 'Menu', icon: MenuOutline },
+  { label: '办公楼', value: 'OfficeBuilding', icon: BusinessOutline },
+  { label: '工具', value: 'Tools', icon: BuildOutline },
+  { label: '地球', value: 'Globe', icon: GlobeOutline },
+  { label: '文档', value: 'Document', icon: DocumentTextOutline },
+  { label: '应用', value: 'Apps', icon: AppsOutline },
 ]
+
+function renderIconLabel(option: SelectOption) {
+  const opt = option as { label: string; icon: any }
+  return h(NSpace, { align: 'center', size: 'small', wrap: false }, {
+    default: () => [
+      h(NIcon, { size: 18 }, { default: () => h(opt.icon) }),
+      opt.label,
+    ],
+  })
+}
 
 async function fetchData() {
   loading.value = true
   try {
     const res = await menuApi.tree()
     tree.value = res.data
-    // 默认展开第一层
     expandedKeys.value = tree.value.map(n => n.id)
   } finally {
     loading.value = false
   }
-}
-
-function flattenMenus(menus: MenuTreeNode[], prefix = ''): { label: string, value: number }[] {
-  return menus.flatMap(m => [
-    { label: prefix + m.menuName, value: m.id },
-    ...(m.children?.length ? flattenMenus(m.children, prefix + '  ') : []),
-  ])
-}
-
-function handleAdd(parentId?: number) {
-  editingId.value = null
-  form.value = {
-    parentId: parentId || undefined,
-    menuName: '', menuType: 'PAGE', sort: 0, visible: 1, status: 1,
-  }
-  showModal.value = true
 }
 
 function handleEdit(row: MenuTreeNode) {
@@ -93,31 +91,17 @@ async function handleSave() {
   try {
     await formRef.value?.validate()
   } catch {
-    // 校验失败：Naive UI 已在字段下方渲染错误提示，直接中断保存。
     return
   }
   try {
     if (editingId.value) {
       await menuApi.update(editingId.value, form.value)
       message.success('修改成功')
-    } else {
-      await menuApi.create(form.value)
-      message.success('新增成功')
     }
     showModal.value = false
     fetchData()
   } catch (e: any) {
     message.error(e.response?.data?.message || '操作失败')
-  }
-}
-
-async function handleDelete(row: MenuTreeNode) {
-  try {
-    await menuApi.delete(row.id)
-    message.success('删除成功')
-    fetchData()
-  } catch (e: any) {
-    message.error(e.response?.data?.message || '删除失败')
   }
 }
 
@@ -149,18 +133,10 @@ function renderLabel({ option }: { option: TreeOption }) {
       class: 'flex items-center gap-2 shrink-0',
       onClick: (e: Event) => e.stopPropagation(),
     }, [
-      authStore.hasPermission('sys:menu:add') && h(NButton, {
-        size: 'tiny', text: true, type: 'primary',
-        onClick: () => handleAdd(node.id),
-      }, { default: () => '新增' }),
       authStore.hasPermission('sys:menu:edit') && h(NButton, {
         size: 'tiny', text: true, type: 'primary',
         onClick: () => handleEdit(node),
       }, { default: () => '编辑' }),
-      authStore.hasPermission('sys:menu:delete') && h(NButton, {
-        size: 'tiny', text: true, type: 'error',
-        onClick: () => handleDelete(node),
-      }, { default: () => '删除' }),
     ]),
   ])
 }
@@ -170,10 +146,6 @@ onMounted(fetchData)
 
 <template>
   <NCard>
-    <NSpace class="mb-4" justify="end">
-      <NButton v-permission="'sys:menu:add'" type="primary" @click="handleAdd()">新增菜单</NButton>
-    </NSpace>
-
     <NTree
       v-if="tree.length"
       :data="tree"
@@ -189,28 +161,19 @@ onMounted(fetchData)
     <NEmpty v-else-if="!loading" description="暂无菜单数据" />
   </NCard>
 
-  <NModal v-model:show="showModal" :title="editingId ? '编辑菜单' : '新增菜单'" preset="card" :style="{ width: '550px' }">
-    <NForm ref="formRef" :model="form" :rules="rules" label-placement="left" :label-width="90">
-      <NFormItem label="上级菜单">
-        <NSelect v-model:value="form.parentId" :options="flattenMenus(tree)" placeholder="顶级菜单" clearable />
-      </NFormItem>
-      <NFormItem label="菜单类型" path="menuType">
-        <NSelect v-model:value="form.menuType" :options="menuTypes" />
-      </NFormItem>
+  <NModal v-model:show="showModal" title="编辑菜单" preset="card" :style="{ width: '500px' }">
+    <NForm ref="formRef" :model="form" :rules="rules" label-placement="left" :label-width="80">
       <NFormItem label="菜单名称" required path="menuName">
         <NInput v-model:value="form.menuName" placeholder="菜单名称" />
       </NFormItem>
-      <NFormItem v-if="form.menuType !== 'BUTTON'" label="路由路径" path="path">
-        <NInput v-model:value="form.path" placeholder="/sys/user" />
-      </NFormItem>
-      <NFormItem v-if="form.menuType === 'PAGE'" label="组件路径" path="component">
-        <NInput v-model:value="form.component" placeholder="sys/user/index" />
-      </NFormItem>
-      <NFormItem label="权限标识" path="permission">
-        <NInput v-model:value="form.permission" placeholder="sys:user:add" />
-      </NFormItem>
       <NFormItem label="图标" path="icon">
-        <NInput v-model:value="form.icon" placeholder="Settings" />
+        <NSelect
+          v-model:value="form.icon"
+          :options="iconOptions"
+          :render-label="renderIconLabel"
+          clearable
+          placeholder="选择图标"
+        />
       </NFormItem>
       <NFormItem label="排序" path="sort">
         <NInput :value="String(form.sort ?? '')" placeholder="0" @update:value="(v: string) => form.sort = v ? Number(v) : undefined" />
