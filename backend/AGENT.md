@@ -147,11 +147,15 @@ public class SysUser extends BaseEntity {
 - 统一返回 `Result<T>`（`Result.ok(data)` / `Result.fail(code, msg)`）
 - 方法上标注 `@RequiresPermission("权限标识")`
 - 文件上传用 `@RequestParam MultipartFile`
-- 参数校验用 `@Valid` + DTO 字段注解
+- 参数校验用 `@Valid` + DTO 字段注解；`@RequestParam`/`@PathVariable` 约束需在类级加 `@Validated`
+- `List<Long>` 参数加 `@NotEmpty`；`@RequestBody List<DTO>` 加 `@Valid` 级联校验
+- 所有 PUT 端点必须加 `@Valid`（历史代码曾遗漏，导致 DTO 注解被静默忽略）
 
 **DTO**（`dto/`）:
 - 使用 `@Data`（Lombok）
 - 校验注解放在 DTO 字段上，不在 Controller 中手动校验
+- **边界值测试**（`*BoundaryTest.java`）：每个带校验注解的 DTO 必须有对应的参数化边界测试，使用 Jakarta `Validator` API 直接校验（无需 Spring 上下文），覆盖 null/空串/超长/非法格式等边界值
+- 校验注解必须与前端 `validation.ts` 中的 pattern 常量保持一致（同源约束）
 - VO 提供静态工厂方法 `of(Entity)`
 
 **领域事件**（`events/`）:
@@ -188,6 +192,10 @@ Result.ok()            // 无数据
 throw new BizException("业务错误");
 throw new NotFoundException("资源", id);   // 自动生成 "资源 不存在: id"
 throw new ForbiddenException("无权限");
+
+// 校验失败（GlobalExceptionHandler 自动处理）
+// 返回: Result.fail(400, "参数校验失败", errorsMap)
+// errorsMap: { "username": "用户名不能为空", "email": "邮箱格式不正确" }
 ```
 
 **不要**自己在 Controller 中构造 `Result.fail()`，统一抛异常，由 `GlobalExceptionHandler` 处理。
@@ -240,7 +248,7 @@ CREATE INDEX IF NOT EXISTS idx_<table>_<column> ON <table>(<column>);
 | 工具 | 作用 | 跳过参数 |
 |---|---|---|
 | **SpotBugs** | 静态分析（空指针等 bug） | `-Dspotbugs.skip=true` |
-| **JaCoCo** | 测试覆盖率（≥ 60%） | `-Djacoco.skip=true` |
+| **JaCoCo** | 测试覆盖率（≥80% LINE，CI 强制） | `-Djacoco.skip=true` |
 
 ### Pre-commit Hook
 
@@ -365,6 +373,14 @@ src/test/java/<package>/
 └── architecture/
     └── ArchitectureTest.java          # ArchUnit 架构约束
 ```
+
+### 边界值测试（Bean Validation）
+
+每个带 `@NotBlank`/`@Size`/`@Pattern` 等注解的 DTO，必须有对应的 `*BoundaryTest.java`：
+- 使用 `Validation.buildDefaultValidatorFactory().getValidator()` 直接校验
+- `@ParameterizedTest + @MethodSource` 提供边界值用例
+- 覆盖：null、空串、超长、非法 pattern、空列表
+- 参考：`UserCreateDTOBoundaryTest.java`
 
 ### 新增功能时的 TDD 操作清单
 

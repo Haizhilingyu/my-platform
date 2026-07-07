@@ -84,6 +84,19 @@
 | PUT | /sys/config/{id} | sys:config:edit | 修改 |
 | PUT | /sys/config/batch | sys:config:edit | 批量更新 |
 
+### 校验规则
+
+所有 DTO 已添加 Jakarta Bean Validation 注解：
+- `UserCreateDTO`: username `@NotBlank+@Size(3-32)+@Pattern`，password `@NotBlank+@Size(6-32)`，email `@Email`，phone `@Pattern`
+- `UserUpdateDTO`: 全字段可选，email/phone 同上，status `@Min(0)@Max(1)`
+- `RoleDTO`: roleCode `@NotBlank+@Size(3-50)+@Pattern`，roleName `@NotBlank+@Size(100)`，dataScope `@NotBlank`
+- `MenuDTO`: menuName `@NotBlank+@Size(50)`，menuType `@NotBlank+@Size(20)`，path/component `@Size(200)`
+- `UnitDTO`: unitCode `@NotBlank+@Size(3-50)+@Pattern`，unitName `@NotBlank+@Size(100)`
+- `ConfigDTO`: configKey `@NotBlank+@Size(100)+@Pattern(^[a-zA-Z0-9._-]+$)`
+
+所有 PUT 端点已添加 `@Valid`；`RoleController` 和 `ConfigController` 添加了类级 `@Validated`。
+边界测试：`src/test/java/.../dto/` 下有 6 个 `*BoundaryTest.java` 文件。
+
 ## 权限标识规范
 格式：`模块:资源:操作`
 

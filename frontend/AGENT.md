@@ -17,58 +17,64 @@ frontend/
 ├── index.html                     # 入口 HTML
 ├── package.json                   # 依赖与脚本
 ├── tsconfig.json                  # TypeScript 配置
-├── tailwind.config.ts             # Tailwind + 设计 token
-├── vite.config.ts                 # Vite 配置（路径别名、代理）
+├── tailwind.config.ts             # Tailwind + 设计 token（主题颜色映射）
+├── vite.config.ts                 # Vite 配置（路径别名、/api + /ws 代理）
 ├── .eslintrc.cjs                  # ESLint 规则
 ├── .prettierrc                    # Prettier 格式化
 ├── commitlint.config.cjs          # 提交信息规范
 │
-├── src/
-│   ├── main.ts                    # 应用入口
-│   ├── App.vue                    # 根组件（NConfigProvider + 主题）
-│   │
-│   ├── modules/                   # ── 业务模块（对应后端模块）
-│   │   └── sys/                   # 系统设置模块
-│   │       ├── views/             #   页面组件
-│   │       │   ├── Login.vue
-│   │       │   ├── Dashboard.vue
-│   │       │   ├── NotFound.vue
-│   │       │   ├── user/          #   用户管理
-│   │       │   ├── role/          #   角色管理
-│   │       │   ├── menu/          #   菜单管理
-│   │       │   ├── unit/          #   单位管理
-│   │       │   └── config/        #   系统配置
-│   │       ├── components/        #   模块私有组件
-│   │       ├── composables/       #   模块私有逻辑
-│   │       ├── api/               #   API 封装（http + 接口方法）
-│   │       ├── routes.ts          #   模块路由（可选）
-│   │       └── README.md          #   模块说明文档
-│   │
-│   ├── shared/                    # 跨模块共享
-│   │   ├── components/            #   通用 UI 组件
-│   │   │   └── Layout.vue         #   主布局（侧边栏 + 顶栏）
-│   │   ├── composables/           #   通用 composables
-│   │   ├── directives/            #   全局指令
-│   │   │   └── permission.ts      #   v-permission 指令
-│   │   ├── utils/                 #   工具函数
-│   │   └── types/                 #   公共类型
-│   │
-│   ├── themes/                    # 主题系统
-│   │   ├── index.ts               #   主题注册器
-│   │   ├── presets/               #   预设主题
-│   │   └── tokens/                #   设计 token
-│   │
-│   ├── router/                    # 全局路由
-│   │   └── index.ts
-│   │
-│   ├── stores/                    # Pinia 状态管理
-│   │   ├── auth.ts                #   认证状态
-│   │   └── theme.ts               #   主题状态
-│   │
-│   └── styles/
-│       └── index.css              # 全局样式 + 设计 Token (CSS Variables)
-│
-└── packages/                      # 可发布组件库（未来）
+└── src/
+    ├── main.ts                    # 应用入口
+    ├── App.vue                    # 根组件（NConfigProvider + 主题 + MessageCenter）
+    │
+    ├── modules/                   # ── 业务模块（对应后端模块）
+    │   └── sys/                   # 系统设置模块
+    │       ├── views/             #   页面组件
+    │       │   ├── Login.vue
+    │       │   ├── Dashboard.vue
+    │       │   ├── NotFound.vue
+    │       │   ├── user/          #   用户管理
+    │       │   ├── role/          #   角色管理
+    │       │   ├── menu/          #   菜单管理
+    │       │   ├── unit/          #   单位管理
+    │       │   ├── config/        #   系统配置
+    │       │   ├── app/           #   OpenApp 客户端管理
+    │       │   ├── audit/         #   审计日志查看
+    │       │   ├── session/       #   会话管理
+    │       │   └── message/       #   消息通知收件箱
+    │       └── api/               #   API 封装（http + 接口方法 + types.ts）
+    │           ├── http.ts        #     axios 实例（拦截器）
+    │           ├── types.ts       #     DTO/VO 类型定义（集中）
+    │           ├── auth.ts, user.ts, role.ts, menu.ts
+    │           ├── unit.ts, config.ts
+    │           ├── audit.ts       #     审计日志
+    │           └── session.ts     #     会话管理
+    │
+    ├── shared/                    # 跨模块共享
+    │   ├── components/            #   通用 UI 组件
+    │   │   ├── Layout.vue         #     主布局（侧边栏 + 顶栏）
+    │   │   └── MessageCenter.vue  #     WebSocket 消息推送弹窗
+    │   ├── composables/           #   通用 composables
+    │   │   ├── useBreakpoint.ts   #     响应式断点
+    │   │   └── useWebSocket.ts    #     WebSocket 连接管理
+    │   ├── directives/            #   全局指令
+    │   │   └── permission.ts      #     v-permission 指令
+    │   ├── api/                   #   跨模块共享 API 客户端
+    │   │   ├── notify.ts          #     通知发布（/openapi/notify/publish）
+    │   │   └── openapp.ts         #     OAuth2 客户端管理
+    │   └── utils/                 #   工具函数
+    │       └── validation.ts      #     表单校验规则工厂 + Pattern 常量
+    │
+    ├── router/                    # 全局路由（含模块路由聚合）
+    │   └── index.ts
+    │
+    ├── stores/                    # Pinia 状态管理
+    │   ├── auth.ts                #   认证状态
+    │   ├── theme.ts               #   主题状态
+    │   └── notify.ts              #   通知状态（未读数、消息列表）
+    │
+    └── styles/
+        └── index.css              # 全局样式 + 设计 Token (CSS Variables)
 ```
 
 ## 编码规范
@@ -274,6 +280,63 @@ export interface PageResult<T> { list: T[]; total: number; pageNum: number; page
 export interface Result<T> { code: number; message: string; data: T }
 ```
 
+## 表单校验规范
+
+### 共享校验工具（`shared/utils/validation.ts`）
+
+所有表单校验规则必须使用共享工厂函数，禁止在组件内内联定义：
+
+```typescript
+import { ref } from 'vue'
+import { requiredRule, lengthRule, maxLengthRule, patternRule, emailRule, USERNAME_PATTERN } from '@/shared/utils/validation'
+import type { FormInst, FormRules } from 'naive-ui'
+
+const formRef = ref<FormInst | null>(null)
+const rules: FormRules = {
+  username: [
+    requiredRule('用户名不能为空'),
+    lengthRule(3, 32, '用户名长度需在3-32之间'),
+    patternRule(USERNAME_PATTERN, '用户名只能包含字母、数字、下划线'),
+  ],
+}
+```
+
+### 校验规则工厂
+
+| 工厂 | 用途 | 示例 |
+|------|------|------|
+| `requiredRule(msg)` | 必填 | `requiredRule('用户名不能为空')` |
+| `lengthRule(min, max, msg)` | 长度区间 | `lengthRule(3, 32, '...')` |
+| `maxLengthRule(max, msg)` | 最大长度 | `maxLengthRule(100, '...')` |
+| `patternRule(regex, msg)` | 正则匹配 | `patternRule(USERNAME_PATTERN, '...')` |
+| `emailRule(msg?)` | 邮箱格式 | `emailRule()` |
+
+### Pattern 常量（与后端 `@Pattern` 同源）
+
+| 常量 | 正则 | 对应后端字段 |
+|------|------|-------------|
+| `USERNAME_PATTERN` | `/^[a-zA-Z0-9_]+$/` | username, roleCode, unitCode |
+| `PHONE_PATTERN` | `/^1[3-9]\d{9}$/` | phone |
+| `CONFIG_KEY_PATTERN` | `/^[a-zA-Z0-9._-]+$/` | configKey |
+
+### 表单校验流程
+
+1. `<NForm ref="formRef" :model="form" :rules="rules">` — 绑定 model + rules
+2. `<NFormItem path="fieldName">` — `path` 对应 rules 的 key
+3. 提交时 `await formRef.value?.validate()` — 校验失败则 return
+4. 校验消息必须与后端 DTO 注解的 message 一致（中文）
+
+### create/edit 模式
+
+如果表单有新增/编辑两种模式（如 User 表单），使用 `computed<FormRules>` 动态生成规则：
+
+```typescript
+const editingId = ref<number | null>(null)
+const rules = computed<FormRules>(() => ({
+  username: editingId.value ? [] : [requiredRule('用户名不能为空'), lengthRule(3, 32, '...')],
+}))
+```
+
 ## Store 规范
 
 ### 认证 Store（auth.ts）
@@ -379,6 +442,15 @@ src/
     └── __tests__/
         └── format.test.ts
 ```
+
+### 表单校验测试
+
+每个带校验规则的表单必须有对应的边界测试文件：
+
+- 位置：`views/<module>/__tests__/index.test.ts`
+- 覆盖：空必填字段、边界长度、非法 pattern、合法提交
+- Mock：`useMessage`（naive-ui）、API 模块、Pinia store
+- 参考：`views/user/__tests__/index.test.ts`
 
 ### 断言风格
 
@@ -565,5 +637,6 @@ const columns: DataTableColumns<UserVO> = [
 4. **不要**忽略 TypeScript 错误（`vue-tsc --noEmit` 必须零错误）
 5. **不要**使用 `any` 类型规避类型检查
 6. Naive UI 组件通过 `unplugin-vue-components` 自动按需导入，无需手动 import
-7. API 请求基路径通过 Vite proxy 转发到后端，开发时不跨域
-8. 登录 Token 存储在 localStorage，每次请求自动注入（axios interceptor）
+7. API 请求基路径通过 Vite proxy 转发到后端，开发时不跨域（`/api` → `http://localhost:8090`）
+8. WebSocket 通过 Vite proxy 转发：`/ws` → `ws://localhost:8090`（WebSocket 代理，用于消息推送）
+9. 登录 Token 存储在 localStorage，每次请求自动注入（axios interceptor）
