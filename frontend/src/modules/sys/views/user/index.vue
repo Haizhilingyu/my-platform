@@ -114,9 +114,9 @@ async function handleSave() {
   try {
     if (editingId.value) {
       await userApi.update(editingId.value, {
-        realName: form.value.realName,
-        email: form.value.email,
-        phone: form.value.phone,
+        realName: form.value.realName || undefined,
+        email: form.value.email || undefined,
+        phone: form.value.phone || undefined,
         unitId: form.value.unitId || undefined,
         status: form.value.status,
       })
@@ -126,9 +126,9 @@ async function handleSave() {
       await userApi.create({
         username: form.value.username,
         password: form.value.password,
-        realName: form.value.realName,
-        email: form.value.email,
-        phone: form.value.phone,
+        realName: form.value.realName || undefined,
+        email: form.value.email || undefined,
+        phone: form.value.phone || undefined,
         unitId: form.value.unitId || undefined,
         roleIds: form.value.roleIds,
       })
