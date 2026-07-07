@@ -17,6 +17,7 @@ public class UserVO {
   private String unitName;
   private String avatar;
   private Integer status;
+  private Boolean locked;
   private String remark;
   private LocalDateTime createdAt;
 

@@ -2,7 +2,8 @@
 import { ref, onMounted, h, computed } from 'vue'
 import {
   NCard, NDataTable, NButton, NSpace, NInput, NSelect, NModal, NForm,
-  NFormItem, NSwitch, NTag, useMessage, type DataTableColumns, type FormInst, type FormRules,
+  NFormItem, NSwitch, NTag, NPopconfirm, useMessage,
+  type DataTableColumns, type FormInst, type FormRules,
 } from 'naive-ui'
 import { userApi, type UserQuery } from '@/modules/sys/api/user'
 import { roleApi } from '@/modules/sys/api/role'
@@ -161,6 +162,16 @@ async function handleUnlock(row: UserVO) {
   }
 }
 
+async function handleResetPassword(row: UserVO) {
+  try {
+    await userApi.resetPassword(row.id, 'User@123456')
+    message.success('密码已重置为 User@123456')
+    fetchData()
+  } catch (e: any) {
+    message.error(e.response?.data?.message || '重置失败')
+  }
+}
+
 function flattenUnits(units: UnitTreeNode[]): any[] {
   return units.map(u => ({
     label: u.unitName,
@@ -186,7 +197,7 @@ const columns: DataTableColumns<UserVO> = [
     },
   },
   {
-    title: '操作', key: 'actions', width: 220,
+    title: '操作', key: 'actions', width: 340,
     render: (row) => h(NSpace, {}, {
       default: () => [
         authStore.hasPermission('sys:user:edit') && h(NButton, {
@@ -195,6 +206,12 @@ const columns: DataTableColumns<UserVO> = [
         row.locked && authStore.hasPermission('sys:user:unlock') && h(NButton, {
           size: 'small', type: 'warning', onClick: () => handleUnlock(row),
         }, { default: () => '解锁' }),
+        authStore.hasPermission('sys:user:reset') && h(NPopconfirm, {
+          onPositiveClick: () => handleResetPassword(row),
+        }, {
+          trigger: () => h(NButton, { size: 'small', type: 'info' }, { default: () => '重置密码' }),
+          default: () => '确认重置密码为 User@123456？',
+        }),
         authStore.hasPermission('sys:user:delete') && h(NButton, {
           size: 'small', type: 'error', onClick: () => handleDelete(row),
         }, { default: () => '删除' }),
@@ -226,7 +243,7 @@ onMounted(() => {
       :columns="columns"
       :data="data"
       :loading="loading"
-      :scroll-x="950"
+      :scroll-x="1100"
       :pagination="{
         page: query.pageNum,
         pageSize: query.pageSize,

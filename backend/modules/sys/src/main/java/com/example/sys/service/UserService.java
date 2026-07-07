@@ -43,6 +43,7 @@ public class UserService {
   private final PasswordEncoder passwordEncoder;
   private final ApplicationEventPublisher eventPublisher;
   private final DataScopeResolver dataScopeResolver;
+  private final LoginSecurityService loginSecurityService;
 
   @Transactional(readOnly = true)
   public Page<UserVO> search(String keyword, Long unitId, Integer status, Pageable pageable) {
@@ -58,7 +59,12 @@ public class UserService {
     }
 
     Page<SysUser> page = userRepository.findAll(spec, pageable);
-    return page.map(this::toVO);
+    return page.map(
+        u -> {
+          UserVO vo = toVO(u);
+          vo.setLocked(loginSecurityService.isLocked(u.getUsername()));
+          return vo;
+        });
   }
 
   private Specification<SysUser> buildSearchSpec(String keyword, Long unitId, Integer status) {
@@ -200,6 +206,7 @@ public class UserService {
     SysUser user = userRepository.findById(id).orElseThrow(() -> new NotFoundException("用户", id));
     user.setPassword(passwordEncoder.encode(newPassword));
     userRepository.save(user);
+    loginSecurityService.unlock(user.getUsername());
   }
 
   @Transactional(readOnly = true)
