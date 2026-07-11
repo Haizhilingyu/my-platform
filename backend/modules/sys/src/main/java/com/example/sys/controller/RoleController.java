@@ -73,4 +73,17 @@ public class RoleController {
   public Result<List<Long>> getRoleMenus(@PathVariable Long id) {
     return Result.ok(roleService.getRoleMenuIds(id));
   }
+
+  @RequiresPermission("sys:role:perm")
+  @PutMapping("/{id}/data-scope")
+  public Result<Void> saveDataScope(@PathVariable Long id, @RequestBody List<Long> unitIds) {
+    roleService.saveCustomUnits(id, unitIds);
+    return Result.ok();
+  }
+
+  @RequiresPermission("sys:role:perm")
+  @GetMapping("/{id}/data-scope")
+  public Result<List<Long>> getDataScope(@PathVariable Long id) {
+    return Result.ok(roleService.getCustomUnitIds(id));
+  }
 }

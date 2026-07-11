@@ -3,11 +3,14 @@ package com.example.sys.service;
 import com.example.common.exception.BizException;
 import com.example.common.exception.NotFoundException;
 import com.example.sys.domain.SysRole;
+import com.example.sys.domain.SysRoleDataScope;
 import com.example.sys.dto.RoleDTO;
 import com.example.sys.events.RolePermissionChanged;
+import com.example.sys.repository.SysRoleDataScopeRepository;
 import com.example.sys.repository.SysRoleMenuRepository;
 import com.example.sys.repository.SysRoleRepository;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -20,6 +23,7 @@ public class RoleService {
 
   private final SysRoleRepository roleRepository;
   private final SysRoleMenuRepository roleMenuRepository;
+  private final SysRoleDataScopeRepository roleDataScopeRepository;
   private final PermissionService permissionService;
   private final ApplicationEventPublisher eventPublisher;
 
@@ -85,5 +89,26 @@ public class RoleService {
   @Transactional(readOnly = true)
   public List<Long> getRoleMenuIds(Long roleId) {
     return roleMenuRepository.findByRoleId(roleId).stream().map(rm -> rm.getMenuId()).toList();
+  }
+
+  @Transactional
+  public void saveCustomUnits(Long roleId, List<Long> unitIds) {
+    getById(roleId);
+    roleDataScopeRepository.deleteByRoleId(roleId);
+    if (unitIds != null && !unitIds.isEmpty()) {
+      List<SysRoleDataScope> entries =
+          unitIds.stream()
+              .distinct()
+              .map(unitId -> new SysRoleDataScope(roleId, unitId))
+              .toList();
+      roleDataScopeRepository.saveAll(entries);
+    }
+  }
+
+  @Transactional(readOnly = true)
+  public List<Long> getCustomUnitIds(Long roleId) {
+    return roleDataScopeRepository.findUnitIdsByRoleIdIn(Set.of(roleId)).stream()
+        .sorted()
+        .toList();
   }
 }

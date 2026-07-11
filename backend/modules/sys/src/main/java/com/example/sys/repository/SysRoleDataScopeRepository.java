@@ -4,6 +4,7 @@ import com.example.sys.domain.SysRoleDataScope;
 import java.util.Collection;
 import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,4 +20,8 @@ public interface SysRoleDataScopeRepository
    */
   @Query("SELECT DISTINCT rds.unitId FROM SysRoleDataScope rds " + "WHERE rds.roleId IN :roleIds")
   Set<Long> findUnitIdsByRoleIdIn(@Param("roleIds") Collection<Long> roleIds);
+
+  @Modifying
+  @Query("DELETE FROM SysRoleDataScope rds WHERE rds.roleId = :roleId")
+  void deleteByRoleId(@Param("roleId") Long roleId);
 }

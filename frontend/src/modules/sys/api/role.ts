@@ -38,21 +38,10 @@ export const roleApi = {
     return http.get(`/sys/role/${id}/menus`)
   },
 
-  /**
-   * 保存角色的自定义数据范围（dataScope=CUSTOM 时生效）。
-   *
-   * 注意：后端 RoleController 暂未暴露 `PUT /sys/role/{id}/data-scope` 端点，
-   * 调用方需以 best-effort 方式处理失败（见 T24 known limitation）。
-   */
   saveCustomUnits(id: number, unitIds: number[]): Promise<Result<void>> {
     return http.put(`/sys/role/${id}/data-scope`, unitIds)
   },
 
-  /**
-   * 查询角色已配置的自定义单位 ID。
-   *
-   * 注意：后端暂未暴露对应 GET 端点，调用方需以 best-effort 方式处理失败。
-   */
   getCustomUnits(id: number): Promise<Result<number[]>> {
     return http.get(`/sys/role/${id}/data-scope`)
   },
