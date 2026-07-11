@@ -17,10 +17,9 @@ import {
   type FormInst,
   type FormRules,
 } from 'naive-ui'
-import { RefreshOutline, LockClosedOutline, PersonOutline, KeyOutline } from '@vicons/ionicons5'
+import { RefreshOutline, LockClosedOutline, PersonOutline } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/modules/sys/api/auth'
-import { useBreakpoint } from '@/shared/composables/useBreakpoint'
 import { requiredRule, maxLengthRule } from '@/shared/utils/validation'
 import type { LoginMethodDescriptor } from '@/modules/sys/api/types'
 import type { AxiosError } from 'axios'
@@ -28,7 +27,6 @@ import type { AxiosError } from 'axios'
 const router = useRouter()
 const authStore = useAuthStore()
 const message = useMessage()
-const { isMobile } = useBreakpoint()
 
 const loading = ref(false)
 const methodsLoading = ref(false)
@@ -61,8 +59,6 @@ const errorMessage = ref('')
 const sortedMethods = computed(() =>
   [...loginMethods.value].sort((a, b) => a.order - b.order)
 )
-
-const cardWidth = computed(() => (isMobile.value ? '90%' : '400px'))
 
 onMounted(() => {
   fetchLoginMethods()
@@ -141,135 +137,165 @@ function mapLoginError(e: unknown): string {
   if (status === 401) return '用户名或密码错误'
   return serverMsg || '登录失败，请稍后重试'
 }
-
-// 按 descriptor.icon 选择 Tab 图标。当前支持 password / ldap，未知走默认。
-function iconFor(icon: string | null) {
-  if (icon === 'ldap') return KeyOutline
-  return PersonOutline
-}
 </script>
 
 <template>
-  <div
-    class="min-h-screen flex items-center justify-center bg-[rgb(var(--color-background))] px-4 py-8"
-  >
-    <NCard
-      class="shadow-md"
-      :bordered="true"
-      :style="{ width: cardWidth, maxWidth: '400px' }"
-    >
-      <NSpin :show="methodsLoading">
-        <NTabs
-          v-if="sortedMethods.length"
-          v-model:value="activeMethod"
-          type="line"
-          animated
-          size="large"
-          :tabs-padding="0"
-        >
-          <NTabPane
-            v-for="m in sortedMethods"
-            :key="m.method"
-            :name="m.method"
-            :tab="m.label"
-          >
-            <NForm :ref="setFormRef" :model="form" :rules="rules" class="mt-2" @keyup.enter="handleLogin">
-              <NFormItem label="用户名" path="username">
-                <NInput
-                  v-model:value="form.username"
-                  placeholder="请输入用户名"
-                  :input-props="{ autocomplete: 'username' }"
-                  clearable
-                >
-                  <template #prefix>
-                    <NIcon class="text-[rgb(var(--color-text-secondary))]">
-                      <PersonOutline />
-                    </NIcon>
-                  </template>
-                </NInput>
-              </NFormItem>
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <!-- Left panel: Branding -->
+    <div class="w-full md:w-[55%] min-h-[180px] md:min-h-screen flex flex-col justify-between p-8 md:p-12 bg-[rgb(var(--color-surface))] bg-blueprint">
+      <!-- Top content: Logo and features -->
+      <div class="flex flex-col justify-center">
+        <h1 class="font-display text-4xl md:text-[2.5rem] font-bold text-[rgb(var(--color-primary))] mb-2">
+          My Platform
+        </h1>
+        <p class="text-[rgb(var(--color-text-secondary))] text-lg mb-8 md:mb-12">
+          模块化开发平台
+        </p>
 
-              <NFormItem label="密码" path="password">
-                <NInput
-                  v-model:value="form.password"
-                  type="password"
-                  show-password-on="click"
-                  placeholder="请输入密码"
-                  :input-props="{ autocomplete: 'current-password' }"
-                >
-                  <template #prefix>
-                    <NIcon class="text-[rgb(var(--color-text-secondary))]">
-                      <LockClosedOutline />
-                    </NIcon>
-                  </template>
-                </NInput>
-              </NFormItem>
-
-              <NFormItem label="验证码" path="captchaCode">
-                <div class="flex items-stretch gap-2 w-full">
-                  <NInput
-                    v-model:value="form.captchaCode"
-                    placeholder="请输入验证码"
-                    maxlength="6"
-                    class="flex-1"
-                  />
-                  <!-- 点击图片刷新验证码：把刷新动作挂在最直观的视觉目标上 -->
-                  <button
-                    type="button"
-                    class="flex-shrink-0 rounded overflow-hidden border border-[rgb(var(--color-border))] cursor-pointer hover:border-[rgb(var(--color-primary))] transition-colors bg-[rgb(var(--color-surface-hover))] flex items-center justify-center h-[34px] min-w-[110px]"
-                    title="点击刷新验证码"
-                    @click="refreshCaptcha"
-                  >
-                    <NSpin v-if="captchaLoading" size="small" />
-                    <img
-                      v-else-if="captchaImage"
-                      :src="captchaImage"
-                      alt="点击刷新验证码"
-                      class="h-full w-full object-cover"
-                    >
-                    <NIcon v-else size="18" class="text-[rgb(var(--color-text-secondary))]">
-                      <RefreshOutline />
-                    </NIcon>
-                  </button>
-                </div>
-              </NFormItem>
-
-              <NAlert
-                v-if="errorMessage"
-                type="error"
-                :show-icon="true"
-                class="mb-2"
-                closable
-                @close="errorMessage = ''"
-              >
-                {{ errorMessage }}
-              </NAlert>
-
-              <NSpace vertical :size="12">
-                <NButton
-                  type="primary"
-                  block
-                  size="large"
-                  :loading="loading"
-                  :disabled="loading"
-                  @click="handleLogin"
-                >
-                  登录
-                </NButton>
-              </NSpace>
-            </NForm>
-          </NTabPane>
-        </NTabs>
-      </NSpin>
-
-      <template #header>
-        <div class="flex items-center gap-2">
-          <NIcon size="22" color="rgb(var(--color-primary))">
-            <component :is="iconFor(sortedMethods[0]?.icon ?? 'password')" />
-          </NIcon>
-          <span class="text-lg font-semibold">My Platform</span>
+        <!-- Feature bullets - hide on mobile, show on desktop -->
+        <div class="hidden md:flex flex-col gap-6">
+          <div>
+            <div class="micro-label mb-1">MODULES</div>
+            <p class="text-[rgb(var(--color-text-secondary))] text-sm">
+              用户、角色、权限、通知的模块化管理
+            </p>
+          </div>
+          <div>
+            <div class="micro-label mb-1">SECURITY</div>
+            <p class="text-[rgb(var(--color-text-secondary))] text-sm">
+              JWT 认证与 OAuth2 授权服务
+            </p>
+          </div>
+          <div>
+            <div class="micro-label mb-1">AUDIT</div>
+            <p class="text-[rgb(var(--color-text-secondary))] text-sm">
+              全链路操作审计与实时推送
+            </p>
+          </div>
         </div>
-      </template>
-    </NCard>
+      </div>
+
+      <!-- Bottom: Version label -->
+      <div class="font-mono-data text-[rgb(var(--color-text-secondary))] text-sm mt-4 md:mt-0">
+        v1.0.0
+      </div>
+    </div>
+
+    <!-- Right panel: Login form -->
+    <div class="w-full md:w-[45%] min-h-screen flex items-center justify-center p-6 md:p-8 bg-[rgb(var(--color-background))]">
+      <div class="w-full max-w-[360px]">
+        <!-- Section header -->
+        <div class="mb-6">
+          <div class="micro-label mb-2">SIGN IN</div>
+        </div>
+
+        <!-- Login card without header -->
+        <NCard class="shadow-md" :bordered="true">
+          <NSpin :show="methodsLoading">
+            <NTabs
+              v-if="sortedMethods.length"
+              v-model:value="activeMethod"
+              type="line"
+              animated
+              size="large"
+              :tabs-padding="0"
+            >
+              <NTabPane
+                v-for="m in sortedMethods"
+                :key="m.method"
+                :name="m.method"
+                :tab="m.label"
+              >
+                <NForm :ref="setFormRef" :model="form" :rules="rules" class="mt-2" @keyup.enter="handleLogin">
+                  <NFormItem label="用户名" path="username">
+                    <NInput
+                      v-model:value="form.username"
+                      placeholder="请输入用户名"
+                      :input-props="{ autocomplete: 'username' }"
+                      clearable
+                    >
+                      <template #prefix>
+                        <NIcon class="text-[rgb(var(--color-text-secondary))]">
+                          <PersonOutline />
+                        </NIcon>
+                      </template>
+                    </NInput>
+                  </NFormItem>
+
+                  <NFormItem label="密码" path="password">
+                    <NInput
+                      v-model:value="form.password"
+                      type="password"
+                      show-password-on="click"
+                      placeholder="请输入密码"
+                      :input-props="{ autocomplete: 'current-password' }"
+                    >
+                      <template #prefix>
+                        <NIcon class="text-[rgb(var(--color-text-secondary))]">
+                          <LockClosedOutline />
+                        </NIcon>
+                      </template>
+                    </NInput>
+                  </NFormItem>
+
+                  <NFormItem label="验证码" path="captchaCode">
+                    <div class="flex items-stretch gap-2 w-full">
+                      <NInput
+                        v-model:value="form.captchaCode"
+                        placeholder="请输入验证码"
+                        maxlength="6"
+                        class="flex-1"
+                      />
+                      <!-- 点击图片刷新验证码：把刷新动作挂在最直观的视觉目标上 -->
+                      <button
+                        type="button"
+                        class="flex-shrink-0 rounded overflow-hidden border border-[rgb(var(--color-border))] cursor-pointer hover:border-[rgb(var(--color-primary))] transition-colors bg-[rgb(var(--color-surface-hover))] flex items-center justify-center h-[34px] min-w-[110px]"
+                        title="点击刷新验证码"
+                        @click="refreshCaptcha"
+                      >
+                        <NSpin v-if="captchaLoading" size="small" />
+                        <img
+                          v-else-if="captchaImage"
+                          :src="captchaImage"
+                          alt="点击刷新验证码"
+                          class="h-full w-full object-cover"
+                        >
+                        <NIcon v-else size="18" class="text-[rgb(var(--color-text-secondary))]">
+                          <RefreshOutline />
+                        </NIcon>
+                      </button>
+                    </div>
+                  </NFormItem>
+
+                  <NAlert
+                    v-if="errorMessage"
+                    type="error"
+                    :show-icon="true"
+                    class="mb-2"
+                    closable
+                    @close="errorMessage = ''"
+                  >
+                    {{ errorMessage }}
+                  </NAlert>
+
+                  <NSpace vertical :size="12">
+                    <NButton
+                      type="primary"
+                      block
+                      size="large"
+                      :loading="loading"
+                      :disabled="loading"
+                      @click="handleLogin"
+                    >
+                      登录
+                    </NButton>
+                  </NSpace>
+                </NForm>
+              </NTabPane>
+            </NTabs>
+          </NSpin>
+        </NCard>
+      </div>
+    </div>
   </div>
 </template>
