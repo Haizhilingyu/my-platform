@@ -6,23 +6,26 @@ export interface ThemeToken {
   background: string
   surface: string
   text: string
+  textSecondary: string
   border: string
 }
 
 const LIGHT_TOKENS: ThemeToken = {
-  primary: '64 158 255',
-  background: '240 242 245',
+  primary: '13 148 136',
+  background: '248 250 252',
   surface: '255 255 255',
-  text: '32 34 37',
-  border: '229 231 235',
+  text: '15 23 42',
+  textSecondary: '100 116 139',
+  border: '226 232 240',
 }
 
 const DARK_TOKENS: ThemeToken = {
-  primary: '64 158 255',
-  background: '15 23 42',
-  surface: '30 41 59',
-  text: '241 245 249',
-  border: '51 65 85',
+  primary: '45 212 191',
+  background: '11 17 32',
+  surface: '22 30 46',
+  text: '226 232 240',
+  textSecondary: '148 163 184',
+  border: '30 41 59',
 }
 
 export const useThemeStore = defineStore('theme', () => {

@@ -53,7 +53,7 @@ describe('Theme Store', () => {
       const store = useThemeStore()
       store.setDark(false)
 
-      expect(store.token.background).toBe('240 242 245')
+      expect(store.token.background).toBe('248 250 252')
       expect(store.token.surface).toBe('255 255 255')
     })
 
@@ -61,8 +61,8 @@ describe('Theme Store', () => {
       const store = useThemeStore()
       store.setDark(true)
 
-      expect(store.token.background).toBe('15 23 42')
-      expect(store.token.surface).toBe('30 41 59')
+      expect(store.token.background).toBe('11 17 32')
+      expect(store.token.surface).toBe('22 30 46')
     })
   })
 })

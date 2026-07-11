@@ -2,25 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ============ 设计 Token ============ */
 :root {
-  --color-primary: 64 158 255;
-  --color-background: 240 242 245;
+  --color-primary: 13 148 136;
+  --color-primary-hover: 15 118 110;
+  --color-background: 248 250 252;
   --color-surface: 255 255 255;
-  --color-surface-hover: 248 250 252;
-  --color-text: 32 34 37;
-  --color-text-secondary: 128 134 139;
-  --color-border: 229 231 235;
+  --color-surface-hover: 241 245 249;
+  --color-text: 15 23 42;
+  --color-text-secondary: 100 116 139;
+  --color-border: 226 232 240;
 }
 
 .dark {
-  --color-primary: 64 158 255;
-  --color-background: 15 23 42;
-  --color-surface: 30 41 59;
-  --color-surface-hover: 51 65 85;
-  --color-text: 241 245 249;
+  --color-primary: 45 212 191;
+  --color-primary-hover: 56 217 200;
+  --color-background: 11 17 32;
+  --color-surface: 22 30 46;
+  --color-surface-hover: 30 41 59;
+  --color-text: 226 232 240;
   --color-text-secondary: 148 163 184;
-  --color-border: 51 65 85;
+  --color-border: 30 41 59;
 }
 
 * {
@@ -30,8 +31,51 @@
 }
 
 body {
-  font-family: 'v-sans', system-ui, -apple-system, sans-serif;
+  font-family: 'Space Grotesk', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
   background-color: rgb(var(--color-background));
   color: rgb(var(--color-text));
   transition: background-color 0.3s, color 0.3s;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-mono-data {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  font-feature-settings: 'tnum';
+  letter-spacing: 0.02em;
+}
+
+.font-display {
+  font-family: 'Space Grotesk', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
+.micro-label {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: rgb(var(--color-text-secondary));
+}
+
+.bg-blueprint {
+  background-image:
+    linear-gradient(rgb(var(--color-primary) / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--color-primary) / 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-text-secondary) / 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--color-text-secondary) / 0.5);
 }
