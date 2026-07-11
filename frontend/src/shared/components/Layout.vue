@@ -164,20 +164,27 @@ function goToInbox(): void {
       @collapse="collapsed = true"
       @expand="collapsed = false"
     >
-      <div class="py-4 px-3 flex items-center gap-2 border-b border-[rgb(var(--color-border))]">
-        <NIcon size="24" color="rgb(var(--color-primary))">
-          <SettingsOutline />
-        </NIcon>
-        <NText v-if="!collapsed" strong>My Platform</NText>
+      <div class="py-5 flex flex-col h-full border-b border-[rgb(var(--color-border))]">
+        <div :class="['px-3 mb-4 flex items-center', collapsed ? 'justify-center' : 'gap-2']">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-[rgb(var(--color-primary))]">
+            <NIcon size="20" color="white">
+              <SettingsOutline />
+            </NIcon>
+          </div>
+          <NText v-if="!collapsed" class="font-display" style="font-size: 1.05rem; font-weight: 700;">My Platform</NText>
+        </div>
+        <NMenu
+          :collapsed="collapsed"
+          :collapsed-width="64"
+          :collapsed-icon-size="22"
+          :options="menuOptions"
+          :value="activeKey"
+          @update:value="handleMenuUpdate"
+        />
+        <div v-if="!collapsed" class="px-3 pb-4 mt-auto">
+          <span class="micro-label font-mono-data text-[rgb(var(--color-text-secondary))]">v1.0.0</span>
+        </div>
       </div>
-      <NMenu
-        :collapsed="collapsed"
-        :collapsed-width="64"
-        :collapsed-icon-size="22"
-        :options="menuOptions"
-        :value="activeKey"
-        @update:value="handleMenuUpdate"
-      />
     </NLayoutSider>
 
     <!-- 移动端：NDrawer 抽屉 -->
@@ -208,7 +215,7 @@ function goToInbox(): void {
               </NIcon>
             </template>
           </NButton>
-          <NText strong class="truncate">{{ (route.meta.title as string) || '首页' }}</NText>
+          <NText class="font-display font-semibold truncate">{{ (route.meta.title as string) || '首页' }}</NText>
         </div>
 
         <NSpace align="center" :wrap="false">
