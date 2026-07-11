@@ -23,6 +23,10 @@ frontend/package-lock.json
 *.iml
 .vscode/
 *.swp
+.classpath
+.factorypath
+.project
+.settings/
 
 # OS
 .DS_Store
@@ -57,3 +61,4 @@ backend/app/src/main/resources/application-dev.yml
 
 # opencode/sisyphus work products (internal)
 .sisyphus/
+.workbuddy/
