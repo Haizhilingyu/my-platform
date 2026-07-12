@@ -36,6 +36,11 @@ spring:
       password: ${REDIS_PASSWORD:${SPRING_DATA_REDIS_PASSWORD:}}
       database: 0
 
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+
   mvc:
     # 让未知路径（无 controller + 无静态文件）抛出 NoHandlerFoundException，
     # 触发 ErrorController 处理（SpaErrorController 据此做 SPA fallback）。

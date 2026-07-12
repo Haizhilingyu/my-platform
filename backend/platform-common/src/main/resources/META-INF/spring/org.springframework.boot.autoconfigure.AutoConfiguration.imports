@@ -1,1 +1,4 @@
 com.example.common.cache.RedisConfig
+com.example.common.i18n.MessageSourceConfig
+com.example.common.i18n.LocaleConfig
+com.example.common.i18n.ValidationMessageConfig
