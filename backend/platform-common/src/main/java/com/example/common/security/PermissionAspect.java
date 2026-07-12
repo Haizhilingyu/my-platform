@@ -1,6 +1,7 @@
 package com.example.common.security;
 
 import com.example.common.exception.ForbiddenException;
+import com.example.common.i18n.Messages;
 import java.util.Arrays;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -28,7 +29,8 @@ public class PermissionAspect {
     }
 
     if (!permitted) {
-      throw new ForbiddenException("无权限: " + String.join(", ", required));
+      throw new ForbiddenException(
+          Messages.get("error.permission.denied", String.join(", ", required)));
     }
 
     return joinPoint.proceed();

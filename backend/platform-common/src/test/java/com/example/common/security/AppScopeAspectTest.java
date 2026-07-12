@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.example.common.exception.ForbiddenException;
+import com.example.common.i18n.Messages;
 import java.util.List;
 import java.util.Map;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -34,6 +36,12 @@ class AppScopeAspectTest {
   @AfterEach
   void clearContext() {
     SecurityContextHolder.clearContext();
+    ReloadableResourceBundleMessageSource ms = new ReloadableResourceBundleMessageSource();
+    ms.setBasename("classpath:i18n/messages");
+    ms.setDefaultEncoding("UTF-8");
+    ms.setFallbackToSystemLocale(false);
+    ms.setUseCodeAsDefaultMessage(true);
+    new Messages(ms).init();
   }
 
   private void withOAuthPrincipal(Object scopeValue) {
