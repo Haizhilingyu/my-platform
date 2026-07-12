@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   NCard, NTabs, NTabPane, NDataTable, NButton, NSelect, NPopconfirm,
   NTooltip, NTag, NIcon, NSpace, NEmpty, useMessage,
@@ -14,6 +15,7 @@ import { userApi } from '@/modules/sys/api/user'
 import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/shared/utils/datetime'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const message = useMessage()
 
@@ -36,7 +38,7 @@ async function fetchSelfSessions() {
     const res = await sessionApi.mySessions()
     selfSessions.value = res.data
   } catch (e: any) {
-    message.error(e.response?.data?.message || '加载会话失败')
+    message.error(e.response?.data?.message || t('sys.session.loadFailed'))
   } finally {
     selfLoading.value = false
   }
@@ -52,7 +54,7 @@ async function fetchAdminSessions() {
     const res = await sessionApi.userSessions(selectedUserId.value)
     adminSessions.value = res.data
   } catch (e: any) {
-    message.error(e.response?.data?.message || '加载会话失败')
+    message.error(e.response?.data?.message || t('sys.session.loadFailed'))
   } finally {
     adminLoading.value = false
   }
@@ -99,9 +101,9 @@ async function revokeOwn(jti: string) {
   try {
     await sessionApi.revokeMySession(jti)
     selfSessions.value = selfSessions.value.filter((s) => s.jti !== jti)
-    message.success('已撤销该会话')
+    message.success(t('sys.session.revoked'))
   } catch (e: any) {
-    message.error(e.response?.data?.message || '撤销失败')
+    message.error(e.response?.data?.message || t('sys.session.revokeFailed'))
   }
 }
 
@@ -110,9 +112,9 @@ async function revokeUser(jti: string) {
   try {
     await sessionApi.revokeUserSession(selectedUserId.value, jti)
     adminSessions.value = adminSessions.value.filter((s) => s.jti !== jti)
-    message.success('已强制下线')
+    message.success(t('sys.session.forceLoggedOut'))
   } catch (e: any) {
-    message.error(e.response?.data?.message || '强制下线失败')
+    message.error(e.response?.data?.message || t('sys.session.forceLogoutFailed'))
   }
 }
 
@@ -143,7 +145,7 @@ function truncate(ua: string, max = 40): string {
 function buildColumns(scope: 'self' | 'admin'): DataTableColumns<SessionInfo> {
   const cols: DataTableColumns<SessionInfo> = [
     {
-      title: '设备', key: 'deviceType', width: 150,
+      title: t('sys.session.device'), key: 'deviceType', width: 150,
       render: (row) => h(NSpace, { align: 'center', size: 'small', wrap: false }, {
         default: () => [
           h(NIcon, { size: 18 }, { default: () => h(deviceIcon(row.deviceType)) }),
@@ -152,17 +154,17 @@ function buildColumns(scope: 'self' | 'admin'): DataTableColumns<SessionInfo> {
         ],
       }),
     },
-    { title: 'IP', key: 'ip', width: 140 },
+    { title: t('sys.session.ip'), key: 'ip', width: 140 },
     {
-      title: '登录时间', key: 'loginAt', width: 170,
+      title: t('sys.session.loginTime'), key: 'loginAt', width: 170,
       render: (row) => formatDateTime(row.loginAt),
     },
     {
-      title: '过期时间', key: 'expiresAt', width: 170,
+      title: t('sys.session.expireTime'), key: 'expiresAt', width: 170,
       render: (row) => formatDateTime(row.expiresAt),
     },
     {
-      title: 'User-Agent', key: 'userAgent', minWidth: 220,
+      title: t('sys.session.userAgent'), key: 'userAgent', minWidth: 220,
       render: (row) => h(NTooltip, { placement: 'top' }, {
         trigger: () => h('span', { class: 'text-xs break-all text-gray-600' },
           truncate(row.userAgent)),
@@ -170,20 +172,20 @@ function buildColumns(scope: 'self' | 'admin'): DataTableColumns<SessionInfo> {
       }),
     },
     {
-      title: '操作', key: 'actions', width: 130, fixed: 'right',
+      title: t('common.operation'), key: 'actions', width: 130, fixed: 'right',
       render: (row) => h(NPopconfirm, {
         onPositiveClick: () => scope === 'self' ? revokeOwn(row.jti) : revokeUser(row.jti),
       }, {
         trigger: () => h(NButton, {
           size: 'small',
           type: scope === 'self' ? 'warning' : 'error',
-        }, { default: () => scope === 'self' ? '下线' : '强制下线' }),
-        default: () => scope === 'self' ? '确认下线该会话？' : '确认强制下线该会话？',
+        }, { default: () => scope === 'self' ? t('sys.session.logout') : t('sys.session.forceLogout') }),
+        default: () => scope === 'self' ? t('sys.session.confirmLogout') : t('sys.session.confirmForceLogout'),
       }),
     },
   ]
   if (scope === 'admin') {
-    cols.splice(1, 0, { title: '用户名', key: 'username', width: 120 })
+    cols.splice(1, 0, { title: t('sys.session.username'), key: 'username', width: 120 })
   }
   return cols
 }
@@ -209,7 +211,7 @@ onMounted(() => {
 <template>
   <NCard>
     <NTabs v-model:value="activeTab" type="line" animated>
-      <NTabPane name="self" tab="我的会话">
+      <NTabPane name="self" :tab="t('sys.session.tabMySessions')">
         <NDataTable
           :columns="selfColumns"
           :data="selfSessions"
@@ -218,12 +220,12 @@ onMounted(() => {
           :row-key="(row: SessionInfo) => row.jti"
         >
           <template #empty>
-            <NEmpty description="暂无活跃会话" />
+            <NEmpty :description="t('sys.session.noActiveSessions')" />
           </template>
         </NDataTable>
       </NTabPane>
 
-      <NTabPane v-if="canManageOthers" name="admin" tab="用户会话查询">
+      <NTabPane v-if="canManageOthers" name="admin" :tab="t('sys.session.tabUserSessions')">
         <NSpace class="mb-4" align="center" wrap>
           <NSelect
             v-model:value="selectedUserId"
@@ -232,7 +234,7 @@ onMounted(() => {
             filterable
             remote
             clearable
-            placeholder="搜索用户名 / 姓名"
+            :placeholder="t('sys.session.searchUserPlaceholder')"
             class="w-full sm:w-[320px]"
             @search="searchUsers"
             @update:value="handleUserChange"
@@ -248,10 +250,10 @@ onMounted(() => {
           :row-key="(row: SessionInfo) => row.jti"
         >
           <template #empty>
-            <NEmpty description="该用户暂无活跃会话" />
+            <NEmpty :description="t('sys.session.userNoActiveSessions')" />
           </template>
         </NDataTable>
-        <NEmpty v-else description="请先选择要查询的用户" class="py-12" />
+        <NEmpty v-else :description="t('sys.session.selectUser')" class="py-12" />
       </NTabPane>
     </NTabs>
   </NCard>

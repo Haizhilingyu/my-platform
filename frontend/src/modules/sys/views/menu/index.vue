@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
+import { ref, onMounted, h, computed } from 'vue'
 import {
   NCard, NButton, NSpace, NModal, NForm, NFormItem,
   NInput, NSelect, NSwitch, NTag, NTree, NEmpty, NIcon,
@@ -14,8 +14,10 @@ import {
 import { menuApi, type MenuDTO } from '@/modules/sys/api/menu'
 import type { MenuTreeNode } from '@/modules/sys/api/types'
 import { useAuthStore } from '@/stores/auth'
+import { useI18n } from 'vue-i18n'
 import { requiredRule, maxLengthRule, patternRule } from '@/shared/utils/validation'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const message = useMessage()
 
@@ -31,23 +33,23 @@ const form = ref<MenuDTO>({
 const formRef = ref<FormInst | null>(null)
 const rules: FormRules = {
   menuName: [
-    requiredRule('菜单名称不能为空'),
-    maxLengthRule(50, '菜单名称长度不能超过50'),
+    requiredRule(t('sys.menu.menuNameRequired')),
+    maxLengthRule(50, t('sys.menu.menuNameLength')),
   ],
-  sort: [patternRule(/^\d*$/, '排序值必须是非负整数')],
+  sort: [patternRule(/^\d*$/, t('sys.menu.sortPattern'))],
 }
 
-const iconOptions: { label: string; value: string; icon: any }[] = [
-  { label: '设置', value: 'Settings', icon: SettingsOutline },
-  { label: '用户', value: 'User', icon: PersonOutline },
-  { label: '角色权限', value: 'UserFilled', icon: ShieldCheckmarkOutline },
-  { label: '菜单', value: 'Menu', icon: MenuOutline },
-  { label: '办公楼', value: 'OfficeBuilding', icon: BusinessOutline },
-  { label: '工具', value: 'Tools', icon: BuildOutline },
-  { label: '地球', value: 'Globe', icon: GlobeOutline },
-  { label: '文档', value: 'Document', icon: DocumentTextOutline },
-  { label: '应用', value: 'Apps', icon: AppsOutline },
-]
+const iconOptions = computed(() => [
+  { label: t('sys.menu.iconSettings'), value: 'Settings', icon: SettingsOutline },
+  { label: t('sys.menu.iconUser'), value: 'User', icon: PersonOutline },
+  { label: t('sys.menu.iconRole'), value: 'UserFilled', icon: ShieldCheckmarkOutline },
+  { label: t('sys.menu.iconMenu'), value: 'Menu', icon: MenuOutline },
+  { label: t('sys.menu.iconBuilding'), value: 'OfficeBuilding', icon: BusinessOutline },
+  { label: t('sys.menu.iconTools'), value: 'Tools', icon: BuildOutline },
+  { label: t('sys.menu.iconGlobe'), value: 'Globe', icon: GlobeOutline },
+  { label: t('sys.menu.iconDocument'), value: 'Document', icon: DocumentTextOutline },
+  { label: t('sys.menu.iconApps'), value: 'Apps', icon: AppsOutline },
+])
 
 function renderIconLabel(option: SelectOption) {
   const opt = option as { label: string; icon: any }
@@ -96,12 +98,12 @@ async function handleSave() {
   try {
     if (editingId.value) {
       await menuApi.update(editingId.value, form.value)
-      message.success('修改成功')
+      message.success(t('common.modifySuccess'))
     }
     showModal.value = false
     fetchData()
   } catch (e: any) {
-    message.error(e.response?.data?.message || '操作失败')
+    message.error(e.response?.data?.message || t('common.operationFailed'))
   }
 }
 
@@ -110,7 +112,7 @@ function handleExpand(keys: Array<string | number>) {
 }
 
 function typeLabel(type: string) {
-  return { DIRECTORY: '目录', PAGE: '页面', BUTTON: '按钮' }[type] || type
+  return { DIRECTORY: t('sys.menu.typeDirectory'), PAGE: t('sys.menu.typePage'), BUTTON: t('sys.menu.typeButton') }[type] || type
 }
 
 function typeColor(type: string) {
@@ -136,7 +138,7 @@ function renderLabel({ option }: { option: TreeOption }) {
       authStore.hasPermission('sys:menu:edit') && h(NButton, {
         size: 'tiny', text: true, type: 'primary',
         onClick: () => handleEdit(node),
-      }, { default: () => '编辑' }),
+      }, { default: () => t('sys.menu.edit') }),
     ]),
   ])
 }
@@ -158,35 +160,35 @@ onMounted(fetchData)
       expand-on-click
       @update:expanded-keys="handleExpand"
     />
-    <NEmpty v-else-if="!loading" description="暂无菜单数据" />
+    <NEmpty v-else-if="!loading" :description="t('sys.menu.noMenuData')" />
   </NCard>
 
-  <NModal v-model:show="showModal" title="编辑菜单" preset="card" :style="{ width: '500px' }">
+  <NModal v-model:show="showModal" :title="t('sys.menu.editMenu')" preset="card" :style="{ width: '500px' }">
     <NForm ref="formRef" :model="form" :rules="rules" label-placement="left" :label-width="80">
-      <NFormItem label="菜单名称" required path="menuName">
-        <NInput v-model:value="form.menuName" placeholder="菜单名称" />
+      <NFormItem :label="t('sys.menu.menuName')" required path="menuName">
+        <NInput v-model:value="form.menuName" :placeholder="t('sys.menu.menuNamePlaceholder')" />
       </NFormItem>
-      <NFormItem label="图标" path="icon">
+      <NFormItem :label="t('sys.menu.icon')" path="icon">
         <NSelect
           v-model:value="form.icon"
           :options="iconOptions"
           :render-label="renderIconLabel"
           clearable
-          placeholder="选择图标"
+          :placeholder="t('sys.menu.iconPlaceholder')"
         />
       </NFormItem>
-      <NFormItem label="排序" path="sort">
-        <NInput :value="String(form.sort ?? '')" placeholder="0" @update:value="(v: string) => form.sort = v ? Number(v) : undefined" />
+      <NFormItem :label="t('sys.menu.sort')" path="sort">
+        <NInput :value="String(form.sort ?? '')" :placeholder="t('sys.menu.sortPlaceholder')" @update:value="(v: string) => form.sort = v ? Number(v) : undefined" />
       </NFormItem>
-      <NFormItem v-if="form.menuType !== 'BUTTON'" label="是否显示">
+      <NFormItem v-if="form.menuType !== 'BUTTON'" :label="t('sys.menu.isShow')">
         <NSwitch v-model:value="form.visible" :checked-value="1" :unchecked-value="0" />
       </NFormItem>
-      <NFormItem label="状态">
+      <NFormItem :label="t('sys.menu.status')">
         <NSwitch v-model:value="form.status" :checked-value="1" :unchecked-value="0" />
       </NFormItem>
       <NSpace justify="end">
-        <NButton @click="showModal = false">取消</NButton>
-        <NButton type="primary" @click="handleSave">保存</NButton>
+        <NButton @click="showModal = false">{{ t('common.cancel') }}</NButton>
+        <NButton type="primary" @click="handleSave">{{ t('common.save') }}</NButton>
       </NSpace>
     </NForm>
   </NModal>

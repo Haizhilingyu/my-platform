@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   NCard, NDataTable, NButton, NSpace, NInput, NSelect, NModal, NForm,
   NFormItem, NSwitch, NTag, NAlert, NIcon, useMessage, type DataTableColumns,
@@ -19,6 +20,7 @@ import {
   requiredRule, maxLengthRule,
 } from '@/shared/utils/validation'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const message = useMessage()
 const { isMobile } = useBreakpoint()
@@ -43,15 +45,15 @@ const form = ref({
 const formRef = ref<FormInst | null>(null)
 const rules: FormRules = {
   clientName: [
-    requiredRule('应用名称不能为空'),
-    maxLengthRule(100, '应用名称长度不能超过100'),
+    requiredRule(t('sys.app.validation.appNameRequired')),
+    maxLengthRule(100, t('sys.app.validation.appNameMaxLength')),
   ],
   redirectUris: [
     {
       validator: (_rule: unknown, value: string[]) => {
-        if (!value || value.length === 0) return new Error('至少需要一个重定向URI')
+        if (!value || value.length === 0) return new Error(t('sys.app.validation.atLeastOneRedirectUri'))
         const nonEmpty = value.filter((v) => v && v.trim())
-        if (nonEmpty.length === 0) return new Error('至少需要一个重定向URI')
+        if (nonEmpty.length === 0) return new Error(t('sys.app.validation.atLeastOneRedirectUri'))
         return true
       },
       trigger: ['blur', 'change'],
@@ -60,7 +62,7 @@ const rules: FormRules = {
   scopes: [
     {
       validator: (_rule: unknown, value: string[]) => {
-        if (!value || value.length === 0) return new Error('请至少选择一个权限范围')
+        if (!value || value.length === 0) return new Error(t('sys.app.validation.atLeastOneScope'))
         return true
       },
       trigger: ['blur', 'change'],
@@ -69,7 +71,7 @@ const rules: FormRules = {
   grantTypes: [
     {
       validator: (_rule: unknown, value: string[]) => {
-        if (!value || value.length === 0) return new Error('请至少选择一个授权类型')
+        if (!value || value.length === 0) return new Error(t('sys.app.validation.atLeastOneGrantType'))
         return true
       },
       trigger: ['blur', 'change'],
@@ -90,9 +92,9 @@ const scopeOptions = [
 ].map((s) => ({ label: s, value: s }))
 
 const grantTypeOptions = [
-  { label: 'authorization_code（授权码）', value: 'authorization_code' },
-  { label: 'refresh_token（刷新令牌）', value: 'refresh_token' },
-  { label: 'client_credentials（客户端凭据）', value: 'client_credentials' },
+  { label: t('sys.app.grantTypes.authCode'), value: 'authorization_code' },
+  { label: t('sys.app.grantTypes.refreshToken'), value: 'refresh_token' },
+  { label: t('sys.app.grantTypes.clientCredentials'), value: 'client_credentials' },
 ]
 
 const modalStyle = computed(() => ({
@@ -108,7 +110,7 @@ async function fetchData() {
     data.value = res.data.list
     total.value = res.data.total
   } catch (e: any) {
-    message.error(e.response?.data?.message || '查询失败')
+    message.error(e.response?.data?.message || t('sys.app.toast.queryFailed'))
   } finally {
     loading.value = false
   }
@@ -165,7 +167,6 @@ async function handleSave() {
   try {
     await formRef.value?.validate()
   } catch {
-    // 校验失败：Naive UI 已在字段下方渲染错误提示，直接中断保存。
     return
   }
   saving.value = true
@@ -184,7 +185,7 @@ async function handleSave() {
         grantTypes,
         enabled: form.value.enabled,
       })
-      message.success('修改成功')
+      message.success(t('sys.app.toast.modifySuccess'))
       showModal.value = false
       fetchData()
     } else {
@@ -201,7 +202,7 @@ async function handleSave() {
       fetchData()
     }
   } catch (e: any) {
-    message.error(e.response?.data?.message || '操作失败')
+    message.error(e.response?.data?.message || t('sys.app.toast.operationFailed'))
   } finally {
     saving.value = false
   }
@@ -218,9 +219,9 @@ async function handleToggleEnabled(row: OpenAppClientVO, value: boolean) {
       enabled: value,
     })
     row.enabled = value
-    message.success(value ? '已启用' : '已禁用')
+    message.success(value ? t('sys.app.toast.enabled') : t('sys.app.toast.disabled'))
   } catch (e: any) {
-    message.error(e.response?.data?.message || '操作失败')
+    message.error(e.response?.data?.message || t('sys.app.toast.operationFailed'))
   }
 }
 
@@ -230,34 +231,34 @@ async function handleResetSecret(row: OpenAppClientVO) {
     secretResult.value = res.data
     showSecretModal.value = true
   } catch (e: any) {
-    message.error(e.response?.data?.message || '重置密钥失败')
+    message.error(e.response?.data?.message || t('sys.app.toast.resetSecretFailed'))
   }
 }
 
 async function handleDelete(row: OpenAppClientVO) {
   try {
     await openAppApi.delete(row.id)
-    message.success('删除成功')
+    message.success(t('sys.app.toast.deleteSuccess'))
     fetchData()
   } catch (e: any) {
-    message.error(e.response?.data?.message || '删除失败')
+    message.error(e.response?.data?.message || t('sys.app.toast.deleteFailed'))
   }
 }
 
 async function copyText(text: string) {
   try {
     await navigator.clipboard.writeText(text)
-    message.success('已复制到剪贴板')
+    message.success(t('sys.app.toast.copied'))
   } catch {
-    message.error('复制失败，请手动选择复制')
+    message.error(t('sys.app.toast.copyFailed'))
   }
 }
 
 const columns = computed<DataTableColumns<OpenAppClientVO>>(() => [
-  { title: 'Client ID', key: 'clientId', width: 220, ellipsis: { tooltip: true } },
-  { title: '应用名称', key: 'clientName', width: 150 },
+  { title: t('sys.app.clientId'), key: 'clientId', width: 220, ellipsis: { tooltip: true } },
+  { title: t('sys.app.appName'), key: 'clientName', width: 150 },
   {
-    title: '授权范围',
+    title: t('sys.app.grantType'),
     key: 'scopes',
     width: 200,
     render: (row) =>
@@ -269,7 +270,7 @@ const columns = computed<DataTableColumns<OpenAppClientVO>>(() => [
       }),
   },
   {
-    title: '状态',
+    title: t('sys.app.status'),
     key: 'enabled',
     width: 90,
     render: (row) =>
@@ -282,12 +283,12 @@ const columns = computed<DataTableColumns<OpenAppClientVO>>(() => [
         : h(
             NTag,
             { type: row.enabled ? 'success' : 'error', size: 'small' },
-            { default: () => (row.enabled ? '启用' : '禁用') },
+            { default: () => (row.enabled ? t('sys.app.enabled') : t('sys.app.disabled')) },
           ),
   },
-  { title: '创建时间', key: 'createdAt', width: 160, render: (row) => formatDateTime(row.createdAt) },
+  { title: t('sys.app.createTime'), key: 'createdAt', width: 160, render: (row) => formatDateTime(row.createdAt) },
   {
-    title: '操作',
+    title: t('common.operation'),
     key: 'actions',
     width: 220,
     fixed: 'right' as const,
@@ -298,13 +299,13 @@ const columns = computed<DataTableColumns<OpenAppClientVO>>(() => [
             h(
               NButton,
               { size: 'small', onClick: () => handleEdit(row) },
-              { default: () => '编辑' },
+              { default: () => t('common.edit') },
             ),
           authStore.hasPermission('sys:openapp:edit') &&
             h(
               NButton,
               { size: 'small', quaternary: true, onClick: () => handleResetSecret(row) },
-              { default: () => '重置密钥' },
+              { default: () => t('sys.app.buttons.resetSecret') },
             ),
           authStore.hasPermission('sys:openapp:delete') &&
             h(
@@ -315,7 +316,7 @@ const columns = computed<DataTableColumns<OpenAppClientVO>>(() => [
                 quaternary: true,
                 onClick: () => handleDelete(row),
               },
-              { default: () => '删除' },
+              { default: () => t('common.delete') },
             ),
         ],
       }),
@@ -331,16 +332,16 @@ onMounted(fetchData)
       <NSpace :vertical="isMobile">
         <NInput
           v-model:value="query.keyword"
-          placeholder="搜索 Client ID / 应用名称"
+          :placeholder="t('sys.app.placeholders.search')"
           clearable
           class="w-[250px]"
           @clear="fetchData"
           @keyup.enter="fetchData"
         />
-        <NButton type="primary" @click="fetchData">查询</NButton>
+        <NButton type="primary" @click="fetchData">{{ t('sys.app.buttons.search') }}</NButton>
       </NSpace>
       <NButton v-permission="'sys:openapp:add'" type="primary" @click="handleAdd">
-        新增应用
+        {{ t('sys.app.buttons.addApp') }}
       </NButton>
     </NSpace>
 
@@ -364,16 +365,16 @@ onMounted(fetchData)
 
   <NModal
     v-model:show="showModal"
-    :title="editingId ? '编辑应用' : '新增应用'"
+    :title="editingId ? t('sys.app.buttons.editApp') : t('sys.app.buttons.addApp')"
     preset="card"
     :style="modalStyle"
   >
     <NForm ref="formRef" :model="form" :rules="rules" :label-placement="labelPlacement" :label-width="110">
-      <NFormItem label="应用名称" required path="clientName">
-        <NInput v-model:value="form.clientName" placeholder="如：移动端 App" />
+      <NFormItem :label="t('sys.app.appName')" required path="clientName">
+        <NInput v-model:value="form.clientName" :placeholder="t('sys.app.placeholders.clientName')" />
       </NFormItem>
 
-      <NFormItem label="回调地址" path="redirectUris">
+      <NFormItem :label="t('sys.app.buttons.addRedirectUri')" path="redirectUris">
         <div class="w-full space-y-2">
           <div
             v-for="(_, idx) in form.redirectUris"
@@ -382,7 +383,7 @@ onMounted(fetchData)
           >
             <NInput
               v-model:value="form.redirectUris[idx]"
-              placeholder="https://example.com/callback"
+              :placeholder="t('sys.app.placeholders.redirectUri')"
             />
             <NButton quaternary type="error" @click="removeRedirectUri(idx)">
               <template #icon><NIcon :component="TrashOutline" /></template>
@@ -390,12 +391,12 @@ onMounted(fetchData)
           </div>
           <NButton dashed block @click="addRedirectUri">
             <template #icon><NIcon :component="AddOutline" /></template>
-            添加回调地址
+            {{ t('sys.app.buttons.addRedirectUri') }}
           </NButton>
         </div>
       </NFormItem>
 
-      <NFormItem label="登出回调">
+      <NFormItem :label="t('sys.app.buttons.addPostLogoutUri')">
         <div class="w-full space-y-2">
           <div
             v-for="(_, idx) in form.postLogoutRedirectUris"
@@ -404,7 +405,7 @@ onMounted(fetchData)
           >
             <NInput
               v-model:value="form.postLogoutRedirectUris[idx]"
-              placeholder="https://example.com/post-logout"
+              :placeholder="t('sys.app.placeholders.postLogoutRedirectUri')"
             />
             <NButton quaternary type="error" @click="removePostLogoutUri(idx)">
               <template #icon><NIcon :component="TrashOutline" /></template>
@@ -412,57 +413,57 @@ onMounted(fetchData)
           </div>
           <NButton dashed block @click="addPostLogoutUri">
             <template #icon><NIcon :component="AddOutline" /></template>
-            添加登出回调
+            {{ t('sys.app.buttons.addPostLogoutUri') }}
           </NButton>
         </div>
       </NFormItem>
 
-      <NFormItem label="授权范围" path="scopes">
+      <NFormItem :label="t('sys.app.grantType')" path="scopes">
         <NSelect
           v-model:value="form.scopes"
           multiple
           tag
           filterable
           :options="scopeOptions"
-          placeholder="选择或输入 scope"
+          :placeholder="t('sys.app.placeholders.scopes')"
         />
       </NFormItem>
 
-      <NFormItem label="授权类型" path="grantTypes">
+      <NFormItem :label="t('sys.app.grantType')" path="grantTypes">
         <NSelect
           v-model:value="form.grantTypes"
           multiple
           :options="grantTypeOptions"
-          placeholder="选择授权类型"
+          :placeholder="t('sys.app.placeholders.grantTypes')"
         />
       </NFormItem>
 
-      <NFormItem v-if="editingId" label="启用状态">
+      <NFormItem v-if="editingId" :label="t('sys.app.status')">
         <NSwitch v-model:value="form.enabled" />
       </NFormItem>
 
       <NSpace justify="end">
-        <NButton @click="showModal = false">取消</NButton>
-        <NButton type="primary" :loading="saving" @click="handleSave">保存</NButton>
+        <NButton @click="showModal = false">{{ t('common.cancel') }}</NButton>
+        <NButton type="primary" :loading="saving" @click="handleSave">{{ t('common.save') }}</NButton>
       </NSpace>
     </NForm>
   </NModal>
 
   <NModal
     v-model:show="showSecretModal"
-    title="Client Secret（仅显示一次）"
+    :title="t('sys.app.secretModal.title')"
     preset="card"
     :style="modalStyle"
     :mask-closable="false"
     :close-on-esc="false"
   >
     <NAlert type="warning" class="mb-4" :show-icon="true">
-      此密钥仅显示一次，关闭后将无法再次查看。请立即复制并妥善保存。
+      {{ t('sys.app.secretModal.warning') }}
     </NAlert>
 
-    <NSpace vertical :size="'large' as any">
+    <NSpace vertical :size="'large'" as any>
       <div class="w-full">
-        <div class="mb-1 text-sm opacity-70">Client ID</div>
+        <div class="mb-1 text-sm opacity-70">{{ t('sys.app.secretModal.clientIdLabel') }}</div>
         <NInput
           v-if="secretResult"
           :value="secretResult.clientId"
@@ -470,7 +471,7 @@ onMounted(fetchData)
         />
       </div>
       <div class="w-full">
-        <div class="mb-1 text-sm opacity-70">Client Secret</div>
+        <div class="mb-1 text-sm opacity-70">{{ t('sys.app.secretModal.clientSecretLabel') }}</div>
         <div class="flex gap-2">
           <NInput
             v-if="secretResult"
@@ -485,7 +486,7 @@ onMounted(fetchData)
             @click="copyText(secretResult.clientSecret)"
           >
             <template #icon><NIcon :component="CopyOutline" /></template>
-            复制
+            {{ t('sys.app.buttons.copy') }}
           </NButton>
         </div>
       </div>
@@ -502,7 +503,7 @@ onMounted(fetchData)
             }
           "
         >
-          我已保存
+          {{ t('sys.app.buttons.saved') }}
         </NButton>
       </NSpace>
     </template>

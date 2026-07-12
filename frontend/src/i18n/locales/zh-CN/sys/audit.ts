@@ -1,0 +1,21 @@
+export default {
+  actor: '操作人',
+  actionType: '操作类型',
+  targetType: '对象类型',
+  targetId: '对象 ID',
+  ip: 'IP',
+  device: '设备',
+  result: '结果',
+  time: '时间',
+  success: '成功',
+  fail: '失败',
+  params: '参数',
+  failReason: '失败原因',
+  noDetails: '无详细信息',
+  placeholders: {
+    actor: '操作人',
+    actionType: '操作类型',
+    result: '结果',
+    targetType: '对象类型',
+  },
+}

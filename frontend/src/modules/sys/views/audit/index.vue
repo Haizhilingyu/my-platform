@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h, type VNode } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   NCard, NDataTable, NButton, NSpace, NInput, NSelect, NDatePicker,
   NGrid, NGi, NTag, NEmpty, NCode, type DataTableColumns,
 } from 'naive-ui'
 import { auditApi, type AuditLogVO, type AuditLogQuery } from '@/modules/sys/api/audit'
 import { formatDateTime } from '@/shared/utils/datetime'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const data = ref<AuditLogVO[]>([])
@@ -38,8 +41,8 @@ const actionOptions = [
 ]
 
 const resultOptions = [
-  { label: '成功', value: 'success' },
-  { label: '失败', value: 'fail' },
+  { label: t('sys.audit.success'), value: 'success' },
+  { label: t('sys.audit.fail'), value: 'fail' },
 ]
 
 const actionTagType: Record<string, 'default' | 'info' | 'success' | 'warning' | 'error'> = {
@@ -99,32 +102,32 @@ function truncateUa(ua: string, max = 45): string {
 }
 
 const columns = computed<DataTableColumns<AuditLogVO>>(() => [
-  { title: '操作人', key: 'actor', width: 120 },
+  { title: t('sys.audit.actor'), key: 'actor', width: 120 },
   {
-    title: '操作类型', key: 'action', width: 110,
+    title: t('sys.audit.actionType'), key: 'action', width: 110,
     render: (row) => h(NTag, {
       type: actionTagType[row.action] || 'default',
       size: 'small',
     }, { default: () => row.action }),
   },
-  { title: '对象类型', key: 'targetType', width: 120 },
-  { title: '对象 ID', key: 'targetId', width: 100 },
-  { title: 'IP', key: 'ip', width: 130 },
+  { title: t('sys.audit.targetType'), key: 'targetType', width: 120 },
+  { title: t('sys.audit.targetId'), key: 'targetId', width: 100 },
+  { title: t('sys.audit.ip'), key: 'ip', width: 130 },
   {
-    title: '设备', key: 'userAgent', width: 150,
+    title: t('sys.audit.device'), key: 'userAgent', width: 150,
     render: (row) => row.userAgent
       ? h('span', { class: 'text-xs text-gray-600' }, truncateUa(row.userAgent))
       : '-',
   },
   {
-    title: '结果', key: 'result', width: 80,
+    title: t('sys.audit.result'), key: 'result', width: 80,
     render: (row) => h(NTag, {
       type: row.result === 'success' ? 'success' : 'error',
       size: 'small',
-    }, { default: () => row.result === 'success' ? '成功' : '失败' }),
+    }, { default: () => row.result === 'success' ? t('sys.audit.success') : t('sys.audit.fail') }),
   },
   {
-    title: '时间', key: 'createdAt', width: 170,
+    title: t('sys.audit.time'), key: 'createdAt', width: 170,
     render: (row) => formatDateTime(row.createdAt),
   },
 ])
@@ -144,13 +147,13 @@ function renderExpand(row: AuditLogVO) {
   const children: VNode[] = []
   if (params) {
     children.push(h('div', { class: 'mb-2' }, [
-      h('span', { class: 'inline-block w-20 align-top text-gray-500' }, '参数'),
+      h('span', { class: 'inline-block w-20 align-top text-gray-500' }, t('sys.audit.params')),
       h(NCode, { code: params, language: 'json', wordWrap: true }),
     ]))
   }
   if (row.errorMsg) {
     children.push(h('div', { class: 'mb-2' }, [
-      h('span', { class: 'inline-block w-20 align-top text-gray-500' }, '失败原因'),
+      h('span', { class: 'inline-block w-20 align-top text-gray-500' }, t('sys.audit.failReason')),
       h('span', { class: 'text-red-600' }, row.errorMsg),
     ]))
   }
@@ -161,7 +164,7 @@ function renderExpand(row: AuditLogVO) {
     ]))
   }
   if (!params && !row.errorMsg && !row.userAgent) {
-    return h(NEmpty, { description: '无详细信息', size: 'small' })
+    return h(NEmpty, { description: t('sys.audit.noDetails'), size: 'small' })
   }
   return h('div', { class: 'px-4 py-2 bg-gray-50' }, children)
 }
@@ -174,25 +177,25 @@ onMounted(fetchData)
     <NGrid cols="1 s:2 m:4" responsive="screen" :x-gap="12" :y-gap="12">
       <NGi>
         <NInput
-          v-model:value="filters.actor" placeholder="操作人" clearable
+          v-model:value="filters.actor" :placeholder="t('sys.audit.placeholders.actor')" clearable
           @keyup.enter="handleSearch"
         />
       </NGi>
       <NGi>
         <NSelect
           v-model:value="filters.action" :options="actionOptions"
-          placeholder="操作类型" clearable
+          :placeholder="t('sys.audit.placeholders.actionType')" clearable
         />
       </NGi>
       <NGi>
         <NSelect
           v-model:value="filters.result" :options="resultOptions"
-          placeholder="结果" clearable
+          :placeholder="t('sys.audit.placeholders.result')" clearable
         />
       </NGi>
       <NGi>
         <NInput
-          v-model:value="filters.targetType" placeholder="对象类型" clearable
+          v-model:value="filters.targetType" :placeholder="t('sys.audit.placeholders.targetType')" clearable
           @keyup.enter="handleSearch"
         />
       </NGi>
@@ -203,8 +206,8 @@ onMounted(fetchData)
         v-model:value="filters.range" type="daterange" clearable
         class="max-w-[420px]"
       />
-      <NButton type="primary" @click="handleSearch">查询</NButton>
-      <NButton @click="handleReset">重置</NButton>
+      <NButton type="primary" @click="handleSearch">{{ t('common.search') }}</NButton>
+      <NButton @click="handleReset">{{ t('common.reset') }}</NButton>
     </NSpace>
 
     <NDataTable

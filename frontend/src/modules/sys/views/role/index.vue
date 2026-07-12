@@ -10,10 +10,12 @@ import { menuApi } from '@/modules/sys/api/menu'
 import { unitApi } from '@/modules/sys/api/unit'
 import type { SysRole, MenuTreeNode, UnitTreeNode } from '@/modules/sys/api/types'
 import { useBreakpoint } from '@/shared/composables/useBreakpoint'
+import { useI18n } from 'vue-i18n'
 import {
   requiredRule, lengthRule, maxLengthRule, patternRule, USERNAME_PATTERN,
 } from '@/shared/utils/validation'
 
+const { t } = useI18n()
 const message = useMessage()
 const { isMobile } = useBreakpoint()
 const labelPlacement = computed(() => (isMobile.value ? 'top' : 'left'))
@@ -27,16 +29,16 @@ const form = ref<RoleDTO>({ roleCode: '', roleName: '', dataScope: 'SELF', statu
 const formRef = ref<FormInst | null>(null)
 const rules: FormRules = {
   roleCode: [
-    requiredRule('角色编码不能为空'),
-    lengthRule(3, 50, '角色编码长度需在3-50之间'),
-    patternRule(USERNAME_PATTERN, '角色编码只能包含字母、数字、下划线'),
+    requiredRule(t('sys.role.roleCodeRequired')),
+    lengthRule(3, 50, t('sys.role.roleCodeLength')),
+    patternRule(USERNAME_PATTERN, t('sys.role.roleCodePattern')),
   ],
   roleName: [
-    requiredRule('角色名称不能为空'),
-    maxLengthRule(100, '角色名称长度不能超过100'),
+    requiredRule(t('sys.role.roleNameRequired')),
+    maxLengthRule(100, t('sys.role.roleNameLength')),
   ],
-  dataScope: [requiredRule('数据范围不能为空')],
-  remark: [maxLengthRule(200, '备注长度不能超过200')],
+  dataScope: [requiredRule(t('sys.role.dataScopeRequired'))],
+  remark: [maxLengthRule(200, t('sys.role.remarkLength'))],
 }
 
 const unitTree = ref<UnitTreeNode[]>([])
@@ -48,13 +50,13 @@ const permRoleId = ref<number | null>(null)
 const menuTree = ref<MenuTreeNode[]>([])
 const checkedKeys = ref<string[]>([])
 
-const dataScopes = [
-  { label: '全部数据', value: 'ALL' },
-  { label: '本单位', value: 'UNIT' },
-  { label: '本单位及下属', value: 'UNIT_BELOW' },
-  { label: '仅本人', value: 'SELF' },
-  { label: '自定义', value: 'CUSTOM' },
-]
+const dataScopes = computed(() => [
+  { label: t('sys.role.scopeAll'), value: 'ALL' },
+  { label: t('sys.role.scopeUnit'), value: 'UNIT' },
+  { label: t('sys.role.scopeUnitBelow'), value: 'UNIT_BELOW' },
+  { label: t('sys.role.scopeSelf'), value: 'SELF' },
+  { label: t('sys.role.scopeCustom'), value: 'CUSTOM' },
+])
 
 async function fetchData() {
   loading.value = true
@@ -105,16 +107,16 @@ async function handleSave() {
     if (editingId.value) {
       await roleApi.update(editingId.value, form.value)
       await saveCustomScope(editingId.value)
-      message.success('修改成功')
+      message.success(t('common.modifySuccess'))
     } else {
       const res = await roleApi.create(form.value)
       await saveCustomScope(res.data)
-      message.success('新增成功')
+      message.success(t('common.createSuccess'))
     }
     showModal.value = false
     fetchData()
   } catch (e: any) {
-    message.error(e.response?.data?.message || '操作失败')
+    message.error(e.response?.data?.message || t('common.operationFailed'))
   }
 }
 
@@ -123,17 +125,17 @@ async function saveCustomScope(roleId: number) {
   try {
     await roleApi.saveCustomUnits(roleId, customUnitIds.value)
   } catch {
-    message.warning('自定义数据范围保存失败：后端暂未提供该端点（见 T24 limitation）')
+    message.warning(t('sys.role.customScopeFailed'))
   }
 }
 
 async function handleDelete(row: SysRole) {
   try {
     await roleApi.delete(row.id)
-    message.success('删除成功')
+    message.success(t('common.deleteSuccess'))
     fetchData()
   } catch (e: any) {
-    message.error(e.response?.data?.message || '删除失败')
+    message.error(e.response?.data?.message || t('common.deleteFailed'))
   }
 }
 
@@ -152,7 +154,7 @@ async function handleSavePermission() {
   if (!permRoleId.value) return
   const menuIds = checkedKeys.value.map(Number)
   await roleApi.assignMenus(permRoleId.value, menuIds)
-  message.success('权限分配成功')
+  message.success(t('sys.role.assignPermissionsSuccess'))
   showPermModal.value = false
 }
 
@@ -173,29 +175,29 @@ function flattenUnitTree(units: UnitTreeNode[]): any[] {
 }
 
 const dataScopeLabel = (scope: string): string =>
-  dataScopes.find(d => d.value === scope)?.label || scope
+  dataScopes.value.find(d => d.value === scope)?.label || scope
 
 const columns: DataTableColumns<SysRole> = [
-  { title: '角色编码', key: 'roleCode', width: 150 },
-  { title: '角色名称', key: 'roleName', width: 150 },
+  { title: t('sys.role.roleCode'), key: 'roleCode', width: 150 },
+  { title: t('sys.role.roleName'), key: 'roleName', width: 150 },
   {
-    title: '数据范围', key: 'dataScope', width: 130,
+    title: t('sys.role.dataScope'), key: 'dataScope', width: 130,
     render: (row) => h(NTag, { size: 'small', type: 'info' },
       { default: () => dataScopeLabel(row.dataScope) }),
   },
   {
-    title: '状态', key: 'status', width: 80,
+    title: t('common.status'), key: 'status', width: 80,
     render: (row) => h(NTag, { type: row.status === 1 ? 'success' : 'error', size: 'small' },
-      { default: () => row.status === 1 ? '启用' : '禁用' }),
+      { default: () => row.status === 1 ? t('sys.role.enabled') : t('sys.user.disabled') }),
   },
-  { title: '备注', key: 'remark', width: 200 },
+  { title: t('common.remark'), key: 'remark', width: 200 },
   {
-    title: '操作', key: 'actions', width: 250,
+    title: t('common.operation'), key: 'actions', width: 250,
     render: (row) => h(NSpace, {}, {
       default: () => [
-        h(NButton, { size: 'small', onClick: () => handlePermission(row) }, { default: () => '权限' }),
-        h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => '编辑' }),
-        h(NButton, { size: 'small', type: 'error', onClick: () => handleDelete(row) }, { default: () => '删除' }),
+        h(NButton, { size: 'small', onClick: () => handlePermission(row) }, { default: () => t('sys.role.permissions') }),
+        h(NButton, { size: 'small', onClick: () => handleEdit(row) }, { default: () => t('common.edit') }),
+        h(NButton, { size: 'small', type: 'error', onClick: () => handleDelete(row) }, { default: () => t('common.delete') }),
       ],
     }),
   },
@@ -215,24 +217,24 @@ onMounted(async () => {
 <template>
   <NCard>
     <NSpace class="mb-4" justify="end">
-      <NButton v-permission="'sys:role:add'" type="primary" @click="handleAdd">新增角色</NButton>
+      <NButton v-permission="'sys:role:add'" type="primary" @click="handleAdd">{{ t('sys.role.addRole') }}</NButton>
     </NSpace>
 
     <NDataTable :columns="columns" :data="data" :loading="loading" :scroll-x="950" />
   </NCard>
 
-  <NModal v-model:show="showModal" :title="editingId ? '编辑角色' : '新增角色'" preset="card" :style="{ width: '500px' }">
+  <NModal v-model:show="showModal" :title="editingId ? t('sys.role.editRole') : t('sys.role.addRole')" preset="card" :style="{ width: '500px' }">
     <NForm ref="formRef" :model="form" :rules="rules" :label-placement="labelPlacement" :label-width="80">
-      <NFormItem label="角色编码" required path="roleCode">
-        <NInput v-model:value="form.roleCode" :disabled="!!editingId" placeholder="如 admin" />
+      <NFormItem :label="t('sys.role.roleCode')" required path="roleCode">
+        <NInput v-model:value="form.roleCode" :disabled="!!editingId" :placeholder="t('sys.role.roleCodePlaceholder')" />
       </NFormItem>
-      <NFormItem label="角色名称" required path="roleName">
-        <NInput v-model:value="form.roleName" placeholder="如 超级管理员" />
+      <NFormItem :label="t('sys.role.roleName')" required path="roleName">
+        <NInput v-model:value="form.roleName" :placeholder="t('sys.role.roleNamePlaceholder')" />
       </NFormItem>
-      <NFormItem label="数据范围" path="dataScope">
+      <NFormItem :label="t('sys.role.dataScope')" path="dataScope">
         <NSelect v-model:value="form.dataScope" :options="dataScopes" />
       </NFormItem>
-      <NFormItem v-if="isCustomScope" label="自定义单位">
+      <NFormItem v-if="isCustomScope" :label="t('sys.role.customUnit')">
         <NTree
           key-field="key"
           :data="flattenUnitTree(unitTree)"
@@ -244,17 +246,17 @@ onMounted(async () => {
           @update:checked-keys="(keys: number[]) => customUnitIds = keys"
         />
       </NFormItem>
-      <NFormItem label="备注" path="remark">
-        <NInput v-model:value="form.remark" type="textarea" placeholder="备注" />
+      <NFormItem :label="t('common.remark')" path="remark">
+        <NInput v-model:value="form.remark" type="textarea" :placeholder="t('sys.role.remarkPlaceholder')" />
       </NFormItem>
       <NSpace justify="end">
-        <NButton @click="showModal = false">取消</NButton>
-        <NButton type="primary" @click="handleSave">保存</NButton>
+        <NButton @click="showModal = false">{{ t('common.cancel') }}</NButton>
+        <NButton type="primary" @click="handleSave">{{ t('common.save') }}</NButton>
       </NSpace>
     </NForm>
   </NModal>
 
-  <NModal v-model:show="showPermModal" title="分配权限" preset="card" :style="{ width: '500px' }">
+  <NModal v-model:show="showPermModal" :title="t('sys.role.assignPermissions')" preset="card" :style="{ width: '500px' }">
     <NTree
       key-field="key"
       :data="flattenMenuTree(menuTree)"
@@ -266,8 +268,8 @@ onMounted(async () => {
       @update:checked-keys="(keys: any) => checkedKeys = keys"
     />
     <NSpace justify="end" class="mt-4">
-      <NButton @click="showPermModal = false">取消</NButton>
-      <NButton type="primary" @click="handleSavePermission">保存</NButton>
+      <NButton @click="showPermModal = false">{{ t('common.cancel') }}</NButton>
+      <NButton type="primary" @click="handleSavePermission">{{ t('sys.role.savePermissions') }}</NButton>
     </NSpace>
   </NModal>
 </template>

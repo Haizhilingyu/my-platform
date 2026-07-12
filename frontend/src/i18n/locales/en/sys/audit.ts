@@ -1,0 +1,21 @@
+export default {
+  actor: 'Actor',
+  actionType: 'Action Type',
+  targetType: 'Target Type',
+  targetId: 'Target ID',
+  ip: 'IP',
+  device: 'Device',
+  result: 'Result',
+  time: 'Time',
+  success: 'Success',
+  fail: 'Fail',
+  params: 'Parameters',
+  failReason: 'Failure Reason',
+  noDetails: 'No Details',
+  placeholders: {
+    actor: 'Actor',
+    actionType: 'Action Type',
+    result: 'Result',
+    targetType: 'Target Type',
+  },
+}

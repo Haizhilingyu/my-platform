@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, h, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   NCard, NDataTable, NButton, NSpace, NInput, NSelect, NTag,
   useMessage, type DataTableColumns,
@@ -8,6 +9,7 @@ import { notifyApi, type NotifyInboxQuery, type NotifyInboxVO, type NotifyLevel 
 import { useNotifyStore } from '@/stores/notify'
 import { formatDateTime } from '@/shared/utils/datetime'
 
+const { t } = useI18n()
 const message = useMessage()
 const notifyStore = useNotifyStore()
 
@@ -23,16 +25,16 @@ const levelFilter = ref<string>('')
 const readFilter = ref<string>('')
 
 const levelOptions = [
-  { label: '全部级别', value: '' },
-  { label: '紧急', value: 'URGENT' },
-  { label: '重要', value: 'IMPORTANT' },
-  { label: '普通', value: 'NORMAL' },
+  { label: t('sys.message.allLevels'), value: '' },
+  { label: t('sys.message.levelUrgent'), value: 'URGENT' },
+  { label: t('sys.message.levelImportant'), value: 'IMPORTANT' },
+  { label: t('sys.message.levelNormal'), value: 'NORMAL' },
 ]
 
 const readOptions = [
-  { label: '全部状态', value: '' },
-  { label: '未读', value: 'false' },
-  { label: '已读', value: 'true' },
+  { label: t('sys.message.allStatus'), value: '' },
+  { label: t('sys.message.unread'), value: 'false' },
+  { label: t('sys.message.read'), value: 'true' },
 ]
 
 function levelTagType(level: NotifyLevel): 'error' | 'warning' | 'info' {
@@ -42,9 +44,9 @@ function levelTagType(level: NotifyLevel): 'error' | 'warning' | 'info' {
 }
 
 function levelLabel(level: NotifyLevel): string {
-  if (level === 'URGENT') return '紧急'
-  if (level === 'IMPORTANT') return '重要'
-  return '普通'
+  if (level === 'URGENT') return t('sys.message.levelUrgent')
+  if (level === 'IMPORTANT') return t('sys.message.levelImportant')
+  return t('sys.message.levelNormal')
 }
 
 async function fetchData(): Promise<void> {
@@ -59,7 +61,7 @@ async function fetchData(): Promise<void> {
     total.value = res.data.total
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } }
-    message.error(err.response?.data?.message || '加载失败')
+    message.error(err.response?.data?.message || t('sys.message.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -71,10 +73,10 @@ async function handleMarkRead(row: NotifyInboxVO): Promise<void> {
     await notifyApi.markRead(row.id)
     row.readStatus = true
     notifyStore.decrementUnread()
-    message.success('已标记为已读')
+    message.success(t('sys.message.markedAsRead'))
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } }
-    message.error(err.response?.data?.message || '操作失败')
+    message.error(err.response?.data?.message || t('common.operationFailed'))
   }
 }
 
@@ -84,7 +86,7 @@ async function handleBatchRead(): Promise<void> {
     return row && !row.readStatus
   })
   if (!unreadIds.length) {
-    message.warning('请选择未读消息')
+    message.warning(t('sys.message.selectUnreadMessages'))
     return
   }
   try {
@@ -94,10 +96,10 @@ async function handleBatchRead(): Promise<void> {
     })
     notifyStore.decrementUnread(unreadIds.length)
     checkedKeys.value = []
-    message.success(`已标记 ${unreadIds.length} 条为已读`)
+    message.success(t('sys.message.markedCountAsRead', { count: unreadIds.length }))
   } catch (e: unknown) {
     const err = e as { response?: { data?: { message?: string } } }
-    message.error(err.response?.data?.message || '操作失败')
+    message.error(err.response?.data?.message || t('common.operationFailed'))
   }
 }
 
@@ -113,7 +115,7 @@ function handleCheckedRowKeys(keys: (string | number)[]): void {
 const columns = computed<DataTableColumns<NotifyInboxVO>>(() => [
   { type: 'selection' },
   {
-    title: '标题',
+    title: t('sys.message.title'),
     key: 'title',
     minWidth: 220,
     render: (row) =>
@@ -123,11 +125,11 @@ const columns = computed<DataTableColumns<NotifyInboxVO>>(() => [
           class: ['cursor-pointer', row.readStatus ? '' : 'font-semibold'],
           onClick: () => handleMarkRead(row),
         },
-        { default: () => row.title || '(无标题)' },
+        { default: () => row.title || t('sys.message.noTitle') },
       ),
   },
   {
-    title: '级别',
+    title: t('sys.message.level'),
     key: 'level',
     width: 90,
     render: (row) =>
@@ -137,26 +139,26 @@ const columns = computed<DataTableColumns<NotifyInboxVO>>(() => [
         { default: () => levelLabel(row.level) },
       ),
   },
-  { title: '业务类型', key: 'businessType', width: 120 },
-  { title: '发送时间', key: 'createdAt', width: 180, render: (row) => formatDateTime(row.createdAt) },
+  { title: t('sys.message.businessType'), key: 'businessType', width: 120 },
+  { title: t('sys.message.sentTime'), key: 'createdAt', width: 180, render: (row) => formatDateTime(row.createdAt) },
   {
-    title: '状态',
+    title: t('sys.message.status'),
     key: 'readStatus',
     width: 90,
     render: (row) =>
       h(
         NTag,
         { type: row.readStatus ? 'default' : 'success', size: 'small' },
-        { default: () => (row.readStatus ? '已读' : '未读') },
+        { default: () => (row.readStatus ? t('sys.message.read') : t('sys.message.unread')) },
       ),
   },
   {
-    title: '操作',
+    title: t('common.operation'),
     key: 'actions',
     width: 110,
     render: (row) =>
       row.readStatus
-        ? h('span', { class: 'opacity-50' }, { default: () => '—' })
+        ? h('span', { class: 'opacity-50' }, { default: () => t('sys.message.dash') })
         : h(
             NButton,
             {
@@ -167,7 +169,7 @@ const columns = computed<DataTableColumns<NotifyInboxVO>>(() => [
                 handleMarkRead(row)
               },
             },
-            { default: () => '标记已读' },
+            { default: () => t('sys.message.markRead') },
           ),
   },
 ])
@@ -183,7 +185,7 @@ onMounted(fetchData)
       <NSpace :wrap="false">
         <NInput
           v-model:value="keyword"
-          placeholder="搜索标题"
+          :placeholder="t('sys.message.searchTitle')"
           clearable
           class="w-[200px]"
           @clear="handleSearch"
@@ -207,7 +209,7 @@ onMounted(fetchData)
         :disabled="!checkedKeys.length"
         @click="handleBatchRead"
       >
-        批量标记已读
+        {{ t('sys.message.batchMarkRead') }}
       </NButton>
     </NSpace>
 

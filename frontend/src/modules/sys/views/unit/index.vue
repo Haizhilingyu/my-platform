@@ -8,10 +8,12 @@ import {
 import { unitApi, type UnitDTO } from '@/modules/sys/api/unit'
 import type { UnitTreeNode } from '@/modules/sys/api/types'
 import { useAuthStore } from '@/stores/auth'
+import { useI18n } from 'vue-i18n'
 import {
   requiredRule, lengthRule, maxLengthRule, patternRule, USERNAME_PATTERN,
 } from '@/shared/utils/validation'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const message = useMessage()
 const loading = ref(false)
@@ -24,16 +26,16 @@ const form = ref<UnitDTO>({ unitCode: '', unitName: '', sort: 0, status: 1 })
 const formRef = ref<FormInst | null>(null)
 const rules: FormRules = {
   unitCode: [
-    requiredRule('单位编码不能为空'),
-    lengthRule(3, 50, '单位编码长度需在3-50之间'),
-    patternRule(USERNAME_PATTERN, '单位编码只能包含字母、数字、下划线'),
+    requiredRule(t('sys.unit.unitCodeRequired')),
+    lengthRule(3, 50, t('sys.unit.unitCodeLength')),
+    patternRule(USERNAME_PATTERN, t('sys.unit.unitCodePattern')),
   ],
   unitName: [
-    requiredRule('单位名称不能为空'),
-    maxLengthRule(100, '单位名称长度不能超过100'),
+    requiredRule(t('sys.unit.unitNameRequired')),
+    maxLengthRule(100, t('sys.unit.unitNameLength')),
   ],
-  sort: [patternRule(/^\d*$/, '排序值必须是非负整数')],
-  remark: [maxLengthRule(200, '备注长度不能超过200')],
+  sort: [patternRule(/^\d*$/, t('sys.unit.sortPattern'))],
+  remark: [maxLengthRule(200, t('sys.unit.remarkLength'))],
 }
 
 async function fetchData() {
@@ -84,25 +86,25 @@ async function handleSave() {
   try {
     if (editingId.value) {
       await unitApi.update(editingId.value, form.value)
-      message.success('修改成功')
+      message.success(t('common.modifySuccess'))
     } else {
       await unitApi.create(form.value)
-      message.success('新增成功')
+      message.success(t('common.createSuccess'))
     }
     showModal.value = false
     fetchData()
   } catch (e: any) {
-    message.error(e.response?.data?.message || '操作失败')
+    message.error(e.response?.data?.message || t('common.operationFailed'))
   }
 }
 
 async function handleDelete(row: UnitTreeNode) {
   try {
     await unitApi.delete(row.id)
-    message.success('删除成功')
+    message.success(t('common.deleteSuccess'))
     fetchData()
   } catch (e: any) {
-    message.error(e.response?.data?.message || '删除失败')
+    message.error(e.response?.data?.message || t('common.deleteFailed'))
   }
 }
 
@@ -128,15 +130,15 @@ function renderLabel({ option }: { option: TreeOption }) {
       authStore.hasPermission('sys:unit:add') && h(NButton, {
         size: 'tiny', text: true, type: 'primary',
         onClick: () => handleAdd(node.id),
-      }, { default: () => '新增' }),
+      }, { default: () => t('sys.unit.add') }),
       authStore.hasPermission('sys:unit:edit') && h(NButton, {
         size: 'tiny', text: true, type: 'primary',
         onClick: () => handleEdit(node),
-      }, { default: () => '编辑' }),
+      }, { default: () => t('sys.unit.edit') }),
       authStore.hasPermission('sys:unit:delete') && h(NButton, {
         size: 'tiny', text: true, type: 'error',
         onClick: () => handleDelete(node),
-      }, { default: () => '删除' }),
+      }, { default: () => t('sys.unit.delete') }),
     ]),
   ])
 }
@@ -147,7 +149,7 @@ onMounted(fetchData)
 <template>
   <NCard>
     <NSpace class="mb-4" justify="end">
-      <NButton v-permission="'sys:unit:add'" type="primary" @click="handleAdd()">新增单位</NButton>
+      <NButton v-permission="'sys:unit:add'" type="primary" @click="handleAdd()">{{ t('sys.unit.addUnit') }}</NButton>
     </NSpace>
 
     <NTree
@@ -162,32 +164,32 @@ onMounted(fetchData)
       expand-on-click
       @update:expanded-keys="handleExpand"
     />
-    <NEmpty v-else-if="!loading" description="暂无单位数据" />
+    <NEmpty v-else-if="!loading" :description="t('sys.unit.noUnitData')" />
   </NCard>
 
-  <NModal v-model:show="showModal" :title="editingId ? '编辑单位' : '新增单位'" preset="card" :style="{ width: '500px' }">
+  <NModal v-model:show="showModal" :title="editingId ? t('sys.unit.editUnit') : t('sys.unit.addUnit')" preset="card" :style="{ width: '500px' }">
     <NForm ref="formRef" :model="form" :rules="rules" label-placement="left" :label-width="80">
-      <NFormItem label="上级单位">
-        <NSelect v-model:value="form.parentId" :options="flattenUnits(tree)" placeholder="顶级单位" clearable />
+      <NFormItem :label="t('sys.unit.parentUnit')">
+        <NSelect v-model:value="form.parentId" :options="flattenUnits(tree)" :placeholder="t('sys.unit.topUnit')" clearable />
       </NFormItem>
-      <NFormItem label="单位编码" required path="unitCode">
-        <NInput v-model:value="form.unitCode" :disabled="!!editingId" placeholder="如 HQ" />
+      <NFormItem :label="t('sys.unit.unitCode')" required path="unitCode">
+        <NInput v-model:value="form.unitCode" :disabled="!!editingId" :placeholder="t('sys.unit.unitCodePlaceholder')" />
       </NFormItem>
-      <NFormItem label="单位名称" required path="unitName">
-        <NInput v-model:value="form.unitName" placeholder="如 总部" />
+      <NFormItem :label="t('sys.unit.unitName')" required path="unitName">
+        <NInput v-model:value="form.unitName" :placeholder="t('sys.unit.unitNamePlaceholder')" />
       </NFormItem>
-      <NFormItem label="排序" path="sort">
-        <NInput :value="String(form.sort ?? '')" placeholder="0" @update:value="(v: string) => form.sort = v ? Number(v) : undefined" />
+      <NFormItem :label="t('sys.unit.sort')" path="sort">
+        <NInput :value="String(form.sort ?? '')" :placeholder="t('sys.unit.sortPlaceholder')" @update:value="(v: string) => form.sort = v ? Number(v) : undefined" />
       </NFormItem>
-      <NFormItem label="状态">
+      <NFormItem :label="t('sys.unit.status')">
         <NSwitch v-model:value="form.status" :checked-value="1" :unchecked-value="0" />
       </NFormItem>
-      <NFormItem label="备注" path="remark">
+      <NFormItem :label="t('common.remark')" path="remark">
         <NInput v-model:value="form.remark" type="textarea" />
       </NFormItem>
       <NSpace justify="end">
-        <NButton @click="showModal = false">取消</NButton>
-        <NButton type="primary" @click="handleSave">保存</NButton>
+        <NButton @click="showModal = false">{{ t('common.cancel') }}</NButton>
+        <NButton type="primary" @click="handleSave">{{ t('common.save') }}</NButton>
       </NSpace>
     </NForm>
   </NModal>
