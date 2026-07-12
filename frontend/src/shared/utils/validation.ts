@@ -1,14 +1,21 @@
 import type { FormItemRule } from 'naive-ui'
+import i18n from '@/i18n'
 
 /**
- * 表单校验工具集（Phase 1）。
+ * 表单校验工具集（Phase 1，F4 已接入 vue-i18n）。
  *
  * 设计目标：
  *  - 与后端 DTO 注解保持一一对应（同样的 min/max/pattern），确保前后端校验同源；
  *  - 每个 factory 返回单条 Naive UI `FormItemRule`，调用方通过数组组合多规则；
+ *  - 消息文案支持三种来源（按优先级）：
+ *    1) 调用方显式传入字面量（如旧的 `'用户名不能为空'`）—— 原样透传，向后兼容；
+ *    2) 调用方传入已注册的 i18n key（如 `validation.user.username.notBlank`）—— 通过 `i18n.global.t()` 解析；
+ *    3) 调用方未传 message —— 使用 factory 的默认 key 解析。
  *  - 全部显式类型，无 `any`，符合 TS strict 模式。
  *
- * 后续 Phase 将把这套规则复用到 role / menu / unit / config 等表单。
+ * factory 既可能在 `<script setup>` 顶层（组件级常量）被调用，也可能在 setup() 内部调用；
+ * 为兼容前者，使用全局实例的 `i18n.global.t()`，而非 `useI18n()` 组合式 API。
+ * 消息在 factory 调用时即时解析（eager）—— 运行时切换 locale 后，已构造的规则不会自动重译。
  */
 
 /** 用户名：仅字母、数字、下划线（与后端 @Pattern 一致）。 */
@@ -21,30 +28,62 @@ export const PHONE_PATTERN = /^1[3-9]\d{9}$/
 export const CONFIG_KEY_PATTERN = /^[a-zA-Z0-9._-]+$/
 
 /**
+ * 解析规则消息：字面量 / i18n key / 默认 key。
+ *
+ * @param message    调用方传入的消息（可选）。若为已注册 key 则翻译，否则按字面量返回。
+ * @param defaultKey 调用方未传 message 时使用的默认 key（必须已注册）。
+ * @param params     命名参数（如 `{ min, max }`），用于带占位符的默认消息插值。
+ */
+function resolveMessage(
+  message: string | undefined,
+  defaultKey: string,
+  params?: Record<string, unknown>,
+): string {
+  if (message !== undefined) {
+    // 显式传入：若为已注册 key 则解析，否则按字面量原样返回（向后兼容旧调用）
+    return i18n.global.te(message) ? i18n.global.t(message, params ?? {}) : message
+  }
+  return i18n.global.t(defaultKey, params ?? {})
+}
+
+/**
  * 必填规则。
  *
  * Naive UI 中 `required` 与 `type`/`pattern` 等是相互独立的：
  * 仅当显式声明 `required: true` 时才强制非空。
+ *
+ * 默认 key：`common.required`。
  */
-export function requiredRule(message: string): FormItemRule {
-  return { required: true, message, trigger: ['blur', 'input'] }
+export function requiredRule(message?: string): FormItemRule {
+  return { required: true, message: resolveMessage(message, 'common.required'), trigger: ['blur', 'input'] }
 }
 
 /**
  * 长度区间规则（适用于字符串字段）。
  *
  * Naive UI 底层使用 async-validator，`min` / `max` 对字符串字段表示字符数区间。
+ *
+ * 默认 key：`common.lengthRule`（带 `{min}` / `{max}` 占位符）。
  */
-export function lengthRule(min: number, max: number, message: string): FormItemRule {
-  return { min, max, message, trigger: ['blur', 'input'] }
+export function lengthRule(min: number, max: number, message?: string): FormItemRule {
+  return {
+    min,
+    max,
+    message: resolveMessage(message, 'common.lengthRule', { min, max }),
+    trigger: ['blur', 'input'],
+  }
 }
 
-export function maxLengthRule(max: number, message: string): FormItemRule {
-  return { max, message, trigger: ['blur', 'input'] }
+export function maxLengthRule(max: number, message?: string): FormItemRule {
+  return {
+    max,
+    message: resolveMessage(message, 'common.maxLengthRule', { max }),
+    trigger: ['blur', 'input'],
+  }
 }
 
-export function patternRule(pattern: RegExp, message: string): FormItemRule {
-  return { pattern, message, trigger: ['blur', 'input'] }
+export function patternRule(pattern: RegExp, message?: string): FormItemRule {
+  return { pattern, message: resolveMessage(message, 'common.invalidFormat'), trigger: ['blur', 'input'] }
 }
 
 /**
@@ -53,7 +92,13 @@ export function patternRule(pattern: RegExp, message: string): FormItemRule {
  * 使用 Naive UI 内置 `type: 'email'` 校验（底层 async-validator 实现，
  * 比 RFC 正则更稳健）。注意：`type: 'email'` 仅在字段有值时触发，
  * 不会强制非空 —— 这正是可选字段期望的行为。如需必填，请叠加 `requiredRule`。
+ *
+ * 默认 key：`validation.user.email.pattern`（与后端 `messages.properties` 同名 key 对齐）。
  */
-export function emailRule(message = '邮箱格式不正确'): FormItemRule {
-  return { type: 'email', message, trigger: ['blur', 'input'] }
+export function emailRule(message?: string): FormItemRule {
+  return {
+    type: 'email',
+    message: resolveMessage(message, 'validation.user.email.pattern'),
+    trigger: ['blur', 'input'],
+  }
 }

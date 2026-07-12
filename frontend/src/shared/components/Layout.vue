@@ -16,18 +16,27 @@ import {
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import { useNotifyStore } from '@/stores/notify'
+import { useLocaleStore } from '@/stores/locale'
+import { SUPPORTED_LOCALES, type AppLocale } from '@/i18n'
 import { useBreakpoint } from '@/shared/composables/useBreakpoint'
 import { formatDateTime } from '@/shared/utils/datetime'
 import { notifyApi, type NotifyInboxVO, type NotifyLevel } from '@/shared/api/notify'
 import type { MenuTreeNode } from '@/modules/sys/api/types'
+import { useI18n } from 'vue-i18n'
+import { useMessage } from 'naive-ui'
+import { type DropdownOption } from 'naive-ui'
 
 const themeStore = useThemeStore()
 const authStore = useAuthStore()
 const notifyStore = useNotifyStore()
+const localeStore = useLocaleStore()
 const router = useRouter()
 const route = useRoute()
 const collapsed = ref(false)
 const drawerVisible = ref(false)
+
+const { t } = useI18n()
+const message = useMessage()
 
 // 消息中心：铃铛下拉的最近未读列表（懒加载，打开时拉取）
 const bellPopoverShow = ref(false)
@@ -102,7 +111,7 @@ function handleMenuUpdate(key: string) {
 }
 
 const userOptions = [
-  { label: '退出登录', key: 'logout', icon: renderIcon(LogOutOutline) },
+  { label: t('layout.logout'), key: 'logout', icon: renderIcon(LogOutOutline) },
 ]
 
 function handleUserAction(key: string) {
@@ -120,9 +129,9 @@ function levelTagType(level: NotifyLevel): 'error' | 'warning' | 'info' {
 }
 
 function levelLabel(level: NotifyLevel): string {
-  if (level === 'URGENT') return '紧急'
-  if (level === 'IMPORTANT') return '重要'
-  return '普通'
+  if (level === 'URGENT') return t('layout.levelUrgent')
+  if (level === 'IMPORTANT') return t('layout.levelImportant')
+  return t('layout.levelNormal')
 }
 
 // 打开铃铛下拉时拉取最近 5 条未读；端点未上线时静默置空
@@ -146,6 +155,16 @@ function handleBellPopoverShow(show: boolean): void {
 function goToInbox(): void {
   bellPopoverShow.value = false
   router.push('/sys/message')
+}
+
+// Language switcher
+const localeOptions = computed<DropdownOption[]>(() =>
+  SUPPORTED_LOCALES.map(l => ({ label: l.label, key: l.value }))
+)
+
+function handleLocaleChange(key: string) {
+  localeStore.setLocale(key as AppLocale)
+  message.success(t('common.localeChanged'))
 }
 </script>
 
@@ -215,10 +234,21 @@ function goToInbox(): void {
               </NIcon>
             </template>
           </NButton>
-          <NText class="font-display font-semibold truncate">{{ (route.meta.title as string) || '首页' }}</NText>
+          <NText class="font-display font-semibold truncate">{{ t(route.meta.titleKey || 'route.dashboard') }}</NText>
         </div>
 
         <NSpace align="center" :wrap="false">
+          <!-- Language switcher -->
+          <NDropdown :options="localeOptions" trigger="click" @select="handleLocaleChange">
+            <NButton quaternary circle>
+              <template #icon>
+                <NIcon>
+                  <GlobeOutline />
+                </NIcon>
+              </template>
+            </NButton>
+          </NDropdown>
+
           <!-- 主题切换 -->
           <NButton quaternary circle @click="themeStore.toggle()">
             <template #icon>
@@ -239,7 +269,7 @@ function goToInbox(): void {
           >
             <template #trigger>
               <NBadge :value="notifyStore.unreadCount" :max="99" :offset="[-4, 4]">
-                <NButton quaternary circle aria-label="消息中心">
+                <NButton quaternary circle :aria-label="t('layout.messageCenter')">
                   <template #icon>
                     <NIcon>
                       <NotificationsOutline />
@@ -253,14 +283,14 @@ function goToInbox(): void {
               <div
                 class="px-3 py-2 text-sm font-semibold border-b border-[rgb(var(--color-border))]"
               >
-                未读消息
+                {{ t('layout.unreadMessages') }}
               </div>
               <NSpin :show="recentLoading">
                 <div
                   v-if="!recentLoading && !recentMessages.length"
                   class="px-3 py-6 text-center text-sm opacity-60"
                 >
-                  暂无未读消息
+                  {{ t('layout.noUnreadMessages') }}
                 </div>
                 <ul v-else class="max-h-[300px] overflow-auto">
                   <li
@@ -273,14 +303,14 @@ function goToInbox(): void {
                       <NTag :type="levelTagType(m.level)" size="small" :bordered="false">
                         {{ levelLabel(m.level) }}
                       </NTag>
-                      <NText class="truncate text-sm">{{ m.title || '(无标题)' }}</NText>
+                      <NText class="truncate text-sm">{{ m.title || t('layout.noTitle') }}</NText>
                     </div>
                     <NText depth="3" class="text-xs">{{ formatDateTime(m.createdAt) }}</NText>
                   </li>
                 </ul>
               </NSpin>
               <div class="px-3 py-2 border-t border-[rgb(var(--color-border))]">
-                <NButton text type="primary" block @click="goToInbox">查看全部</NButton>
+                <NButton text type="primary" block @click="goToInbox">{{ t('layout.viewAll') }}</NButton>
               </div>
             </div>
           </NPopover>
