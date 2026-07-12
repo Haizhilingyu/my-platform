@@ -7,6 +7,7 @@ import { useNotifyStore, type UrgentPayload } from '@/stores/notify'
 import { useWebSocket } from '@/shared/composables/useWebSocket'
 import { useBreakpoint } from '@/shared/composables/useBreakpoint'
 import { notifyApi } from '@/shared/api/notify'
+import { useI18n } from 'vue-i18n'
 
 interface PushEnvelope {
   type?: string
@@ -23,6 +24,7 @@ const router = useRouter()
 const notification = useNotification()
 const { isMobile } = useBreakpoint()
 const { connect, disconnect, onMessage } = useWebSocket()
+const { t } = useI18n()
 
 function buildWsUrl(): string {
   const explicit = import.meta.env.VITE_WS_URL as string | undefined
@@ -38,7 +40,7 @@ function handleMessage(raw: unknown): void {
   if (!msg || typeof msg !== 'object') return
   notifyStore.incrementUnread()
   const level = msg.level
-  const title = msg.title || '新消息'
+  const title = msg.title || t('layout.newMessage')
   const content = msg.content || ''
   if (level === 'URGENT') {
     const payload: UrgentPayload = { messageId: msg.messageId ?? 0, title, content }
@@ -104,7 +106,7 @@ onUnmounted(() => disconnect())
   <NModal
     v-model:show="showUrgent"
     preset="card"
-    :title="notifyStore.currentUrgent?.title || '紧急通知'"
+    :title="notifyStore.currentUrgent?.title || t('layout.urgentNotification')"
     :style="modalStyle"
     :mask-closable="false"
     size="huge"
@@ -114,8 +116,8 @@ onUnmounted(() => disconnect())
     <NText>{{ notifyStore.currentUrgent?.content }}</NText>
     <template #footer>
       <NSpace justify="end">
-        <NButton @click="showUrgent = false">稍后处理</NButton>
-        <NButton type="primary" @click="goToInbox">查看详情</NButton>
+        <NButton @click="showUrgent = false">{{ t('layout.handleLater') }}</NButton>
+        <NButton type="primary" @click="goToInbox">{{ t('layout.viewDetails') }}</NButton>
       </NSpace>
     </template>
   </NModal>

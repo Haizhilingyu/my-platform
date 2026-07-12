@@ -2,8 +2,10 @@
 import { NCard, NGrid, NGi, NIcon } from 'naive-ui'
 import { PersonOutline, ShieldCheckmarkOutline, MenuOutline, DocumentTextOutline } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
+import { useI18n } from 'vue-i18n'
 
 const authStore = useAuthStore()
+const { t } = useI18n()
 </script>
 
 <template>
@@ -11,7 +13,7 @@ const authStore = useAuthStore()
     <div class="px-2 py-3">
       <span class="micro-label text-[rgb(var(--color-text-secondary))]">OVERVIEW</span>
       <h1 class="font-display text-2xl font-semibold mt-1">
-        欢迎回来，<span class="text-[rgb(var(--color-primary))]">{{ authStore.user?.realName || authStore.user?.username }}</span>
+        {{ t('dashboard.welcome') }}，<span class="text-[rgb(var(--color-primary))]">{{ authStore.user?.realName || authStore.user?.username }}</span>
       </h1>
     </div>
 

@@ -23,10 +23,12 @@ import { authApi } from '@/modules/sys/api/auth'
 import { requiredRule, maxLengthRule } from '@/shared/utils/validation'
 import type { LoginMethodDescriptor } from '@/modules/sys/api/types'
 import type { AxiosError } from 'axios'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const message = useMessage()
+const { t } = useI18n()
 
 const loading = ref(false)
 const methodsLoading = ref(false)
@@ -45,9 +47,9 @@ function setFormRef(el: unknown): void {
   formRef.value = (el as FormInst | null) ?? null
 }
 const rules: FormRules = {
-  username: [requiredRule('用户名不能为空'), maxLengthRule(32, '用户名长度不能超过32')],
-  password: [requiredRule('密码不能为空'), maxLengthRule(32, '密码长度不能超过32')],
-  captchaCode: [maxLengthRule(6, '验证码长度不能超过6')],
+  username: [requiredRule(t('login.usernameRequired')), maxLengthRule(32, t('login.usernameTooLong'))],
+  password: [requiredRule(t('login.passwordRequired')), maxLengthRule(32, t('login.passwordTooLong'))],
+  captchaCode: [maxLengthRule(6, t('login.captchaTooLong'))],
 }
 const captchaId = ref<string>('')
 const captchaImage = ref<string>('')
@@ -81,7 +83,7 @@ async function fetchLoginMethods() {
 }
 
 function fallbackMethods(): LoginMethodDescriptor[] {
-  return [{ method: 'password', label: '账号密码', icon: 'password', order: 0 }]
+  return [{ method: 'password', label: t('login.passwordMethod'), icon: 'password', order: 0 }]
 }
 
 async function refreshCaptcha() {
@@ -93,7 +95,7 @@ async function refreshCaptcha() {
     form.value.captchaCode = ''
   } catch {
     // 验证码拉取失败不阻塞登录尝试，但提示用户。
-    message.error('验证码加载失败，请刷新重试')
+    message.error(t('login.captchaLoadFailed'))
   } finally {
     captchaLoading.value = false
   }
@@ -117,7 +119,7 @@ async function handleLogin() {
       captchaId: captchaId.value,
       captchaCode: form.value.captchaCode,
     })
-    message.success('登录成功')
+    message.success(t('login.loginSuccess'))
     router.push('/')
   } catch (e: unknown) {
     // 验证码单次使用，失败后必须刷新；同时映射 HTTP 状态到精确提示。
@@ -132,10 +134,10 @@ async function handleLogin() {
 function mapLoginError(e: unknown): string {
   const status = (e as AxiosError)?.response?.status
   const serverMsg = ((e as AxiosError<{ message?: string }>)?.response?.data?.message) || ''
-  if (status === 423) return '账号已锁定，联系管理员'
-  if (status === 400) return serverMsg.includes('验证码') ? '验证码错误' : serverMsg || '请求参数错误'
-  if (status === 401) return '用户名或密码错误'
-  return serverMsg || '登录失败，请稍后重试'
+  if (status === 423) return t('login.accountLocked')
+  if (status === 400) return serverMsg.includes('验证码') ? t('login.captchaError') : serverMsg || t('login.requestError')
+  if (status === 401) return t('login.invalidCredentials')
+  return serverMsg || t('login.loginFailed')
 }
 </script>
 
@@ -149,7 +151,7 @@ function mapLoginError(e: unknown): string {
           My Platform
         </h1>
         <p class="text-[rgb(var(--color-text-secondary))] text-lg mb-8 md:mb-12">
-          模块化开发平台
+          {{ t('login.subtitle') }}
         </p>
 
         <!-- Feature bullets - hide on mobile, show on desktop -->
@@ -157,19 +159,19 @@ function mapLoginError(e: unknown): string {
           <div>
             <div class="micro-label mb-1">MODULES</div>
             <p class="text-[rgb(var(--color-text-secondary))] text-sm">
-              用户、角色、权限、通知的模块化管理
+              {{ t('login.featureModules') }}
             </p>
           </div>
           <div>
             <div class="micro-label mb-1">SECURITY</div>
             <p class="text-[rgb(var(--color-text-secondary))] text-sm">
-              JWT 认证与 OAuth2 授权服务
+              {{ t('login.featureSecurity') }}
             </p>
           </div>
           <div>
             <div class="micro-label mb-1">AUDIT</div>
             <p class="text-[rgb(var(--color-text-secondary))] text-sm">
-              全链路操作审计与实时推送
+              {{ t('login.featureAudit') }}
             </p>
           </div>
         </div>
@@ -207,10 +209,10 @@ function mapLoginError(e: unknown): string {
                 :tab="m.label"
               >
                 <NForm :ref="setFormRef" :model="form" :rules="rules" class="mt-2" @keyup.enter="handleLogin">
-                  <NFormItem label="用户名" path="username">
+                  <NFormItem :label="t('login.username')" path="username">
                     <NInput
                       v-model:value="form.username"
-                      placeholder="请输入用户名"
+                      :placeholder="t('login.usernamePlaceholder')"
                       :input-props="{ autocomplete: 'username' }"
                       clearable
                     >
@@ -222,12 +224,12 @@ function mapLoginError(e: unknown): string {
                     </NInput>
                   </NFormItem>
 
-                  <NFormItem label="密码" path="password">
+                  <NFormItem :label="t('login.password')" path="password">
                     <NInput
                       v-model:value="form.password"
                       type="password"
                       show-password-on="click"
-                      placeholder="请输入密码"
+                      :placeholder="t('login.passwordPlaceholder')"
                       :input-props="{ autocomplete: 'current-password' }"
                     >
                       <template #prefix>
@@ -238,11 +240,11 @@ function mapLoginError(e: unknown): string {
                     </NInput>
                   </NFormItem>
 
-                  <NFormItem label="验证码" path="captchaCode">
+                  <NFormItem :label="t('login.captchaCode')" path="captchaCode">
                     <div class="flex items-stretch gap-2 w-full">
                       <NInput
                         v-model:value="form.captchaCode"
-                        placeholder="请输入验证码"
+                        :placeholder="t('login.captchaPlaceholder')"
                         maxlength="6"
                         class="flex-1"
                       />
@@ -250,14 +252,14 @@ function mapLoginError(e: unknown): string {
                       <button
                         type="button"
                         class="flex-shrink-0 rounded overflow-hidden border border-[rgb(var(--color-border))] cursor-pointer hover:border-[rgb(var(--color-primary))] transition-colors bg-[rgb(var(--color-surface-hover))] flex items-center justify-center h-[34px] min-w-[110px]"
-                        title="点击刷新验证码"
+                        :title="t('login.refreshCaptcha')"
                         @click="refreshCaptcha"
                       >
                         <NSpin v-if="captchaLoading" size="small" />
                         <img
                           v-else-if="captchaImage"
                           :src="captchaImage"
-                          alt="点击刷新验证码"
+                          :alt="t('login.refreshCaptcha')"
                           class="h-full w-full object-cover"
                         >
                         <NIcon v-else size="18" class="text-[rgb(var(--color-text-secondary))]">
@@ -287,7 +289,7 @@ function mapLoginError(e: unknown): string {
                       :disabled="loading"
                       @click="handleLogin"
                     >
-                      登录
+                      {{ t('login.login') }}
                     </NButton>
                   </NSpace>
                 </NForm>
