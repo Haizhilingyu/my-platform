@@ -1,5 +1,7 @@
 package com.example.common.exception;
 
+import com.example.common.i18n.Messages;
+
 /**
  * 账号锁定异常。登录失败次数超过阈值时抛出，由 {@link GlobalExceptionHandler} 统一映射为 HTTP 423 Locked。
  *
@@ -18,8 +20,8 @@ public class AccountLockedException extends BizException {
     super(LOCKED_CODE, message);
   }
 
-  /** 默认提示文案。 */
+  /** 默认提示文案（通过 i18n 解析 {@code error.account.locked}）。 */
   public static AccountLockedException defaultMessage() {
-    return new AccountLockedException("账号已锁定，请联系管理员或稍后重试");
+    return new AccountLockedException(Messages.get("error.account.locked"));
   }
 }

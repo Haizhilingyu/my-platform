@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -18,11 +20,17 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-/** 全局异常处理器。统一包装所有异常为标准 Result 格式。 */
+/** 全局异常处理器。统一包装所有异常为标准 Result 格式。框架异常的消息通过 {@link MessageSource} i18n 解析。 */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+  private final MessageSource messageSource;
+
+  public GlobalExceptionHandler(MessageSource messageSource) {
+    this.messageSource = messageSource;
+  }
 
   @ExceptionHandler(BizException.class)
   public ResponseEntity<Result<Void>> handleBiz(BizException ex, HttpServletRequest req) {
@@ -42,7 +50,9 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(AccessDeniedException.class)
   public ResponseEntity<Result<Void>> handleAccessDenied(AccessDeniedException ex) {
-    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Result.fail(403, "无权限访问"));
+    String message =
+        messageSource.getMessage("error.access.denied", null, LocaleContextHolder.getLocale());
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Result.fail(403, message));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -52,7 +62,9 @@ public class GlobalExceptionHandler {
     for (FieldError error : ex.getBindingResult().getFieldErrors()) {
       errors.put(error.getField(), error.getDefaultMessage());
     }
-    return ResponseEntity.badRequest().body(Result.fail(400, "参数校验失败", errors));
+    String message =
+        messageSource.getMessage("error.validation.failed", null, LocaleContextHolder.getLocale());
+    return ResponseEntity.badRequest().body(Result.fail(400, message, errors));
   }
 
   /**
@@ -67,7 +79,9 @@ public class GlobalExceptionHandler {
     for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
       errors.put(violation.getPropertyPath().toString(), violation.getMessage());
     }
-    return ResponseEntity.badRequest().body(Result.fail(400, "参数校验失败", errors));
+    String message =
+        messageSource.getMessage("error.validation.failed", null, LocaleContextHolder.getLocale());
+    return ResponseEntity.badRequest().body(Result.fail(400, message, errors));
   }
 
   /**
@@ -78,7 +92,9 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(HttpMessageNotReadableException.class)
   public ResponseEntity<Result<Void>> handleHttpMessageNotReadable(
       HttpMessageNotReadableException ex) {
-    return ResponseEntity.badRequest().body(Result.fail(400, "请求体格式错误"));
+    String message =
+        messageSource.getMessage("error.body.malformed", null, LocaleContextHolder.getLocale());
+    return ResponseEntity.badRequest().body(Result.fail(400, message));
   }
 
   /**
@@ -89,13 +105,19 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(MissingServletRequestParameterException.class)
   public ResponseEntity<Result<Void>> handleMissingServletRequestParameter(
       MissingServletRequestParameterException ex) {
-    return ResponseEntity.badRequest()
-        .body(Result.fail(400, "缺少必需的请求参数: " + ex.getParameterName()));
+    String message =
+        messageSource.getMessage(
+            "error.param.missing",
+            new Object[] {ex.getParameterName()},
+            LocaleContextHolder.getLocale());
+    return ResponseEntity.badRequest().body(Result.fail(400, message));
   }
 
   @ExceptionHandler(Exception.class)
   public ResponseEntity<Result<Void>> handleGeneric(Exception ex, HttpServletRequest req) {
     log.error("系统异常: {} {}", req.getRequestURI(), ex.getMessage(), ex);
-    return ResponseEntity.status(500).body(Result.fail(500, "系统内部错误"));
+    String message =
+        messageSource.getMessage("error.system", null, LocaleContextHolder.getLocale());
+    return ResponseEntity.status(500).body(Result.fail(500, message));
   }
 }
