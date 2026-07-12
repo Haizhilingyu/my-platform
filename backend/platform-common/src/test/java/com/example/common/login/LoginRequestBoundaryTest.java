@@ -2,12 +2,10 @@ package com.example.common.login;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import jakarta.validation.Validation;
+import com.example.common.i18n.ValidationTestHelper;
 import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,8 +15,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 @DisplayName("LoginRequest Bean Validation 边界值校验")
 class LoginRequestBoundaryTest {
 
-  private static final ValidatorFactory FACTORY = Validation.buildDefaultValidatorFactory();
-  private static final Validator VALIDATOR = FACTORY.getValidator();
+  private static final Validator VALIDATOR = ValidationTestHelper.validatorWithMessages();
 
   private static final String USERNAME_REQUIRED = "用户名不能为空";
   private static final String USERNAME_TOO_LONG = "用户名长度不能超过32";
@@ -59,11 +56,6 @@ class LoginRequestBoundaryTest {
   private static java.util.Collection<String> violationMessages(
       java.util.Set<jakarta.validation.ConstraintViolation<LoginRequest>> violations) {
     return violations.stream().map(jakarta.validation.ConstraintViolation::getMessage).toList();
-  }
-
-  @AfterAll
-  static void closeFactory() {
-    FACTORY.close();
   }
 
   @Nested

@@ -80,7 +80,8 @@ public class UserController {
 
   @RequiresPermission("sys:user:delete")
   @DeleteMapping("/batch")
-  public Result<Void> deleteBatch(@RequestBody @NotEmpty(message = "删除ID列表不能为空") List<Long> ids) {
+  public Result<Void> deleteBatch(
+      @RequestBody @NotEmpty(message = "{validation.controller.ids.notEmpty}") List<Long> ids) {
     userService.deleteBatch(ids);
     return Result.ok();
   }
@@ -88,7 +89,9 @@ public class UserController {
   @RequiresPermission("sys:user:role")
   @PostMapping("/{id}/roles")
   public Result<Void> assignRoles(
-      @PathVariable Long id, @RequestBody @NotEmpty(message = "角色ID列表不能为空") List<Long> roleIds) {
+      @PathVariable Long id,
+      @RequestBody @NotEmpty(message = "{validation.controller.roleIds.notEmpty}")
+          List<Long> roleIds) {
     userService.assignRoles(id, roleIds);
     return Result.ok();
   }
@@ -104,8 +107,8 @@ public class UserController {
   public Result<Void> resetPassword(
       @PathVariable Long id,
       @RequestParam
-          @NotBlank(message = "新密码不能为空")
-          @Size(min = 6, max = 32, message = "密码长度需在6-32之间")
+          @NotBlank(message = "{validation.controller.newPassword.notBlank}")
+          @Size(min = 6, max = 32, message = "{validation.controller.newPassword.size}")
           String newPassword) {
     userService.resetPassword(id, newPassword);
     return Result.ok();

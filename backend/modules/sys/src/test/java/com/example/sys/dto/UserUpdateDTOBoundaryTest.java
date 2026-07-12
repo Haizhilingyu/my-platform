@@ -2,13 +2,11 @@ package com.example.sys.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import jakarta.validation.Validation;
+import com.example.common.i18n.ValidationTestHelper;
 import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -18,8 +16,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 @DisplayName("UserUpdateDTO Bean Validation 边界值校验（字段全可选）")
 class UserUpdateDTOBoundaryTest {
 
-  private static final ValidatorFactory FACTORY = Validation.buildDefaultValidatorFactory();
-  private static final Validator VALIDATOR = FACTORY.getValidator();
+  private static final Validator VALIDATOR = ValidationTestHelper.validatorWithMessages();
 
   private static final String REALNAME_SIZE = "姓名长度不能超过50";
   private static final String EMAIL_FORMAT = "邮箱格式不正确";
@@ -51,11 +48,6 @@ class UserUpdateDTOBoundaryTest {
     if (expectedMessage != null) {
       assertThat(messages(violations)).contains(expectedMessage);
     }
-  }
-
-  @AfterAll
-  static void closeFactory() {
-    FACTORY.close();
   }
 
   @Nested

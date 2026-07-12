@@ -21,11 +21,15 @@ import java.util.Map;
  * @param attributes 扩展属性映射，承载非通用字段：LDAP 域、SSO token 等。 由各 {@link LoginMethodProvider} 自行解析所需的键。
  */
 public record LoginRequest(
-    @Size(max = 32, message = "登录方式长度不能超过32") String method,
-    @NotBlank(message = "用户名不能为空") @Size(max = 32, message = "用户名长度不能超过32") String username,
-    @NotBlank(message = "密码不能为空") @Size(max = 32, message = "密码长度不能超过32") String password,
-    @Size(max = 64, message = "验证码标识长度不能超过64") String captchaId,
-    @Size(max = 6, message = "验证码长度不能超过6") String captchaCode,
+    @Size(max = 32, message = "{validation.login.method.size}") String method,
+    @NotBlank(message = "{validation.login.username.notBlank}")
+        @Size(max = 32, message = "{validation.login.username.size}")
+        String username,
+    @NotBlank(message = "{validation.login.password.notBlank}")
+        @Size(max = 32, message = "{validation.login.password.size}")
+        String password,
+    @Size(max = 64, message = "{validation.login.captchaId.size}") String captchaId,
+    @Size(max = 6, message = "{validation.login.captchaCode.size}") String captchaCode,
     Map<String, Object> attributes) {
 
   /** 便捷工厂：构造密码登录请求（method="password"，无验证码，无扩展属性）。 */

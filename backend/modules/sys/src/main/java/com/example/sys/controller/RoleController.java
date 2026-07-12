@@ -63,7 +63,9 @@ public class RoleController {
   @RequiresPermission("sys:role:perm")
   @PostMapping("/{id}/menus")
   public Result<Void> assignMenus(
-      @PathVariable Long id, @RequestBody @NotEmpty(message = "菜单ID列表不能为空") List<Long> menuIds) {
+      @PathVariable Long id,
+      @RequestBody @NotEmpty(message = "{validation.controller.menuIds.notEmpty}")
+          List<Long> menuIds) {
     roleService.assignMenus(id, menuIds);
     return Result.ok();
   }

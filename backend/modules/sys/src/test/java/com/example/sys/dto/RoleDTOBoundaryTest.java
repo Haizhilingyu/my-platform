@@ -2,14 +2,12 @@ package com.example.sys.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.example.common.i18n.ValidationTestHelper;
 import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
 import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -20,8 +18,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 @DisplayName("RoleDTO Bean Validation 边界值校验")
 class RoleDTOBoundaryTest {
 
-  private static final ValidatorFactory FACTORY = Validation.buildDefaultValidatorFactory();
-  private static final Validator VALIDATOR = FACTORY.getValidator();
+  private static final Validator VALIDATOR = ValidationTestHelper.validatorWithMessages();
 
   private static final String ROLECODE_REQUIRED = "角色编码不能为空";
   private static final String ROLECODE_SIZE = "角色编码长度需在3-50之间";
@@ -62,11 +59,6 @@ class RoleDTOBoundaryTest {
     if (expectedMessage != null) {
       assertThat(messages(violations)).contains(expectedMessage);
     }
-  }
-
-  @AfterAll
-  static void closeFactory() {
-    FACTORY.close();
   }
 
   @Nested

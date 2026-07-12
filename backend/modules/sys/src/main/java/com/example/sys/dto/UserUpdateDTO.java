@@ -11,26 +11,26 @@ import lombok.Data;
 @Data
 public class UserUpdateDTO {
 
-  @Size(max = 50, message = "姓名长度不能超过50")
+  @Size(max = 50, message = "{validation.user.realName.size}")
   private String realName;
 
-  @Email(message = "邮箱格式不正确")
-  @Size(max = 100, message = "邮箱长度不能超过100")
+  @Email(message = "{validation.user.email.pattern}")
+  @Size(max = 100, message = "{validation.user.email.size}")
   private String email;
 
-  @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
-  @Size(max = 20, message = "手机号长度不能超过20")
+  @Pattern(regexp = "^1[3-9]\\d{9}$", message = "{validation.user.phone.pattern}")
+  @Size(max = 20, message = "{validation.user.phone.size}")
   private String phone;
 
   private Long unitId;
 
-  @Size(max = 500, message = "头像URL长度不能超过500")
+  @Size(max = 500, message = "{validation.user.avatar.size}")
   private String avatar;
 
-  @Min(value = 0, message = "状态值非法")
-  @Max(value = 1, message = "状态值非法")
+  @Min(value = 0, message = "{validation.user.status.invalid}")
+  @Max(value = 1, message = "{validation.user.status.invalid}")
   private Integer status;
 
-  @Size(max = 200, message = "备注长度不能超过200")
+  @Size(max = 200, message = "{validation.user.remark.size}")
   private String remark;
 }

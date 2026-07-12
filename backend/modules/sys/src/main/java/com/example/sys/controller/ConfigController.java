@@ -60,7 +60,8 @@ public class ConfigController {
   @RequiresPermission("sys:config:edit")
   @PutMapping("/batch")
   public Result<Void> batchUpdate(
-      @RequestBody @NotEmpty(message = "配置列表不能为空") List<ConfigDTO> configs) {
+      @RequestBody @NotEmpty(message = "{validation.controller.configList.notEmpty}")
+          List<ConfigDTO> configs) {
     configService.batchUpdate(configs);
     return Result.ok();
   }

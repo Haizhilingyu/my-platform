@@ -11,23 +11,23 @@ import lombok.Data;
 @Data
 public class RoleDTO {
 
-  @NotBlank(message = "角色编码不能为空")
-  @Size(min = 3, max = 50, message = "角色编码长度需在3-50之间")
-  @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "角色编码只能包含字母、数字、下划线")
+  @NotBlank(message = "{validation.role.roleCode.notBlank}")
+  @Size(min = 3, max = 50, message = "{validation.role.roleCode.size}")
+  @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "{validation.role.roleCode.pattern}")
   private String roleCode;
 
-  @NotBlank(message = "角色名称不能为空")
-  @Size(max = 100, message = "角色名称长度不能超过100")
+  @NotBlank(message = "{validation.role.roleName.notBlank}")
+  @Size(max = 100, message = "{validation.role.roleName.size}")
   private String roleName;
 
-  @NotBlank(message = "数据范围不能为空")
-  @Size(max = 20, message = "数据范围标识长度不能超过20")
+  @NotBlank(message = "{validation.role.dataScope.notNull}")
+  @Size(max = 20, message = "{validation.role.dataScope.size}")
   private String dataScope;
 
-  @Min(value = 0, message = "状态值非法")
-  @Max(value = 1, message = "状态值非法")
+  @Min(value = 0, message = "{validation.role.status.invalid}")
+  @Max(value = 1, message = "{validation.role.status.invalid}")
   private Integer status;
 
-  @Size(max = 200, message = "备注长度不能超过200")
+  @Size(max = 200, message = "{validation.role.remark.size}")
   private String remark;
 }

@@ -11,20 +11,20 @@ public class ConfigDTO {
 
   private Long id;
 
-  @NotBlank(message = "配置键不能为空")
-  @Size(max = 100, message = "配置键长度不能超过100")
-  @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "配置键只能包含字母、数字、点、下划线、连字符")
+  @NotBlank(message = "{validation.config.configKey.notBlank}")
+  @Size(max = 100, message = "{validation.config.configKey.size}")
+  @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "{validation.config.configKey.pattern}")
   private String configKey;
 
-  @Size(max = 2000, message = "配置值长度不能超过2000")
+  @Size(max = 2000, message = "{validation.config.configValue.size}")
   private String configValue;
 
-  @Size(max = 50, message = "配置类型长度不能超过50")
+  @Size(max = 50, message = "{validation.config.configType.size}")
   private String configType;
 
-  @Size(max = 500, message = "描述长度不能超过500")
+  @Size(max = 500, message = "{validation.config.description.size}")
   private String description;
 
-  @Size(max = 50, message = "分类长度不能超过50")
+  @Size(max = 50, message = "{validation.config.category.size}")
   private String category;
 }

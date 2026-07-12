@@ -19,6 +19,13 @@
       <artifactId>platform-common</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.example</groupId>
+      <artifactId>platform-common</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>cn.hutool</groupId>
       <artifactId>hutool-captcha</artifactId>
     </dependency>
