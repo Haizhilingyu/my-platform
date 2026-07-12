@@ -18,6 +18,13 @@
       <groupId>com.example</groupId>
       <artifactId>platform-common</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.example</groupId>
+      <artifactId>platform-common</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
 
     <!-- Spring Authorization Server: OAuth2 授权服务器 + OIDC -->
     <dependency>

@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
+import com.example.common.i18n.Messages;
 import com.example.notify.domain.NotifyMessage;
 import com.example.notify.domain.NotifyUserInbox;
 import com.example.notify.dto.PublishDTO;
@@ -28,6 +29,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.socket.WebSocketSession;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +50,13 @@ class MessageServiceTest {
 
   @BeforeEach
   void setUp() {
+    ReloadableResourceBundleMessageSource ms = new ReloadableResourceBundleMessageSource();
+    ms.setBasename("classpath:i18n/messages");
+    ms.setDefaultEncoding("UTF-8");
+    ms.setFallbackToSystemLocale(false);
+    ms.setUseCodeAsDefaultMessage(true);
+    ReflectionTestUtils.invokeMethod(new Messages(ms), "init");
+
     when(messageRepository.save(any(NotifyMessage.class)))
         .thenAnswer(
             inv -> {

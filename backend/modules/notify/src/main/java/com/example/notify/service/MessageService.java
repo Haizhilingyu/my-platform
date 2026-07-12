@@ -1,6 +1,7 @@
 package com.example.notify.service;
 
 import com.example.common.exception.NotFoundException;
+import com.example.common.i18n.Messages;
 import com.example.notify.domain.NotifyMessage;
 import com.example.notify.domain.NotifyRecipient;
 import com.example.notify.domain.NotifyUserInbox;
@@ -184,7 +185,13 @@ public class MessageService {
     NotifyUserInbox inbox =
         inboxRepository
             .findByIdAndUserId(inboxId, userId)
-            .orElseThrow(() -> new NotFoundException("收件箱消息", inboxId));
+            .orElseThrow(
+                () ->
+                    new NotFoundException(
+                        Messages.get(
+                            "error.resource.not.found",
+                            Messages.get("resource.inbox_message"),
+                            inboxId)));
     if (!Boolean.TRUE.equals(inbox.getReadStatus())) {
       inbox.setReadStatus(true);
       inbox.setReadTime(LocalDateTime.now());

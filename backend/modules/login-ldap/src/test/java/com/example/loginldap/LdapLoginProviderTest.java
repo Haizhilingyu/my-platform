@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.common.exception.BizException;
+import com.example.common.i18n.Messages;
 import com.example.common.login.LoginMethodDescriptor;
 import com.example.common.login.LoginRequest;
 import com.example.common.login.LoginResult;
@@ -36,8 +37,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.ldap.AuthenticationException;
 import org.springframework.ldap.core.ContextSource;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * LdapLoginProvider 单元测试。mock ContextSource + DirContext，覆盖认证成功/失败、自动建号、 禁用用户、空凭据等场景。无需真实 LDAP 服务器。
@@ -64,6 +67,13 @@ class LdapLoginProviderTest {
 
   @BeforeEach
   void setUp() {
+    ReloadableResourceBundleMessageSource ms = new ReloadableResourceBundleMessageSource();
+    ms.setBasename("classpath:i18n/messages");
+    ms.setDefaultEncoding("UTF-8");
+    ms.setFallbackToSystemLocale(false);
+    ms.setUseCodeAsDefaultMessage(true);
+    ReflectionTestUtils.invokeMethod(new Messages(ms), "init");
+
     properties.setEnabled(true);
     properties.setUserDnPattern(DN_PATTERN);
     properties.setAutoCreateUser(true);

@@ -9,14 +9,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.common.exception.NotFoundException;
-import com.example.notify.domain.NotifyMessage;
-import com.example.notify.domain.NotifyRecipient;
 import com.example.notify.domain.NotifyUserInbox;
 import com.example.notify.repository.NotifyMessageRepository;
 import com.example.notify.repository.NotifyRecipientRepository;
 import com.example.notify.repository.NotifyUserInboxRepository;
-import com.example.sys.domain.SysUser;
-import com.example.sys.domain.SysUserRole;
 import com.example.sys.repository.SysUnitRepository;
 import com.example.sys.repository.SysUserRepository;
 import com.example.sys.repository.SysUserRoleRepository;
@@ -30,7 +26,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.socket.WebSocketSession;
 
 /** 消息服务-已读/批量已读单元测试（独立类，避免与 publish 测试的 setUp stub 冲突）。 */
 @ExtendWith(MockitoExtension.class)
@@ -67,8 +62,7 @@ class MessageServiceReadTest {
     @DisplayName("存在且未读：置为已读并保存")
     void should_markRead_when_exists() {
       // Given
-      NotifyUserInbox inbox =
-          NotifyUserInbox.builder().id(5L).userId(1L).readStatus(false).build();
+      NotifyUserInbox inbox = NotifyUserInbox.builder().id(5L).userId(1L).readStatus(false).build();
       when(inboxRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(inbox));
 
       // When
@@ -83,8 +77,7 @@ class MessageServiceReadTest {
     @DisplayName("已读消息再次标记：幂等不调用 save")
     void should_notSave_when_alreadyRead() {
       // Given
-      NotifyUserInbox inbox =
-          NotifyUserInbox.builder().id(5L).userId(1L).readStatus(true).build();
+      NotifyUserInbox inbox = NotifyUserInbox.builder().id(5L).userId(1L).readStatus(true).build();
       when(inboxRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(inbox));
 
       // When

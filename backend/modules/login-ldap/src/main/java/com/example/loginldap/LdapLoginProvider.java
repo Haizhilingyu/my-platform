@@ -1,6 +1,7 @@
 package com.example.loginldap;
 
 import com.example.common.exception.BizException;
+import com.example.common.i18n.Messages;
 import com.example.common.login.LoginMethodDescriptor;
 import com.example.common.login.LoginMethodProvider;
 import com.example.common.login.LoginRequest;
@@ -84,7 +85,7 @@ public class LdapLoginProvider implements LoginMethodProvider {
 
   @Override
   public LoginMethodDescriptor describe() {
-    return new LoginMethodDescriptor(METHOD, "LDAP 登录", "ldap", getOrder());
+    return new LoginMethodDescriptor(METHOD, Messages.get("login.method.ldap"), "ldap", getOrder());
   }
 
   @Override
@@ -92,13 +93,13 @@ public class LdapLoginProvider implements LoginMethodProvider {
     String username = request.username();
     String password = request.password();
     if (username == null || username.isBlank() || password == null || password.isBlank()) {
-      throw new BizException(400, "用户名和密码不能为空");
+      throw new BizException(400, Messages.get("ldap.empty.credentials"));
     }
 
     LdapUserInfo ldapUser = bind(username, password);
     SysUser user = resolveOrCreateUser(ldapUser);
     if (user.getStatus() != 1) {
-      throw new BizException(403, "用户已被禁用");
+      throw new BizException(403, Messages.get("error.user.disabled"));
     }
 
     List<String> roles = List.copyOf(permissionService.getUserRoleCodes(user.getId()));
@@ -127,13 +128,13 @@ public class LdapLoginProvider implements LoginMethodProvider {
       return new LdapUserInfo(username, attrValue(attrs, "mail"), attrValue(attrs, "cn"));
     } catch (AuthenticationException e) {
       log.warn("LDAP 认证失败: user={}, msg={}", username, e.getMessage());
-      throw new BizException(401, "LDAP 认证失败：用户名或密码错误");
+      throw new BizException(401, Messages.get("ldap.auth.failed"));
     } catch (org.springframework.ldap.NamingException e) {
       log.error("LDAP 连接异常: user={}", username, e);
-      throw new BizException(500, "LDAP 服务不可用: " + e.getMessage());
+      throw new BizException(500, Messages.get("ldap.service.unavailable", e.getMessage()));
     } catch (NamingException e) {
       log.error("LDAP 读取用户属性失败: user={}", username, e);
-      throw new BizException(500, "LDAP 读取用户属性失败");
+      throw new BizException(500, Messages.get("ldap.attribute.error"));
     } finally {
       LdapUtils.closeContext(ctx);
     }
@@ -145,7 +146,7 @@ public class LdapLoginProvider implements LoginMethodProvider {
       return existing.get();
     }
     if (!properties.isAutoCreateUser()) {
-      throw new BizException(401, "用户不存在且未开启自动创建: " + ldapUser.username());
+      throw new BizException(401, Messages.get("ldap.user.not.created", ldapUser.username()));
     }
     return createLocalUser(ldapUser);
   }

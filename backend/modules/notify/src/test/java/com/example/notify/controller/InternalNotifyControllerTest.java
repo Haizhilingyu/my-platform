@@ -59,7 +59,8 @@ class InternalNotifyControllerTest {
   void inbox_queriesForCurrentUser() {
     asUser(1L);
     Page<InboxVO> page = new PageImpl<>(List.of(new InboxVO()));
-    when(messageService.queryInbox(eq(1L), any(), any(), any(), anyInt(), anyInt())).thenReturn(page);
+    when(messageService.queryInbox(eq(1L), any(), any(), any(), anyInt(), anyInt()))
+        .thenReturn(page);
 
     Result<PageResult<InboxVO>> result = controller.inbox(MessageLevel.NORMAL, true, "k", 1, 10);
 

@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.common.exception.NotFoundException;
+import com.example.common.i18n.Messages;
 import com.example.common.result.PageResult;
 import com.example.common.result.Result;
 import com.example.openapp.client.JdbcRegisteredClientRepository;
@@ -23,6 +24,7 @@ import com.example.openapp.client.dto.OpenAppSecretResult;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,10 +32,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("外部应用客户端管理 Controller")
@@ -43,6 +47,16 @@ class OpenAppClientControllerTest {
   @Mock private PasswordEncoder passwordEncoder;
 
   @InjectMocks private OpenAppClientController controller;
+
+  @BeforeEach
+  void initMessages() {
+    ReloadableResourceBundleMessageSource ms = new ReloadableResourceBundleMessageSource();
+    ms.setBasename("classpath:i18n/messages");
+    ms.setDefaultEncoding("UTF-8");
+    ms.setFallbackToSystemLocale(false);
+    ms.setUseCodeAsDefaultMessage(true);
+    ReflectionTestUtils.invokeMethod(new Messages(ms), "init");
+  }
 
   private static OpenAppClientRow row(Long id, String clientId, String name, boolean enabled) {
     return new OpenAppClientRow(
