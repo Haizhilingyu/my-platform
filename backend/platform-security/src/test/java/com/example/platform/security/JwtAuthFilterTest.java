@@ -15,6 +15,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +26,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 @ExtendWith(MockitoExtension.class)
@@ -49,12 +51,14 @@ class JwtAuthFilterTest {
     jwtUtil = new JwtUtil(SECRET, EXPIRATION_MS);
     SecurityContextHolder.clearContext();
     CurrentUser.clear();
+    LocaleContextHolder.resetLocaleContext();
   }
 
   @AfterEach
   void tearDown() {
     SecurityContextHolder.clearContext();
     CurrentUser.clear();
+    LocaleContextHolder.resetLocaleContext();
   }
 
   @Test
@@ -130,5 +134,83 @@ class JwtAuthFilterTest {
 
     assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     verify(redisCacheService, never()).exists(org.mockito.ArgumentMatchers.anyString());
+  }
+
+  @Test
+  @DisplayName("token 携带 zh-CN locale → 设置 LocaleContextHolder 为 SIMPLIFIED_CHINESE")
+  void tokenWithZhcnLocale_setsSimplifiedChinese() throws Exception {
+    String token = jwtUtil.generate(1L, "admin", 10L, List.of("ADMIN"), "zh-CN");
+    when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
+    when(redisCacheService.exists(
+            eq(JwtAuthFilter.BLACKLIST_KEY_PREFIX + jwtUtil.parse(token).getId())))
+        .thenReturn(false);
+    when(permissionLoader.loadPermissions(eq(1L))).thenReturn(Set.of("sys:user:list"));
+
+    final Locale[] captured = new Locale[1];
+    org.mockito.Mockito.doAnswer(
+            inv -> {
+              captured[0] = LocaleContextHolder.getLocale();
+              return null;
+            })
+        .when(chain)
+        .doFilter(request, response);
+
+    new JwtAuthFilter(jwtUtil, permissionLoader, redisCacheService)
+        .doFilter(request, response, chain);
+
+    assertThat(captured[0]).isEqualTo(Locale.SIMPLIFIED_CHINESE);
+    // finally 块应清理 thread-local locale
+    assertThat(LocaleContextHolder.getLocale()).isEqualTo(Locale.getDefault());
+  }
+
+  @Test
+  @DisplayName("token 携带 en locale → 设置 LocaleContextHolder 为 ENGLISH")
+  void tokenWithEnLocale_setsEnglish() throws Exception {
+    String token = jwtUtil.generate(1L, "admin", 10L, List.of("ADMIN"), "en");
+    when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
+    when(redisCacheService.exists(
+            eq(JwtAuthFilter.BLACKLIST_KEY_PREFIX + jwtUtil.parse(token).getId())))
+        .thenReturn(false);
+    when(permissionLoader.loadPermissions(eq(1L))).thenReturn(Set.of("sys:user:list"));
+
+    final Locale[] captured = new Locale[1];
+    org.mockito.Mockito.doAnswer(
+            inv -> {
+              captured[0] = LocaleContextHolder.getLocale();
+              return null;
+            })
+        .when(chain)
+        .doFilter(request, response);
+
+    new JwtAuthFilter(jwtUtil, permissionLoader, redisCacheService)
+        .doFilter(request, response, chain);
+
+    assertThat(captured[0]).isEqualTo(Locale.ENGLISH);
+  }
+
+  @Test
+  @DisplayName("旧 token（无 locale claim） → 不设置 LocaleContextHolder，交给 LocaleResolver 兜底")
+  void tokenWithoutLocale_doesNotSetLocale() throws Exception {
+    String token = jwtUtil.generate(1L, "admin", 10L, List.of("ADMIN"));
+    when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
+    when(redisCacheService.exists(
+            eq(JwtAuthFilter.BLACKLIST_KEY_PREFIX + jwtUtil.parse(token).getId())))
+        .thenReturn(false);
+    when(permissionLoader.loadPermissions(eq(1L))).thenReturn(Set.of("sys:user:list"));
+
+    final Locale[] captured = new Locale[1];
+    org.mockito.Mockito.doAnswer(
+            inv -> {
+              captured[0] = LocaleContextHolder.getLocale();
+              return null;
+            })
+        .when(chain)
+        .doFilter(request, response);
+
+    new JwtAuthFilter(jwtUtil, permissionLoader, redisCacheService)
+        .doFilter(request, response, chain);
+
+    // 未设置 → Spring 默认返回 Locale.getDefault()（无覆盖）
+    assertThat(captured[0]).isEqualTo(Locale.getDefault());
   }
 }

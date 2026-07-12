@@ -27,6 +27,12 @@ public class JwtUtil {
 
   /** 生成 Token（携带 unitId）。 */
   public String generate(Long userId, String username, Long unitId, List<String> roles) {
+    return generate(userId, username, unitId, roles, null);
+  }
+
+  /** 生成 Token（携带 unitId 和 locale）。locale 为 null/空白时不写入 claim，保持向后兼容。 */
+  public String generate(
+      Long userId, String username, Long unitId, List<String> roles, String locale) {
     Date now = new Date();
     var builder =
         Jwts.builder()
@@ -36,6 +42,9 @@ public class JwtUtil {
             .claim("roles", roles);
     if (unitId != null) {
       builder.claim("unitId", unitId);
+    }
+    if (locale != null && !locale.isBlank()) {
+      builder.claim("locale", locale);
     }
     return builder
         .issuedAt(now)

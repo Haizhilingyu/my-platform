@@ -12,8 +12,10 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
@@ -61,6 +63,12 @@ class JwtAuthFilter extends OncePerRequestFilter {
 
         CurrentUser.set(new CurrentUser.UserInfo(userId, username, unitId, roles, permissions));
 
+        String localeStr = claims.get("locale", String.class);
+        Locale locale = parseLocale(localeStr);
+        if (locale != null) {
+          LocaleContextHolder.setLocale(locale);
+        }
+
         var authToken =
             new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
         var context = new SecurityContextImpl();
@@ -73,6 +81,25 @@ class JwtAuthFilter extends OncePerRequestFilter {
       chain.doFilter(request, response);
     } finally {
       CurrentUser.clear();
+      LocaleContextHolder.resetLocaleContext();
     }
+  }
+
+  /**
+   * 解析 JWT locale claim 为 {@link Locale}。支持 zh-CN/zh/en/en-US 等常见格式。
+   *
+   * <p>返回 null 表示 claim 不存在或空白，由 Spring 的 {@code LocaleResolver} 兜底，保证旧 token（无 locale claim）的向后兼容。
+   */
+  private Locale parseLocale(String localeStr) {
+    if (localeStr == null || localeStr.isBlank()) {
+      return null;
+    }
+    if ("zh-CN".equals(localeStr) || "zh".equals(localeStr)) {
+      return Locale.SIMPLIFIED_CHINESE;
+    }
+    if ("en".equals(localeStr) || "en-US".equals(localeStr)) {
+      return Locale.ENGLISH;
+    }
+    return Locale.forLanguageTag(localeStr);
   }
 }
