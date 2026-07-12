@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { NConfigProvider, NMessageProvider, NDialogProvider, NNotificationProvider, NLoadingBarProvider } from 'naive-ui'
-import { darkTheme, type GlobalThemeOverrides } from 'naive-ui'
+import { darkTheme, zhCN, dateZhCN, enUS, dateEnUS, type GlobalThemeOverrides } from 'naive-ui'
 import { useThemeStore } from '@/stores/theme'
+import { useLocaleStore } from '@/stores/locale'
 import { computed } from 'vue'
 import MessageCenter from '@/shared/components/MessageCenter.vue'
 
 const themeStore = useThemeStore()
+const localeStore = useLocaleStore()
 
 const naiveTheme = computed(() => (themeStore.isDark ? darkTheme : null))
+const naiveLocale = computed(() => (localeStore.currentLocale === 'zh-CN' ? zhCN : enUS))
+const naiveDateLocale = computed(() => (localeStore.currentLocale === 'zh-CN' ? dateZhCN : dateEnUS))
 
 const rgb = (value: string) => `rgb(${value.replace(/\s+/g, ', ')})`
 const rgbAlpha = (value: string, alpha: number) => `rgba(${value.replace(/\s+/g, ', ')}, ${alpha})`
@@ -105,7 +109,7 @@ const themeOverrides = computed<GlobalThemeOverrides>(() => {
 </script>
 
 <template>
-  <NConfigProvider :theme="naiveTheme" :theme-overrides="themeOverrides">
+  <NConfigProvider :theme="naiveTheme" :theme-overrides="themeOverrides" :locale="naiveLocale" :date-locale="naiveDateLocale">
     <NLoadingBarProvider>
       <NMessageProvider>
         <NDialogProvider>
