@@ -2,6 +2,7 @@ package com.example.sys.service;
 
 import com.example.common.exception.BizException;
 import com.example.common.exception.NotFoundException;
+import com.example.common.i18n.Messages;
 import com.example.sys.domain.SysMenu;
 import com.example.sys.dto.MenuDTO;
 import com.example.sys.dto.MenuTreeNode;
@@ -30,7 +31,12 @@ public class MenuService {
 
   @Transactional(readOnly = true)
   public SysMenu getById(Long id) {
-    return menuRepository.findById(id).orElseThrow(() -> new NotFoundException("菜单", id));
+    return menuRepository
+        .findById(id)
+        .orElseThrow(
+            () ->
+                new NotFoundException(
+                    Messages.get("error.resource.not.found", Messages.get("resource.menu"), id)));
   }
 
   @Transactional
@@ -56,7 +62,7 @@ public class MenuService {
     SysMenu menu = getById(id);
     if (dto.getParentId() != null) {
       if (dto.getParentId().equals(id)) {
-        throw new BizException("上级菜单不能是自己");
+        throw new BizException(Messages.get("menu.parent.self"));
       }
       menu.setParentId(dto.getParentId());
     }
@@ -95,7 +101,7 @@ public class MenuService {
     SysMenu menu = getById(id);
     List<SysMenu> children = menuRepository.findByParentId(id);
     if (!children.isEmpty()) {
-      throw new BizException("存在子菜单，无法删除");
+      throw new BizException(Messages.get("menu.has.children"));
     }
     menuRepository.delete(menu);
   }

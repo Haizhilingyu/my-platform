@@ -2,6 +2,7 @@ package com.example.sys.service;
 
 import com.example.common.exception.BizException;
 import com.example.common.exception.NotFoundException;
+import com.example.common.i18n.Messages;
 import com.example.sys.domain.SysRole;
 import com.example.sys.domain.SysRoleDataScope;
 import com.example.sys.dto.RoleDTO;
@@ -34,13 +35,18 @@ public class RoleService {
 
   @Transactional(readOnly = true)
   public SysRole getById(Long id) {
-    return roleRepository.findById(id).orElseThrow(() -> new NotFoundException("角色", id));
+    return roleRepository
+        .findById(id)
+        .orElseThrow(
+            () ->
+                new NotFoundException(
+                    Messages.get("error.resource.not.found", Messages.get("resource.role"), id)));
   }
 
   @Transactional
   public Long create(RoleDTO dto) {
     if (roleRepository.existsByRoleCode(dto.getRoleCode())) {
-      throw new BizException("角色编码已存在: " + dto.getRoleCode());
+      throw new BizException(Messages.get("role.code.exists", dto.getRoleCode()));
     }
     SysRole role =
         SysRole.builder()
@@ -97,18 +103,13 @@ public class RoleService {
     roleDataScopeRepository.deleteByRoleId(roleId);
     if (unitIds != null && !unitIds.isEmpty()) {
       List<SysRoleDataScope> entries =
-          unitIds.stream()
-              .distinct()
-              .map(unitId -> new SysRoleDataScope(roleId, unitId))
-              .toList();
+          unitIds.stream().distinct().map(unitId -> new SysRoleDataScope(roleId, unitId)).toList();
       roleDataScopeRepository.saveAll(entries);
     }
   }
 
   @Transactional(readOnly = true)
   public List<Long> getCustomUnitIds(Long roleId) {
-    return roleDataScopeRepository.findUnitIdsByRoleIdIn(Set.of(roleId)).stream()
-        .sorted()
-        .toList();
+    return roleDataScopeRepository.findUnitIdsByRoleIdIn(Set.of(roleId)).stream().sorted().toList();
   }
 }

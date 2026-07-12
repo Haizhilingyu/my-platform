@@ -1,6 +1,7 @@
 package com.example.sys.controller;
 
 import com.example.common.exception.ForbiddenException;
+import com.example.common.i18n.Messages;
 import com.example.common.result.Result;
 import com.example.common.security.CurrentUser;
 import com.example.common.security.RequiresPermission;
@@ -34,9 +35,11 @@ public class SessionController {
   public Result<Void> revokeMySession(@PathVariable String jti) {
     Long userId = CurrentUser.getUserId();
     SessionInfo info =
-        sessionService.getSession(jti).orElseThrow(() -> new ForbiddenException("会话不存在或已过期"));
+        sessionService
+            .getSession(jti)
+            .orElseThrow(() -> new ForbiddenException(Messages.get("session.not.found")));
     if (!userId.equals(info.userId())) {
-      throw new ForbiddenException("无权撤销他人会话");
+      throw new ForbiddenException(Messages.get("session.revoke.forbidden"));
     }
     sessionService.revokeSession(jti);
     return Result.ok();

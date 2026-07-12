@@ -2,6 +2,7 @@ package com.example.sys.service;
 
 import com.example.common.exception.BizException;
 import com.example.common.exception.NotFoundException;
+import com.example.common.i18n.Messages;
 import com.example.common.security.CurrentUser;
 import com.example.common.security.PermissionLoader;
 import com.example.sys.domain.SysMenu;
@@ -98,9 +99,15 @@ public class PermissionService implements PermissionLoader {
   @Transactional(readOnly = true)
   public SysUser getActiveUser(Long userId) {
     SysUser user =
-        userRepository.findById(userId).orElseThrow(() -> new NotFoundException("用户", userId));
+        userRepository
+            .findById(userId)
+            .orElseThrow(
+                () ->
+                    new NotFoundException(
+                        Messages.get(
+                            "error.resource.not.found", Messages.get("resource.user"), userId)));
     if (user.getStatus() != 1) {
-      throw new BizException(403, "用户已被禁用");
+      throw new BizException(403, Messages.get("error.user.disabled"));
     }
     return user;
   }

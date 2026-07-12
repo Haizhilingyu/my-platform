@@ -95,37 +95,41 @@ class UserDataScopeTest {
     dept = unitRepository.save(dept);
     deptUnitId = dept.getId();
 
-    SysUser admin = new SysUser(null, "admin", "$2a$10$x", "管理员", null, null, null, 1, null);
+    SysUser admin =
+        new SysUser(null, "admin", "$2a$10$x", "管理员", null, null, null, 1, null, "zh-CN");
     admin.setUnitId(hqUnitId);
     stamp(admin, "system");
     adminUserId = userRepository.save(admin).getId();
     String adminIdStr = String.valueOf(adminUserId);
 
-    SysUser hqUser = new SysUser(null, "hq_user", "$2a$10$x", "总部用户", null, null, null, 1, null);
+    SysUser hqUser =
+        new SysUser(null, "hq_user", "$2a$10$x", "总部用户", null, null, null, 1, null, "zh-CN");
     hqUser.setUnitId(hqUnitId);
     stamp(hqUser, adminIdStr);
     hqUserId = userRepository.save(hqUser).getId();
 
     SysUser branchUser1 =
-        new SysUser(null, "branch_user_1", "$2a$10$x", "分公司用户1", null, null, null, 1, null);
+        new SysUser(
+            null, "branch_user_1", "$2a$10$x", "分公司用户1", null, null, null, 1, null, "zh-CN");
     branchUser1.setUnitId(branchUnitId);
     stamp(branchUser1, adminIdStr);
     branchUser1Id = userRepository.save(branchUser1).getId();
 
     SysUser branchUser2 =
-        new SysUser(null, "branch_user_2", "$2a$10$x", "分公司用户2", null, null, null, 1, null);
+        new SysUser(
+            null, "branch_user_2", "$2a$10$x", "分公司用户2", null, null, null, 1, null, "zh-CN");
     branchUser2.setUnitId(branchUnitId);
     stamp(branchUser2, adminIdStr);
     branchUser2Id = userRepository.save(branchUser2).getId();
 
     SysUser deptUser1 =
-        new SysUser(null, "dept_user_1", "$2a$10$x", "部门用户1", null, null, null, 1, null);
+        new SysUser(null, "dept_user_1", "$2a$10$x", "部门用户1", null, null, null, 1, null, "zh-CN");
     deptUser1.setUnitId(deptUnitId);
     stamp(deptUser1, String.valueOf(hqUserId));
     deptUser1Id = userRepository.save(deptUser1).getId();
 
     SysUser deptUser2 =
-        new SysUser(null, "dept_user_2", "$2a$10$x", "部门用户2", null, null, null, 1, null);
+        new SysUser(null, "dept_user_2", "$2a$10$x", "部门用户2", null, null, null, 1, null, "zh-CN");
     deptUser2.setUnitId(deptUnitId);
     stamp(deptUser2, adminIdStr);
     deptUser2Id = userRepository.save(deptUser2).getId();

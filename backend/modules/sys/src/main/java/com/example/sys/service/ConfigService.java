@@ -2,6 +2,7 @@ package com.example.sys.service;
 
 import com.example.common.exception.BizException;
 import com.example.common.exception.NotFoundException;
+import com.example.common.i18n.Messages;
 import com.example.sys.domain.SysConfig;
 import com.example.sys.dto.ConfigDTO;
 import com.example.sys.repository.SysConfigRepository;
@@ -33,7 +34,11 @@ public class ConfigService {
   public SysConfig getByKey(String key) {
     return configRepository
         .findByConfigKey(key)
-        .orElseThrow(() -> new NotFoundException("配置", key));
+        .orElseThrow(
+            () ->
+                new NotFoundException(
+                    Messages.get(
+                        "error.resource.not.found", Messages.get("resource.config"), key)));
   }
 
   @Transactional(readOnly = true)
@@ -47,7 +52,7 @@ public class ConfigService {
   @Transactional
   public Long create(ConfigDTO dto) {
     if (configRepository.existsByConfigKey(dto.getConfigKey())) {
-      throw new BizException("配置键已存在: " + dto.getConfigKey());
+      throw new BizException(Messages.get("config.key.exists", dto.getConfigKey()));
     }
     SysConfig config =
         SysConfig.builder()
@@ -63,7 +68,13 @@ public class ConfigService {
   @Transactional
   public void update(Long id, ConfigDTO dto) {
     SysConfig config =
-        configRepository.findById(id).orElseThrow(() -> new NotFoundException("配置", id));
+        configRepository
+            .findById(id)
+            .orElseThrow(
+                () ->
+                    new NotFoundException(
+                        Messages.get(
+                            "error.resource.not.found", Messages.get("resource.config"), id)));
     if (dto.getConfigValue() != null) {
       config.setConfigValue(dto.getConfigValue());
     }

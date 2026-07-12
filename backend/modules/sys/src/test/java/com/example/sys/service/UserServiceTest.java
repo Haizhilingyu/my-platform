@@ -8,6 +8,7 @@ import static org.mockito.Mockito.*;
 import com.example.common.datapolicy.DataScope;
 import com.example.common.exception.BizException;
 import com.example.common.exception.NotFoundException;
+import com.example.common.i18n.Messages;
 import com.example.common.security.CurrentUser;
 import com.example.sys.domain.SysUser;
 import com.example.sys.dto.UserCreateDTO;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -32,12 +34,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * UserService 单元测试。
@@ -57,6 +61,16 @@ class UserServiceTest {
   @Mock private DataScopeResolver dataScopeResolver;
 
   @InjectMocks private UserService userService;
+
+  @BeforeEach
+  void initMessages() {
+    ReloadableResourceBundleMessageSource ms = new ReloadableResourceBundleMessageSource();
+    ms.setBasename("classpath:i18n/messages");
+    ms.setDefaultEncoding("UTF-8");
+    ms.setFallbackToSystemLocale(false);
+    ms.setUseCodeAsDefaultMessage(true);
+    ReflectionTestUtils.invokeMethod(new Messages(ms), "init");
+  }
 
   @AfterEach
   void clearCurrentUser() {

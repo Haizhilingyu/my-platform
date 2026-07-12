@@ -36,7 +36,8 @@ class ConfigControllerTest {
   @Test
   @DisplayName("list 带 category：按分类查询")
   void list_byCategory() {
-    when(configService.findByCategory("sys")).thenReturn(List.of(SysConfig.builder().id(2L).build()));
+    when(configService.findByCategory("sys"))
+        .thenReturn(List.of(SysConfig.builder().id(2L).build()));
     Result<List<SysConfig>> result = controller.list("sys");
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.data()).hasSize(1);

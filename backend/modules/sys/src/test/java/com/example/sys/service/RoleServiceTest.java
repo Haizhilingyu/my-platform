@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.common.exception.BizException;
 import com.example.common.exception.NotFoundException;
+import com.example.common.i18n.Messages;
 import com.example.sys.domain.SysRole;
 import com.example.sys.domain.SysRoleDataScope;
 import com.example.sys.domain.SysRoleMenu;
@@ -20,6 +21,7 @@ import com.example.sys.repository.SysRoleRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /** 角色服务单元测试（Mockito，不启动 Spring）。 */
 @ExtendWith(MockitoExtension.class)
@@ -42,6 +46,16 @@ class RoleServiceTest {
   @Mock private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks private RoleService roleService;
+
+  @BeforeEach
+  void initMessages() {
+    ReloadableResourceBundleMessageSource ms = new ReloadableResourceBundleMessageSource();
+    ms.setBasename("classpath:i18n/messages");
+    ms.setDefaultEncoding("UTF-8");
+    ms.setFallbackToSystemLocale(false);
+    ms.setUseCodeAsDefaultMessage(true);
+    ReflectionTestUtils.invokeMethod(new Messages(ms), "init");
+  }
 
   @Nested
   @DisplayName("创建角色")

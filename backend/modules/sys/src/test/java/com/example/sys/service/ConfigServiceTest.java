@@ -9,12 +9,14 @@ import static org.mockito.Mockito.when;
 
 import com.example.common.exception.BizException;
 import com.example.common.exception.NotFoundException;
+import com.example.common.i18n.Messages;
 import com.example.sys.domain.SysConfig;
 import com.example.sys.dto.ConfigDTO;
 import com.example.sys.repository.SysConfigRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /** 系统配置服务单元测试（Mockito，不启动 Spring）。 */
 @ExtendWith(MockitoExtension.class)
@@ -31,6 +35,16 @@ class ConfigServiceTest {
 
   @Mock private SysConfigRepository configRepository;
   @InjectMocks private ConfigService configService;
+
+  @BeforeEach
+  void initMessages() {
+    ReloadableResourceBundleMessageSource ms = new ReloadableResourceBundleMessageSource();
+    ms.setBasename("classpath:i18n/messages");
+    ms.setDefaultEncoding("UTF-8");
+    ms.setFallbackToSystemLocale(false);
+    ms.setUseCodeAsDefaultMessage(true);
+    ReflectionTestUtils.invokeMethod(new Messages(ms), "init");
+  }
 
   @Nested
   @DisplayName("查询")
@@ -162,7 +176,8 @@ class ConfigServiceTest {
       configService.batchUpdate(List.of(withId, withoutId));
 
       verify(configRepository, times(1)).save(any());
-      verify(configRepository).save(org.mockito.ArgumentMatchers.argThat(c -> "x".equals(c.getConfigValue())));
+      verify(configRepository)
+          .save(org.mockito.ArgumentMatchers.argThat(c -> "x".equals(c.getConfigValue())));
     }
   }
 }

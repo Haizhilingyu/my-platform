@@ -2,6 +2,7 @@ package com.example.sys.service;
 
 import com.example.common.exception.BizException;
 import com.example.common.exception.NotFoundException;
+import com.example.common.i18n.Messages;
 import com.example.sys.domain.SysUnit;
 import com.example.sys.dto.UnitDTO;
 import com.example.sys.dto.UnitTreeNode;
@@ -30,13 +31,18 @@ public class UnitService {
 
   @Transactional(readOnly = true)
   public SysUnit getById(Long id) {
-    return unitRepository.findById(id).orElseThrow(() -> new NotFoundException("单位", id));
+    return unitRepository
+        .findById(id)
+        .orElseThrow(
+            () ->
+                new NotFoundException(
+                    Messages.get("error.resource.not.found", Messages.get("resource.unit"), id)));
   }
 
   @Transactional
   public Long create(UnitDTO dto) {
     if (unitRepository.existsByUnitCode(dto.getUnitCode())) {
-      throw new BizException("单位编码已存在: " + dto.getUnitCode());
+      throw new BizException(Messages.get("unit.code.exists", dto.getUnitCode()));
     }
     SysUnit unit =
         SysUnit.builder()
@@ -55,7 +61,7 @@ public class UnitService {
     SysUnit unit = getById(id);
     if (dto.getParentId() != null) {
       if (dto.getParentId().equals(id)) {
-        throw new BizException("上级单位不能是自己");
+        throw new BizException(Messages.get("unit.parent.self"));
       }
       unit.setParentId(dto.getParentId());
     }
@@ -79,7 +85,7 @@ public class UnitService {
     SysUnit unit = getById(id);
     List<SysUnit> children = unitRepository.findByParentId(id);
     if (!children.isEmpty()) {
-      throw new BizException("存在子单位，无法删除");
+      throw new BizException(Messages.get("unit.has.children"));
     }
     unitRepository.delete(unit);
   }

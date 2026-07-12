@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import com.example.common.cache.RedisCacheService;
 import com.example.common.exception.BizException;
+import com.example.common.i18n.Messages;
 import com.example.common.login.LoginMethodDescriptor;
 import com.example.common.login.LoginMethodProvider;
 import com.example.common.login.LoginMethodRegistry;
@@ -30,10 +31,13 @@ import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @DisplayName("AuthController 登出黑名单 + 登录路由")
 class AuthControllerTest {
@@ -62,6 +66,16 @@ class AuthControllerTest {
           loginMethodRegistry,
           captchaService,
           configService);
+
+  @BeforeEach
+  void initMessages() {
+    ReloadableResourceBundleMessageSource ms = new ReloadableResourceBundleMessageSource();
+    ms.setBasename("classpath:i18n/messages");
+    ms.setDefaultEncoding("UTF-8");
+    ms.setFallbackToSystemLocale(false);
+    ms.setUseCodeAsDefaultMessage(true);
+    ReflectionTestUtils.invokeMethod(new Messages(ms), "init");
+  }
 
   @Test
   @DisplayName("登出：将 jti 写入黑名单，TTL = token 剩余有效期")

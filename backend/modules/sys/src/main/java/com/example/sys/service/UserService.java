@@ -3,6 +3,7 @@ package com.example.sys.service;
 import com.example.common.datapolicy.DataScopeSpecification;
 import com.example.common.exception.BizException;
 import com.example.common.exception.NotFoundException;
+import com.example.common.i18n.Messages;
 import com.example.common.security.CurrentUser;
 import com.example.sys.domain.SysUnit;
 import com.example.sys.domain.SysUser;
@@ -90,13 +91,20 @@ public class UserService {
 
   @Transactional(readOnly = true)
   public UserVO getById(Long id) {
-    return toVO(userRepository.findById(id).orElseThrow(() -> new NotFoundException("用户", id)));
+    return toVO(
+        userRepository
+            .findById(id)
+            .orElseThrow(
+                () ->
+                    new NotFoundException(
+                        Messages.get(
+                            "error.resource.not.found", Messages.get("resource.user"), id))));
   }
 
   @Transactional
   public Long create(UserCreateDTO dto) {
     if (userRepository.existsByUsername(dto.getUsername())) {
-      throw new BizException("用户名已存在: " + dto.getUsername());
+      throw new BizException(Messages.get("user.username.exists", dto.getUsername()));
     }
 
     SysUser user =
@@ -123,7 +131,14 @@ public class UserService {
 
   @Transactional
   public void update(Long id, UserUpdateDTO dto) {
-    SysUser user = userRepository.findById(id).orElseThrow(() -> new NotFoundException("用户", id));
+    SysUser user =
+        userRepository
+            .findById(id)
+            .orElseThrow(
+                () ->
+                    new NotFoundException(
+                        Messages.get(
+                            "error.resource.not.found", Messages.get("resource.user"), id)));
 
     if (dto.getRealName() != null) {
       user.setRealName(dto.getRealName());
@@ -151,7 +166,14 @@ public class UserService {
 
   @Transactional
   public void delete(Long id) {
-    SysUser user = userRepository.findById(id).orElseThrow(() -> new NotFoundException("用户", id));
+    SysUser user =
+        userRepository
+            .findById(id)
+            .orElseThrow(
+                () ->
+                    new NotFoundException(
+                        Messages.get(
+                            "error.resource.not.found", Messages.get("resource.user"), id)));
     userRoleRepository.deleteByUserId(id);
     userRepository.delete(user);
   }
@@ -179,7 +201,7 @@ public class UserService {
         Specification<SysUser> idSpec = (root, query, cb) -> root.get("id").in(ids);
         long visibleCount = userRepository.count(scopeSpec.and(idSpec));
         if (visibleCount != ids.size()) {
-          throw new BizException(403, "无权删除数据权限范围外的用户");
+          throw new BizException(403, Messages.get("user.delete.forbidden"));
         }
       }
     }
@@ -192,7 +214,13 @@ public class UserService {
 
   @Transactional
   public void assignRoles(Long userId, java.util.List<Long> roleIds) {
-    userRepository.findById(userId).orElseThrow(() -> new NotFoundException("用户", userId));
+    userRepository
+        .findById(userId)
+        .orElseThrow(
+            () ->
+                new NotFoundException(
+                    Messages.get(
+                        "error.resource.not.found", Messages.get("resource.user"), userId)));
     permissionService.assignRoles(userId, roleIds);
   }
 
@@ -203,10 +231,25 @@ public class UserService {
 
   @Transactional
   public void resetPassword(Long id, String newPassword) {
-    SysUser user = userRepository.findById(id).orElseThrow(() -> new NotFoundException("用户", id));
+    SysUser user =
+        userRepository
+            .findById(id)
+            .orElseThrow(
+                () ->
+                    new NotFoundException(
+                        Messages.get(
+                            "error.resource.not.found", Messages.get("resource.user"), id)));
     user.setPassword(passwordEncoder.encode(newPassword));
     userRepository.save(user);
     loginSecurityService.unlock(user.getUsername());
+  }
+
+  /** 更新用户语言偏好，返回更新后的实体（供调用方读取新 locale 构建 JWT）。 */
+  @Transactional
+  public SysUser updateLocale(Long userId, String locale) {
+    SysUser user = getEntityById(userId);
+    user.setLocale(locale);
+    return userRepository.save(user);
   }
 
   @Transactional(readOnly = true)
@@ -214,12 +257,12 @@ public class UserService {
     SysUser user =
         userRepository
             .findByUsername(dto.getUsername())
-            .orElseThrow(() -> new BizException(401, "用户名或密码错误"));
+            .orElseThrow(() -> new BizException(401, Messages.get("error.auth.bad.credentials")));
     if (user.getStatus() != 1) {
-      throw new BizException(403, "用户已被禁用");
+      throw new BizException(403, Messages.get("error.user.disabled"));
     }
     if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-      throw new BizException(401, "用户名或密码错误");
+      throw new BizException(401, Messages.get("error.auth.bad.credentials"));
     }
     // Token 生成由 AuthController 处理（需要 JwtUtil）
     UserVO vo = toVO(user);
@@ -228,14 +271,20 @@ public class UserService {
 
   @Transactional(readOnly = true)
   public SysUser getEntityById(Long id) {
-    return userRepository.findById(id).orElseThrow(() -> new NotFoundException("用户", id));
+    return userRepository
+        .findById(id)
+        .orElseThrow(
+            () ->
+                new NotFoundException(
+                    Messages.get("error.resource.not.found", Messages.get("resource.user"), id)));
   }
 
   @Transactional(readOnly = true)
   public SysUser getEntityByUsername(String username) {
     return userRepository
         .findByUsername(username)
-        .orElseThrow(() -> new BizException(401, "用户不存在: " + username));
+        .orElseThrow(
+            () -> new BizException(401, Messages.get("user.not.found.by.username", username)));
   }
 
   private UserVO toVO(SysUser user) {
