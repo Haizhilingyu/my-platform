@@ -52,4 +52,9 @@ public class SysUser extends ScopedEntity {
 
   @Column(length = 500)
   private String remark;
+
+  /** 用户语言偏好 (zh-CN/en)，默认 zh-CN，登录后写入 JWT locale claim。 */
+  @Column(name = "locale", length = 10, nullable = false)
+  @Builder.Default
+  private String locale = "zh-CN";
 }

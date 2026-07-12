@@ -1,6 +1,7 @@
 package com.example.sys.login;
 
 import com.example.common.exception.BizException;
+import com.example.common.i18n.Messages;
 import com.example.common.login.LoginMethodDescriptor;
 import com.example.common.login.LoginMethodProvider;
 import com.example.common.login.LoginRequest;
@@ -62,7 +63,8 @@ public class PasswordLoginProvider implements LoginMethodProvider {
 
   @Override
   public LoginMethodDescriptor describe() {
-    return new LoginMethodDescriptor(METHOD, "账号密码登录", "password-icon", getOrder());
+    return new LoginMethodDescriptor(
+        METHOD, Messages.get("login.method.password"), "password-icon", getOrder());
   }
 
   @Override
@@ -70,16 +72,18 @@ public class PasswordLoginProvider implements LoginMethodProvider {
     loginSecurityService.checkLockStatus(request.username());
     SysUser user = userService.getEntityByUsername(request.username());
     if (user.getStatus() != 1) {
-      throw new BizException(403, "用户已被禁用");
+      throw new BizException(403, Messages.get("error.user.disabled"));
     }
     if (!passwordEncoder.matches(request.password(), user.getPassword())) {
       loginSecurityService.recordFailedAttempt(request.username());
-      throw new BizException(401, "用户名或密码错误");
+      throw new BizException(401, Messages.get("error.auth.bad.credentials"));
     }
     loginSecurityService.recordSuccessfulLogin(user.getUsername());
 
     List<String> roles = List.copyOf(permissionService.getUserRoleCodes(user.getId()));
-    String token = jwtUtil.generate(user.getId(), user.getUsername(), user.getUnitId(), roles);
+    String token =
+        jwtUtil.generate(
+            user.getId(), user.getUsername(), user.getUnitId(), roles, user.getLocale());
 
     String jti = extractJti(token);
     eventPublisher.publishEvent(
