@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
+import { ref, computed, onMounted, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NCard, NButton, NSpace, NModal, NForm, NFormItem,
@@ -94,7 +94,7 @@ async function handleSave() {
 
 // 配置暂不支持删除
 
-const columns: DataTableColumns<SysConfig> = [
+const columns = computed<DataTableColumns<SysConfig>>(() => [
   { title: t('sys.config.key'), key: 'configKey', width: 200 },
   { title: t('sys.config.value'), key: 'configValue', width: 200 },
   {
@@ -109,7 +109,7 @@ const columns: DataTableColumns<SysConfig> = [
       size: 'small', onClick: () => handleEdit(row),
     }, { default: () => t('common.edit') }),
   },
-]
+])
 
 onMounted(fetchData)
 </script>

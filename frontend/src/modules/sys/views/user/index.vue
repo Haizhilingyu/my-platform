@@ -182,7 +182,7 @@ function flattenUnits(units: UnitTreeNode[]): any[] {
   }))
 }
 
-const columns: DataTableColumns<UserVO> = [
+const columns = computed<DataTableColumns<UserVO>>(() => [
   { title: t('sys.user.username'), key: 'username', width: 120 },
   { title: t('sys.user.realName'), key: 'realName', width: 100 },
   { title: t('sys.user.email'), key: 'email', width: 180 },
@@ -220,7 +220,7 @@ const columns: DataTableColumns<UserVO> = [
       ],
     }),
   },
-]
+])
 
 onMounted(() => {
   fetchInit()

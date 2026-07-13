@@ -177,7 +177,7 @@ function flattenUnitTree(units: UnitTreeNode[]): any[] {
 const dataScopeLabel = (scope: string): string =>
   dataScopes.value.find(d => d.value === scope)?.label || scope
 
-const columns: DataTableColumns<SysRole> = [
+const columns = computed<DataTableColumns<SysRole>>(() => [
   { title: t('sys.role.roleCode'), key: 'roleCode', width: 150 },
   { title: t('sys.role.roleName'), key: 'roleName', width: 150 },
   {
@@ -201,7 +201,7 @@ const columns: DataTableColumns<SysRole> = [
       ],
     }),
   },
-]
+])
 
 onMounted(async () => {
   fetchData()
