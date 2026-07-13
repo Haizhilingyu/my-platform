@@ -5,6 +5,7 @@ import login from './login'
 import layout from './layout'
 import dashboard from './dashboard'
 import notFound from './notFound'
+import error from './error'
 import sysUser from './sys/user'
 import sysRole from './sys/role'
 import sysMenu from './sys/menu'
@@ -23,6 +24,7 @@ export default {
   layout,
   dashboard,
   notFound,
+  error,
   sys: {
     user: sysUser,
     role: sysRole,
