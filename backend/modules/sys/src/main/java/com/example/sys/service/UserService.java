@@ -278,8 +278,7 @@ public class UserService {
   public SysUser getEntityByUsername(String username) {
     return userRepository
         .findByUsername(username)
-        .orElseThrow(
-            () -> BizException.i18n(401, "user.not.found.by.username", username));
+        .orElseThrow(() -> BizException.i18n(401, "user.not.found.by.username", username));
   }
 
   private UserVO toVO(SysUser user) {

@@ -68,6 +68,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/modules/sys/views/session/index.vue'),
         meta: { titleKey: 'route.session' },
       },
+      {
+        path: 'sys/translation',
+        component: () => import('@/modules/sys/views/translation/index.vue'),
+        meta: { titleKey: 'route.translation', permission: 'sys:menu:list' },
+      },
     ],
   },
   {

@@ -4,29 +4,60 @@ import com.example.common.exception.BizException;
 import com.example.common.exception.NotFoundException;
 import com.example.common.i18n.Messages;
 import com.example.sys.domain.SysMenu;
+import com.example.sys.domain.SysMenuTranslation;
 import com.example.sys.dto.MenuDTO;
 import com.example.sys.dto.MenuTreeNode;
 import com.example.sys.repository.SysMenuRepository;
+import com.example.sys.repository.SysMenuTranslationRepository;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** 菜单服务。 */
 @Service
 @RequiredArgsConstructor
 public class MenuService {
 
   private final SysMenuRepository menuRepository;
+  private final SysMenuTranslationRepository translationRepository;
 
   @Transactional(readOnly = true)
   public List<MenuTreeNode> getTree() {
-    List<SysMenu> all = menuRepository.findAll();
-    return buildTree(all);
+    return buildLocalizedTree(menuRepository.findAll());
+  }
+
+  @Transactional(readOnly = true)
+  public List<MenuTreeNode> buildLocalizedTree(List<SysMenu> menus) {
+    if (menus.isEmpty()) {
+      return new ArrayList<>();
+    }
+    String localeTag = LocaleContextHolder.getLocale().toLanguageTag();
+    List<Long> menuIds = menus.stream().map(SysMenu::getId).toList();
+    Map<Long, String> translationMap =
+        translationRepository.findByMenuIdInAndLocale(menuIds, localeTag).stream()
+            .collect(
+                Collectors.toMap(
+                    SysMenuTranslation::getMenuId, SysMenuTranslation::getDisplayName));
+
+    List<MenuTreeNode> nodes =
+        menus.stream()
+            .map(
+                menu -> {
+                  MenuTreeNode node = MenuTreeNode.of(menu);
+                  String translated = translationMap.get(menu.getId());
+                  if (translated != null) {
+                    node.setMenuName(translated);
+                  }
+                  return node;
+                })
+            .toList();
+
+    return buildTreeFromNodes(nodes);
   }
 
   @Transactional(readOnly = true)
@@ -106,9 +137,11 @@ public class MenuService {
     menuRepository.delete(menu);
   }
 
-  /** 将平铺的菜单列表构建成树。 */
   public static List<MenuTreeNode> buildTree(List<SysMenu> menus) {
-    List<MenuTreeNode> nodes = menus.stream().map(MenuTreeNode::of).toList();
+    return buildTreeFromNodes(menus.stream().map(MenuTreeNode::of).toList());
+  }
+
+  public static List<MenuTreeNode> buildTreeFromNodes(List<MenuTreeNode> nodes) {
     Map<Long, List<MenuTreeNode>> parentIdMap =
         nodes.stream()
             .collect(Collectors.groupingBy(n -> n.getParentId() == null ? 0L : n.getParentId()));

@@ -137,6 +137,6 @@ public class AuthController {
       throw BizException.i18n(401, "error.auth.not.login");
     }
     List<SysMenu> menus = permissionService.getUserMenus(userId);
-    return Result.ok(MenuService.buildTree(menus));
+    return Result.ok(menuService.buildLocalizedTree(menus));
   }
 }
