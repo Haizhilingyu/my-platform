@@ -35,17 +35,20 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(BizException.class)
   public ResponseEntity<Result<Void>> handleBiz(BizException ex, HttpServletRequest req) {
     log.warn("业务异常: {} {}", req.getRequestURI(), ex.getMessage());
-    return ResponseEntity.status(ex.getCode()).body(Result.fail(ex.getCode(), ex.getMessage()));
+    return ResponseEntity.status(ex.getCode())
+        .body(Result.fail(ex.getCode(), ex.getMessage(), null, ex.getMessageKey()));
   }
 
   @ExceptionHandler(ForbiddenException.class)
   public ResponseEntity<Result<Void>> handleForbidden(ForbiddenException ex) {
-    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Result.fail(403, ex.getMessage()));
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(Result.fail(403, ex.getMessage(), null, ex.getMessageKey()));
   }
 
   @ExceptionHandler(NotFoundException.class)
   public ResponseEntity<Result<Void>> handleNotFound(NotFoundException ex) {
-    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Result.fail(404, ex.getMessage()));
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(Result.fail(404, ex.getMessage(), null, ex.getMessageKey()));
   }
 
   @ExceptionHandler(AccessDeniedException.class)
