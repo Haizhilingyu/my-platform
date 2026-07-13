@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/modules/sys/api/auth'
 import type { UserVO, MenuTreeNode, LoginRequest } from '@/modules/sys/api/types'
+import { mergeBackendMessages, resetOverlayCache } from '@/i18n'
+import i18n from '@/i18n'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
@@ -16,13 +18,14 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem('token', t)
   }
 
-  // 接收完整 LoginRequest（method/captcha 等），但 LoginVO 处理逻辑保持不变：
-  // 仅 setToken + 写入 user + 拉取权限/菜单。锁定的 423 / 验证码 400 由调用方 catch。
   async function login(payload: LoginRequest) {
     const res = await authApi.login(payload)
     setToken(res.data.token)
     user.value = res.data.user
     await fetchUserInfo()
+
+    const currentLocale = i18n.global.locale.value as 'zh-CN' | 'en'
+    mergeBackendMessages(currentLocale)
   }
 
   async function fetchUserInfo() {
@@ -37,7 +40,6 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function hasPermission(perm: string): boolean {
-    // admin 角色拥有所有权限
     if (permissions.value.has('*')) return true
     return permissions.value.has(perm)
   }
@@ -48,6 +50,7 @@ export const useAuthStore = defineStore('auth', () => {
     permissions.value = new Set()
     menus.value = []
     localStorage.removeItem('token')
+    resetOverlayCache()
   }
 
   return {

@@ -4,18 +4,15 @@ import com.example.common.exception.BizException;
 import com.example.common.exception.NotFoundException;
 import com.example.common.i18n.Messages;
 import com.example.sys.domain.SysMenu;
-import com.example.sys.domain.SysMenuTranslation;
 import com.example.sys.dto.MenuDTO;
 import com.example.sys.dto.MenuTreeNode;
 import com.example.sys.repository.SysMenuRepository;
-import com.example.sys.repository.SysMenuTranslationRepository;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class MenuService {
 
   private final SysMenuRepository menuRepository;
-  private final SysMenuTranslationRepository translationRepository;
 
   @Transactional(readOnly = true)
   public List<MenuTreeNode> getTree() {
@@ -36,28 +32,25 @@ public class MenuService {
     if (menus.isEmpty()) {
       return new ArrayList<>();
     }
-    String localeTag = LocaleContextHolder.getLocale().toLanguageTag();
-    List<Long> menuIds = menus.stream().map(SysMenu::getId).toList();
-    Map<Long, String> translationMap =
-        translationRepository.findByMenuIdInAndLocale(menuIds, localeTag).stream()
-            .collect(
-                Collectors.toMap(
-                    SysMenuTranslation::getMenuId, SysMenuTranslation::getDisplayName));
+    List<MenuTreeNode> nodes = menus.stream().map(MenuTreeNode::of).toList();
+    List<MenuTreeNode> tree = buildTreeFromNodes(nodes);
+    for (MenuTreeNode node : tree) {
+      localizeNode(node);
+    }
+    return tree;
+  }
 
-    List<MenuTreeNode> nodes =
-        menus.stream()
-            .map(
-                menu -> {
-                  MenuTreeNode node = MenuTreeNode.of(menu);
-                  String translated = translationMap.get(menu.getId());
-                  if (translated != null) {
-                    node.setMenuName(translated);
-                  }
-                  return node;
-                })
-            .toList();
-
-    return buildTreeFromNodes(nodes);
+  private void localizeNode(MenuTreeNode node) {
+    String key = "sys.menu." + node.getId() + ".name";
+    String translated = Messages.get(key);
+    if (translated != null && !key.equals(translated)) {
+      node.setMenuName(translated);
+    }
+    if (node.getChildren() != null) {
+      for (MenuTreeNode child : node.getChildren()) {
+        localizeNode(child);
+      }
+    }
   }
 
   @Transactional(readOnly = true)

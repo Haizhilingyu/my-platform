@@ -1,0 +1,48 @@
+export default {
+  title: '国际化管理',
+  filter: {
+    locale: '语言',
+    module: '模块',
+    keyLike: 'Key 搜索',
+    placeholder: '输入 key 关键字',
+  },
+  column: {
+    key: 'Message Key',
+    module: '模块',
+    description: '说明',
+    value: '展示文本',
+    updatedAt: '更新时间',
+    actions: '操作',
+  },
+  action: {
+    edit: '编辑',
+    import: '导入',
+    exportJson: '导出 JSON',
+    exportXlsx: '导出 Excel',
+    refresh: '刷新',
+  },
+  editModal: {
+    title: '编辑展示文本',
+    value: '展示文本',
+    key: 'Message Key',
+    module: '所属模块',
+    valueRequired: '请输入展示文本',
+    valueMaxLength: '展示文本长度不能超过 5000 个字符',
+  },
+  importModal: {
+    title: '导入翻译',
+    locale: '目标语言',
+    file: '选择文件',
+    fileRequired: '请选择文件',
+    fileHint: '支持 .json 和 .xlsx 格式',
+  },
+  message: {
+    updateSuccess: '更新成功',
+    updateFailed: '更新失败',
+    importSuccess: '成功导入 {count} 条',
+    importFailed: '导入失败',
+    exportSuccess: '导出成功',
+    exportFailed: '导出失败',
+    loadFailed: '加载失败',
+  },
+}

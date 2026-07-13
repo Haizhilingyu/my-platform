@@ -94,7 +94,7 @@ describe('config/index.vue 表单校验', () => {
       await flushPromises()
       await openCreateModal(wrapper)
 
-      await setField(wrapper, 'sys.password.min-length', 'config key')
+      await setField(wrapper, '如：sys.password.min-length', 'config key')
       await clickSave()
 
       expect(configApi.create).not.toHaveBeenCalled()
@@ -105,7 +105,7 @@ describe('config/index.vue 表单校验', () => {
       await flushPromises()
       await openCreateModal(wrapper)
 
-      await setField(wrapper, 'sys.password.min-length', 'a'.repeat(101))
+      await setField(wrapper, '如：sys.password.min-length', 'a'.repeat(101))
       await clickSave()
 
       expect(configApi.create).not.toHaveBeenCalled()
@@ -116,7 +116,7 @@ describe('config/index.vue 表单校验', () => {
       await flushPromises()
       await openCreateModal(wrapper)
 
-      await setField(wrapper, 'sys.password.min-length', 'sys.valid.key')
+      await setField(wrapper, '如：sys.password.min-length', 'sys.valid.key')
       await setField(wrapper, '配置值', 'v'.repeat(2001))
       await clickSave()
 
@@ -128,7 +128,7 @@ describe('config/index.vue 表单校验', () => {
       await flushPromises()
       await openCreateModal(wrapper)
 
-      await setField(wrapper, 'sys.password.min-length', 'sys.valid.key')
+      await setField(wrapper, '如：sys.password.min-length', 'sys.valid.key')
       await clickSave()
 
       expect(configApi.create).toHaveBeenCalledTimes(1)

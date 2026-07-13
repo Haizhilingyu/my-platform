@@ -53,7 +53,8 @@ class AuditLogControllerTest {
   @Test
   @DisplayName("list：无过滤条件时仍以空 filter 调用查询并成功返回")
   void list_withoutFilters_returnsPage() {
-    when(auditLogService.query(any(AuditLogQuery.class), any())).thenReturn(new PageImpl<>(List.of()));
+    when(auditLogService.query(any(AuditLogQuery.class), any()))
+        .thenReturn(new PageImpl<>(List.of()));
 
     Result<PageResult<AuditLogVO>> result =
         controller.list(null, null, null, null, null, null, null, 1, 20);
@@ -65,7 +66,8 @@ class AuditLogControllerTest {
   @Test
   @DisplayName("list 带时间范围：startTime/endTime 透传至 AuditLogQuery")
   void list_withTimeRange_buildsQuery() {
-    when(auditLogService.query(any(AuditLogQuery.class), any())).thenReturn(new PageImpl<>(List.of()));
+    when(auditLogService.query(any(AuditLogQuery.class), any()))
+        .thenReturn(new PageImpl<>(List.of()));
 
     LocalDateTime start = LocalDateTime.parse("2025-01-01T00:00:00");
     LocalDateTime end = LocalDateTime.parse("2025-12-31T23:59:59");

@@ -28,8 +28,7 @@ public class PermissionAspect {
     }
 
     if (!permitted) {
-      throw ForbiddenException.i18n(
-          "error.permission.denied", String.join(", ", required));
+      throw ForbiddenException.i18n("error.permission.denied", String.join(", ", required));
     }
 
     return joinPoint.proceed();

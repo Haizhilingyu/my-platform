@@ -190,7 +190,7 @@ function handleLocaleChange(key: string) {
               <SettingsOutline />
             </NIcon>
           </div>
-          <NText v-if="!collapsed" class="font-display" style="font-size: 1.05rem; font-weight: 700;">My Platform</NText>
+          <NText v-if="!collapsed" class="font-display text-[1.05rem] font-bold">My Platform</NText>
         </div>
         <NMenu
           :collapsed="collapsed"

@@ -8,5 +8,5 @@ export default {
   app: 'Applications',
   audit: 'Audit Log',
   session: 'Active Sessions',
-  translation: 'Menu Translation',
+  i18n: 'Internationalization',
 }

@@ -8,5 +8,5 @@ export default {
   app: '外部应用',
   audit: '审计日志',
   session: '在线会话',
-  translation: '菜单翻译',
+  i18n: '国际化管理',
 }

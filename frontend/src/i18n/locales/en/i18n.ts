@@ -1,0 +1,48 @@
+export default {
+  title: 'Internationalization',
+  filter: {
+    locale: 'Locale',
+    module: 'Module',
+    keyLike: 'Key Search',
+    placeholder: 'Enter key keyword',
+  },
+  column: {
+    key: 'Message Key',
+    module: 'Module',
+    description: 'Description',
+    value: 'Display Text',
+    updatedAt: 'Updated At',
+    actions: 'Actions',
+  },
+  action: {
+    edit: 'Edit',
+    import: 'Import',
+    exportJson: 'Export JSON',
+    exportXlsx: 'Export Excel',
+    refresh: 'Refresh',
+  },
+  editModal: {
+    title: 'Edit Translation',
+    value: 'Display Text',
+    key: 'Message Key',
+    module: 'Module',
+    valueRequired: 'Please enter the display text',
+    valueMaxLength: 'Display text cannot exceed 5000 characters',
+  },
+  importModal: {
+    title: 'Import Translations',
+    locale: 'Target Locale',
+    file: 'Select File',
+    fileRequired: 'Please select a file',
+    fileHint: 'Supports .json and .xlsx formats',
+  },
+  message: {
+    updateSuccess: 'Updated successfully',
+    updateFailed: 'Update failed',
+    importSuccess: 'Imported {count} entries',
+    importFailed: 'Import failed',
+    exportSuccess: 'Exported successfully',
+    exportFailed: 'Export failed',
+    loadFailed: 'Load failed',
+  },
+}

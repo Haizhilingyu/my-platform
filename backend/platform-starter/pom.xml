@@ -41,5 +41,9 @@
       <groupId>com.example</groupId>
       <artifactId>login-ldap-module</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.example</groupId>
+      <artifactId>i18n-module</artifactId>
+    </dependency>
   </dependencies>
 </project>

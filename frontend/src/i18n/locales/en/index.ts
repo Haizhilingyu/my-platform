@@ -14,8 +14,8 @@ import sysConfig from './sys/config'
 import sysMessage from './sys/message'
 import sysSession from './sys/session'
 import sysAudit from './sys/audit'
-import sysTranslation from './sys/translation'
 import sysApp from './sys/app'
+import i18nPage from './i18n'
 
 export default {
   common,
@@ -35,7 +35,7 @@ export default {
     message: sysMessage,
     session: sysSession,
     audit: sysAudit,
-    translation: sysTranslation,
     app: sysApp,
   },
+  i18n: i18nPage,
 }

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import i18n, { type AppLocale } from '@/i18n'
+import i18n, { type AppLocale, mergeBackendMessages } from '@/i18n'
 import { http } from '@/modules/sys/api/http'
 
 export type { AppLocale }
@@ -34,6 +34,8 @@ export const useLocaleStore = defineStore('locale', () => {
         // Once B3 is deployed, this will persist the preference
       }
     }
+
+    mergeBackendMessages(locale)
   }
 
   return { currentLocale, setLocale }
