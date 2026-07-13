@@ -93,13 +93,13 @@ public class LdapLoginProvider implements LoginMethodProvider {
     String username = request.username();
     String password = request.password();
     if (username == null || username.isBlank() || password == null || password.isBlank()) {
-      throw new BizException(400, Messages.get("ldap.empty.credentials"));
+      throw BizException.i18n(400, "ldap.empty.credentials");
     }
 
     LdapUserInfo ldapUser = bind(username, password);
     SysUser user = resolveOrCreateUser(ldapUser);
     if (user.getStatus() != 1) {
-      throw new BizException(403, Messages.get("error.user.disabled"));
+      throw BizException.i18n(403, "error.user.disabled");
     }
 
     List<String> roles = List.copyOf(permissionService.getUserRoleCodes(user.getId()));
@@ -128,13 +128,13 @@ public class LdapLoginProvider implements LoginMethodProvider {
       return new LdapUserInfo(username, attrValue(attrs, "mail"), attrValue(attrs, "cn"));
     } catch (AuthenticationException e) {
       log.warn("LDAP 认证失败: user={}, msg={}", username, e.getMessage());
-      throw new BizException(401, Messages.get("ldap.auth.failed"));
+      throw BizException.i18n(401, "ldap.auth.failed");
     } catch (org.springframework.ldap.NamingException e) {
       log.error("LDAP 连接异常: user={}", username, e);
-      throw new BizException(500, Messages.get("ldap.service.unavailable", e.getMessage()));
+      throw BizException.i18n(500, "ldap.service.unavailable", e.getMessage());
     } catch (NamingException e) {
       log.error("LDAP 读取用户属性失败: user={}", username, e);
-      throw new BizException(500, Messages.get("ldap.attribute.error"));
+      throw BizException.i18n(500, "ldap.attribute.error");
     } finally {
       LdapUtils.closeContext(ctx);
     }
@@ -146,7 +146,7 @@ public class LdapLoginProvider implements LoginMethodProvider {
       return existing.get();
     }
     if (!properties.isAutoCreateUser()) {
-      throw new BizException(401, Messages.get("ldap.user.not.created", ldapUser.username()));
+      throw BizException.i18n(401, "ldap.user.not.created", ldapUser.username());
     }
     return createLocalUser(ldapUser);
   }

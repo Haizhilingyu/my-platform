@@ -79,8 +79,8 @@ public class OpenAppClientController {
   public Result<OpenAppClientVO> get(@PathVariable Long id) {
     OpenAppClientRow row = repository.findRowById(id);
     if (row == null) {
-      throw new NotFoundException(
-          Messages.get("error.resource.not.found", Messages.get("resource.app"), id));
+      throw NotFoundException.i18n(
+          "error.resource.not.found", Messages.get("resource.app"), id);
     }
     return Result.ok(toVO(row));
   }
@@ -112,8 +112,8 @@ public class OpenAppClientController {
       @PathVariable Long id, @RequestBody @Valid OpenAppClientUpdateDTO dto) {
     OpenAppClientRow row = repository.findRowById(id);
     if (row == null) {
-      throw new NotFoundException(
-          Messages.get("error.resource.not.found", Messages.get("resource.app"), id));
+      throw NotFoundException.i18n(
+          "error.resource.not.found", Messages.get("resource.app"), id);
     }
 
     Set<String> redirectUris =
@@ -143,8 +143,8 @@ public class OpenAppClientController {
   public Result<Void> delete(@PathVariable Long id) {
     int affected = repository.deleteRowById(id);
     if (affected == 0) {
-      throw new NotFoundException(
-          Messages.get("error.resource.not.found", Messages.get("resource.app"), id));
+      throw NotFoundException.i18n(
+          "error.resource.not.found", Messages.get("resource.app"), id);
     }
     return Result.ok();
   }
@@ -154,8 +154,8 @@ public class OpenAppClientController {
   public Result<OpenAppSecretResult> resetSecret(@PathVariable Long id) {
     OpenAppClientRow row = repository.findRowById(id);
     if (row == null) {
-      throw new NotFoundException(
-          Messages.get("error.resource.not.found", Messages.get("resource.app"), id));
+      throw NotFoundException.i18n(
+          "error.resource.not.found", Messages.get("resource.app"), id);
     }
     String rawSecret = randomString(SECRET_LEN, SECRET_ALPHABET);
     repository.updateSecret(row.clientId(), passwordEncoder.encode(rawSecret));

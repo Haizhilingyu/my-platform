@@ -103,11 +103,10 @@ public class PermissionService implements PermissionLoader {
             .findById(userId)
             .orElseThrow(
                 () ->
-                    new NotFoundException(
-                        Messages.get(
-                            "error.resource.not.found", Messages.get("resource.user"), userId)));
+                    NotFoundException.i18n(
+                        "error.resource.not.found", Messages.get("resource.user"), userId));
     if (user.getStatus() != 1) {
-      throw new BizException(403, Messages.get("error.user.disabled"));
+      throw BizException.i18n(403, "error.user.disabled");
     }
     return user;
   }

@@ -96,15 +96,14 @@ public class UserService {
             .findById(id)
             .orElseThrow(
                 () ->
-                    new NotFoundException(
-                        Messages.get(
-                            "error.resource.not.found", Messages.get("resource.user"), id))));
+                    NotFoundException.i18n(
+                        "error.resource.not.found", Messages.get("resource.user"), id)));
   }
 
   @Transactional
   public Long create(UserCreateDTO dto) {
     if (userRepository.existsByUsername(dto.getUsername())) {
-      throw new BizException(Messages.get("user.username.exists", dto.getUsername()));
+      throw BizException.i18n("user.username.exists", dto.getUsername());
     }
 
     SysUser user =
@@ -136,9 +135,8 @@ public class UserService {
             .findById(id)
             .orElseThrow(
                 () ->
-                    new NotFoundException(
-                        Messages.get(
-                            "error.resource.not.found", Messages.get("resource.user"), id)));
+                    NotFoundException.i18n(
+                        "error.resource.not.found", Messages.get("resource.user"), id));
 
     if (dto.getRealName() != null) {
       user.setRealName(dto.getRealName());
@@ -171,9 +169,8 @@ public class UserService {
             .findById(id)
             .orElseThrow(
                 () ->
-                    new NotFoundException(
-                        Messages.get(
-                            "error.resource.not.found", Messages.get("resource.user"), id)));
+                    NotFoundException.i18n(
+                        "error.resource.not.found", Messages.get("resource.user"), id));
     userRoleRepository.deleteByUserId(id);
     userRepository.delete(user);
   }
@@ -201,7 +198,7 @@ public class UserService {
         Specification<SysUser> idSpec = (root, query, cb) -> root.get("id").in(ids);
         long visibleCount = userRepository.count(scopeSpec.and(idSpec));
         if (visibleCount != ids.size()) {
-          throw new BizException(403, Messages.get("user.delete.forbidden"));
+          throw BizException.i18n(403, "user.delete.forbidden");
         }
       }
     }
@@ -218,9 +215,8 @@ public class UserService {
         .findById(userId)
         .orElseThrow(
             () ->
-                new NotFoundException(
-                    Messages.get(
-                        "error.resource.not.found", Messages.get("resource.user"), userId)));
+                NotFoundException.i18n(
+                    "error.resource.not.found", Messages.get("resource.user"), userId));
     permissionService.assignRoles(userId, roleIds);
   }
 
@@ -236,9 +232,8 @@ public class UserService {
             .findById(id)
             .orElseThrow(
                 () ->
-                    new NotFoundException(
-                        Messages.get(
-                            "error.resource.not.found", Messages.get("resource.user"), id)));
+                    NotFoundException.i18n(
+                        "error.resource.not.found", Messages.get("resource.user"), id));
     user.setPassword(passwordEncoder.encode(newPassword));
     userRepository.save(user);
     loginSecurityService.unlock(user.getUsername());
@@ -257,12 +252,12 @@ public class UserService {
     SysUser user =
         userRepository
             .findByUsername(dto.getUsername())
-            .orElseThrow(() -> new BizException(401, Messages.get("error.auth.bad.credentials")));
+            .orElseThrow(() -> BizException.i18n(401, "error.auth.bad.credentials"));
     if (user.getStatus() != 1) {
-      throw new BizException(403, Messages.get("error.user.disabled"));
+      throw BizException.i18n(403, "error.user.disabled");
     }
     if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-      throw new BizException(401, Messages.get("error.auth.bad.credentials"));
+      throw BizException.i18n(401, "error.auth.bad.credentials");
     }
     // Token 生成由 AuthController 处理（需要 JwtUtil）
     UserVO vo = toVO(user);
@@ -275,8 +270,8 @@ public class UserService {
         .findById(id)
         .orElseThrow(
             () ->
-                new NotFoundException(
-                    Messages.get("error.resource.not.found", Messages.get("resource.user"), id)));
+                NotFoundException.i18n(
+                    "error.resource.not.found", Messages.get("resource.user"), id));
   }
 
   @Transactional(readOnly = true)
@@ -284,7 +279,7 @@ public class UserService {
     return userRepository
         .findByUsername(username)
         .orElseThrow(
-            () -> new BizException(401, Messages.get("user.not.found.by.username", username)));
+            () -> BizException.i18n(401, "user.not.found.by.username", username));
   }
 
   private UserVO toVO(SysUser user) {

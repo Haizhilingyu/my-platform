@@ -72,11 +72,11 @@ public class PasswordLoginProvider implements LoginMethodProvider {
     loginSecurityService.checkLockStatus(request.username());
     SysUser user = userService.getEntityByUsername(request.username());
     if (user.getStatus() != 1) {
-      throw new BizException(403, Messages.get("error.user.disabled"));
+      throw BizException.i18n(403, "error.user.disabled");
     }
     if (!passwordEncoder.matches(request.password(), user.getPassword())) {
       loginSecurityService.recordFailedAttempt(request.username());
-      throw new BizException(401, Messages.get("error.auth.bad.credentials"));
+      throw BizException.i18n(401, "error.auth.bad.credentials");
     }
     loginSecurityService.recordSuccessfulLogin(user.getUsername());
 

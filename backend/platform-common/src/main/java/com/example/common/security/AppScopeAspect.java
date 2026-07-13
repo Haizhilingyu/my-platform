@@ -1,7 +1,6 @@
 package com.example.common.security;
 
 import com.example.common.exception.ForbiddenException;
-import com.example.common.i18n.Messages;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -35,17 +34,17 @@ public class AppScopeAspect {
 
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
-      throw new ForbiddenException(Messages.get("error.scope.no.token"));
+      throw ForbiddenException.i18n("error.scope.no.token");
     }
 
     Object principal = auth.getPrincipal();
     if (!(principal instanceof OAuth2AuthenticatedPrincipal oauthPrincipal)) {
-      throw new ForbiddenException(Messages.get("error.scope.not.oauth2"));
+      throw ForbiddenException.i18n("error.scope.not.oauth2");
     }
 
     List<String> scopes = extractScopes(oauthPrincipal);
     if (!scopes.contains(required)) {
-      throw new ForbiddenException(Messages.get("error.scope.missing", required));
+      throw ForbiddenException.i18n("error.scope.missing", required);
     }
 
     return joinPoint.proceed();

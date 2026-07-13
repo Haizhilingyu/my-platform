@@ -39,14 +39,14 @@ public class RoleService {
         .findById(id)
         .orElseThrow(
             () ->
-                new NotFoundException(
-                    Messages.get("error.resource.not.found", Messages.get("resource.role"), id)));
+                NotFoundException.i18n(
+                    "error.resource.not.found", Messages.get("resource.role"), id));
   }
 
   @Transactional
   public Long create(RoleDTO dto) {
     if (roleRepository.existsByRoleCode(dto.getRoleCode())) {
-      throw new BizException(Messages.get("role.code.exists", dto.getRoleCode()));
+      throw BizException.i18n("role.code.exists", dto.getRoleCode());
     }
     SysRole role =
         SysRole.builder()

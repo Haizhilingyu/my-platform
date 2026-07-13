@@ -35,8 +35,8 @@ public class MenuService {
         .findById(id)
         .orElseThrow(
             () ->
-                new NotFoundException(
-                    Messages.get("error.resource.not.found", Messages.get("resource.menu"), id)));
+                NotFoundException.i18n(
+                    "error.resource.not.found", Messages.get("resource.menu"), id));
   }
 
   @Transactional
@@ -62,7 +62,7 @@ public class MenuService {
     SysMenu menu = getById(id);
     if (dto.getParentId() != null) {
       if (dto.getParentId().equals(id)) {
-        throw new BizException(Messages.get("menu.parent.self"));
+        throw BizException.i18n("menu.parent.self");
       }
       menu.setParentId(dto.getParentId());
     }
@@ -101,7 +101,7 @@ public class MenuService {
     SysMenu menu = getById(id);
     List<SysMenu> children = menuRepository.findByParentId(id);
     if (!children.isEmpty()) {
-      throw new BizException(Messages.get("menu.has.children"));
+      throw BizException.i18n("menu.has.children");
     }
     menuRepository.delete(menu);
   }

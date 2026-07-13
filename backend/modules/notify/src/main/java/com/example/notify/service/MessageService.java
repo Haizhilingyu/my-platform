@@ -187,11 +187,10 @@ public class MessageService {
             .findByIdAndUserId(inboxId, userId)
             .orElseThrow(
                 () ->
-                    new NotFoundException(
-                        Messages.get(
-                            "error.resource.not.found",
-                            Messages.get("resource.inbox_message"),
-                            inboxId)));
+                    NotFoundException.i18n(
+                        "error.resource.not.found",
+                        Messages.get("resource.inbox_message"),
+                        inboxId));
     if (!Boolean.TRUE.equals(inbox.getReadStatus())) {
       inbox.setReadStatus(true);
       inbox.setReadTime(LocalDateTime.now());

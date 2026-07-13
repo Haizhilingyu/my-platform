@@ -3,7 +3,6 @@ package com.example.sys.controller;
 import com.example.common.audit.Auditable;
 import com.example.common.cache.RedisCacheService;
 import com.example.common.exception.BizException;
-import com.example.common.i18n.Messages;
 import com.example.common.login.LoginMethodDescriptor;
 import com.example.common.login.LoginMethodProvider;
 import com.example.common.login.LoginMethodRegistry;
@@ -64,14 +63,14 @@ public class AuthController {
   public Result<LoginVO> login(@RequestBody @Valid LoginRequest request) {
     if (captchaEnabled() && !captchaService.validate(request.captchaId(), request.captchaCode())) {
       if (request.captchaId() == null || request.captchaCode() == null) {
-        throw new BizException(400, Messages.get("error.auth.captcha.required"));
+        throw BizException.i18n(400, "error.auth.captcha.required");
       }
-      throw new BizException(400, Messages.get("error.auth.captcha.invalid"));
+      throw BizException.i18n(400, "error.auth.captcha.invalid");
     }
     String method = request.method() != null ? request.method() : DEFAULT_LOGIN_METHOD;
     LoginMethodProvider provider = loginMethodRegistry.getProvider(method);
     if (provider == null) {
-      throw new BizException(400, Messages.get("error.auth.method.unsupported", method));
+      throw BizException.i18n(400, "error.auth.method.unsupported", method);
     }
     LoginResult result = provider.authenticate(request);
     return Result.ok((LoginVO) result);
@@ -119,7 +118,7 @@ public class AuthController {
   public Result<UserVO> me() {
     Long userId = CurrentUser.getUserId();
     if (userId == null) {
-      throw new BizException(401, Messages.get("error.auth.not.login"));
+      throw BizException.i18n(401, "error.auth.not.login");
     }
     return Result.ok(userService.getById(userId));
   }
@@ -135,7 +134,7 @@ public class AuthController {
   public Result<List<MenuTreeNode>> menus() {
     Long userId = CurrentUser.getUserId();
     if (userId == null) {
-      throw new BizException(401, Messages.get("error.auth.not.login"));
+      throw BizException.i18n(401, "error.auth.not.login");
     }
     List<SysMenu> menus = permissionService.getUserMenus(userId);
     return Result.ok(MenuService.buildTree(menus));

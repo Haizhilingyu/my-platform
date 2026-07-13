@@ -1,7 +1,6 @@
 package com.example.sys.controller;
 
 import com.example.common.exception.ForbiddenException;
-import com.example.common.i18n.Messages;
 import com.example.common.result.Result;
 import com.example.common.security.CurrentUser;
 import com.example.common.security.RequiresPermission;
@@ -37,9 +36,9 @@ public class SessionController {
     SessionInfo info =
         sessionService
             .getSession(jti)
-            .orElseThrow(() -> new ForbiddenException(Messages.get("session.not.found")));
+            .orElseThrow(() -> ForbiddenException.i18n("session.not.found"));
     if (!userId.equals(info.userId())) {
-      throw new ForbiddenException(Messages.get("session.revoke.forbidden"));
+      throw ForbiddenException.i18n("session.revoke.forbidden");
     }
     sessionService.revokeSession(jti);
     return Result.ok();

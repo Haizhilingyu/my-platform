@@ -35,14 +35,14 @@ public class UnitService {
         .findById(id)
         .orElseThrow(
             () ->
-                new NotFoundException(
-                    Messages.get("error.resource.not.found", Messages.get("resource.unit"), id)));
+                NotFoundException.i18n(
+                    "error.resource.not.found", Messages.get("resource.unit"), id));
   }
 
   @Transactional
   public Long create(UnitDTO dto) {
     if (unitRepository.existsByUnitCode(dto.getUnitCode())) {
-      throw new BizException(Messages.get("unit.code.exists", dto.getUnitCode()));
+      throw BizException.i18n("unit.code.exists", dto.getUnitCode());
     }
     SysUnit unit =
         SysUnit.builder()
@@ -61,7 +61,7 @@ public class UnitService {
     SysUnit unit = getById(id);
     if (dto.getParentId() != null) {
       if (dto.getParentId().equals(id)) {
-        throw new BizException(Messages.get("unit.parent.self"));
+        throw BizException.i18n("unit.parent.self");
       }
       unit.setParentId(dto.getParentId());
     }
@@ -85,7 +85,7 @@ public class UnitService {
     SysUnit unit = getById(id);
     List<SysUnit> children = unitRepository.findByParentId(id);
     if (!children.isEmpty()) {
-      throw new BizException(Messages.get("unit.has.children"));
+      throw BizException.i18n("unit.has.children");
     }
     unitRepository.delete(unit);
   }

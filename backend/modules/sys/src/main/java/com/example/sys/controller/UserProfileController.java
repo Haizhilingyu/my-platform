@@ -1,7 +1,6 @@
 package com.example.sys.controller;
 
 import com.example.common.exception.BizException;
-import com.example.common.i18n.Messages;
 import com.example.common.result.Result;
 import com.example.common.security.CurrentUser;
 import com.example.common.security.JwtUtil;
@@ -61,7 +60,7 @@ public class UserProfileController {
   private Long requireCurrentUserId() {
     Long userId = CurrentUser.getUserId();
     if (userId == null) {
-      throw new BizException(401, Messages.get("error.auth.not.login"));
+      throw BizException.i18n(401, "error.auth.not.login");
     }
     return userId;
   }

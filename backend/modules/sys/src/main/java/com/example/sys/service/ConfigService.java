@@ -36,9 +36,8 @@ public class ConfigService {
         .findByConfigKey(key)
         .orElseThrow(
             () ->
-                new NotFoundException(
-                    Messages.get(
-                        "error.resource.not.found", Messages.get("resource.config"), key)));
+                NotFoundException.i18n(
+                    "error.resource.not.found", Messages.get("resource.config"), key));
   }
 
   @Transactional(readOnly = true)
@@ -52,7 +51,7 @@ public class ConfigService {
   @Transactional
   public Long create(ConfigDTO dto) {
     if (configRepository.existsByConfigKey(dto.getConfigKey())) {
-      throw new BizException(Messages.get("config.key.exists", dto.getConfigKey()));
+      throw BizException.i18n("config.key.exists", dto.getConfigKey());
     }
     SysConfig config =
         SysConfig.builder()
@@ -72,9 +71,8 @@ public class ConfigService {
             .findById(id)
             .orElseThrow(
                 () ->
-                    new NotFoundException(
-                        Messages.get(
-                            "error.resource.not.found", Messages.get("resource.config"), id)));
+                    NotFoundException.i18n(
+                        "error.resource.not.found", Messages.get("resource.config"), id));
     if (dto.getConfigValue() != null) {
       config.setConfigValue(dto.getConfigValue());
     }
