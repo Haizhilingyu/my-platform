@@ -10,6 +10,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -47,7 +48,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
  * ${REDIS_PASSWORD:${SPRING_DATA_REDIS_PASSWORD:}}}（REDIS_PASSWORD 优先， 兼容历史变量
  * SPRING_DATA_REDIS_PASSWORD）。
  */
-@AutoConfiguration
+@AutoConfiguration(before = RedisAutoConfiguration.class)
 @ConditionalOnClass(RedisOperations.class)
 @EnableCaching
 public class RedisConfig {

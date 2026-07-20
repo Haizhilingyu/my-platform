@@ -44,6 +44,7 @@
     <spring-modulith.version>1.4.12</spring-modulith.version>
     <spring-authorization-server.version>1.5.8</spring-authorization-server.version>
     <springdoc.version>2.8.17</springdoc.version>
+    <spring-ai.version>1.0.8</spring-ai.version>
     <jjwt.version>0.12.6</jjwt.version>
     <mapstruct.version>1.6.3</mapstruct.version>
     <spotless.version>2.43.0</spotless.version>
@@ -70,6 +71,13 @@
         <groupId>org.springframework.modulith</groupId>
         <artifactId>spring-modulith-bom</artifactId>
         <version>${spring-modulith.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.ai</groupId>
+        <artifactId>spring-ai-bom</artifactId>
+        <version>${spring-ai.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
