@@ -1,7 +1,7 @@
 # PROJECT KNOWLEDGE BASE
 
-**Updated:** 2026-07-07
-**Commit:** 48aba31
+**Updated:** 2026-07-13
+**Commit:** 4347349
 **Branch:** main
 
 ## OVERVIEW
@@ -22,7 +22,8 @@ my-platform/
 │   │   ├── openapp/         # OAuth2 Authorization Server + OpenAPI resource server (MODULE.md)
 │   │   ├── audit/           # @Auditable consumer → audit_log (MODULE.md)
 │   │   ├── notify/          # WebSocket in-app notifications + publish API (MODULE.md)
-│   │   └── login-ldap/      # LDAP LoginMethodProvider SPI impl (MODULE.md)
+│   │   ├── login-ldap/      # LDAP LoginMethodProvider SPI impl (MODULE.md)
+│   │   └── i18n/            # DB 驱动 MessageSource + 翻译 CRUD + Excel/JSON 导入导出 (MODULE.md, autoconfig)
 │   ├── client-sdk-java/     # Java SDK (also released as separate artifact)
 │   └── app/                 # Bootstrap entry: Application.java, port 8090
 ├── frontend/                # Vue 3 + TypeScript + Vite 6 + Naive UI + Tailwind
