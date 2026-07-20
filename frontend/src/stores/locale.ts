@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import i18n, { type AppLocale, mergeBackendMessages } from '@/i18n'
 import { http } from '@/modules/sys/api/http'
+import { useAuthStore } from '@/stores/auth'
 
 export type { AppLocale }
 
@@ -36,6 +37,11 @@ export const useLocaleStore = defineStore('locale', () => {
     }
 
     mergeBackendMessages(locale)
+
+    // 菜单名由后端按 Accept-Language 本地化：切换语言后重新拉取侧边栏，避免停留在旧语言
+    if (token) {
+      await useAuthStore().fetchMenus().catch(() => {})
+    }
   }
 
   return { currentLocale, setLocale }

@@ -39,6 +39,11 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = userRes.data
   }
 
+  async function fetchMenus() {
+    const res = await authApi.getMenus()
+    menus.value = res.data
+  }
+
   function hasPermission(perm: string): boolean {
     if (permissions.value.has('*')) return true
     return permissions.value.has(perm)
@@ -62,6 +67,7 @@ export const useAuthStore = defineStore('auth', () => {
     setToken,
     login,
     fetchUserInfo,
+    fetchMenus,
     hasPermission,
     logout,
   }

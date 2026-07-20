@@ -42,7 +42,8 @@ public class MenuService {
 
   private void localizeNode(MenuTreeNode node) {
     String key = "sys.menu." + node.getId() + ".name";
-    String translated = Messages.get(key);
+    // 缺失该 locale 翻译时回退到菜单原名，避免抛 NoSuchMessageException 导致菜单树接口 500
+    String translated = Messages.getOrDefault(key, node.getMenuName());
     if (translated != null && !key.equals(translated)) {
       node.setMenuName(translated);
     }
