@@ -16,6 +16,7 @@ import sysSession from './sys/session'
 import sysAudit from './sys/audit'
 import sysApp from './sys/app'
 import i18nPage from './i18n'
+import ai from './ai'
 
 export default {
   common,
@@ -38,4 +39,5 @@ export default {
     app: sysApp,
   },
   i18n: i18nPage,
+  ai,
 }

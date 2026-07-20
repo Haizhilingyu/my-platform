@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, h, computed } from 'vue'
+import { ref, onMounted, watch, h, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   NCard, NDataTable, NButton, NSpace, NInput, NSelect, NModal, NForm,
   NFormItem, NSwitch, NTag, NPopconfirm, useMessage,
@@ -24,6 +25,8 @@ const loading = ref(false)
 const data = ref<UserVO[]>([])
 const total = ref(0)
 const query = ref<UserQuery>({ pageNum: 1, pageSize: 10 })
+const route = useRoute()
+const highlightId = ref<number | null>(null)
 
 const showModal = ref(false)
 const editingId = ref<number | null>(null)
@@ -222,6 +225,21 @@ const columns = computed<DataTableColumns<UserVO>>(() => [
   },
 ])
 
+// AI 助手跳转带 ?highlight=<id>：高亮目标行并刷新列表
+watch(
+  () => route.query.highlight,
+  (val) => {
+    if (val != null && val !== '') {
+      highlightId.value = Number(val)
+      fetchData()
+      setTimeout(() => {
+        highlightId.value = null
+      }, 4000)
+    }
+  },
+  { immediate: true },
+)
+
 onMounted(() => {
   fetchInit()
   fetchData()
@@ -246,6 +264,7 @@ onMounted(() => {
       :data="data"
       :loading="loading"
       :scroll-x="1100"
+      :row-class-name="(row) => (row.id === highlightId ? 'ai-highlight-row' : '')"
       :pagination="{
         page: query.pageNum,
         pageSize: query.pageSize,
@@ -299,3 +318,10 @@ onMounted(() => {
     </NForm>
   </NModal>
 </template>
+
+<style scoped>
+:deep(.ai-highlight-row td) {
+  background-color: rgba(var(--color-primary), 0.14) !important;
+  transition: background-color 0.5s ease;
+}
+</style>

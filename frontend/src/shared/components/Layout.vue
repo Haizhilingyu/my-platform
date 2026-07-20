@@ -11,13 +11,15 @@ import {
   SettingsOutline, MoonOutline, SunnyOutline, LogOutOutline,
   PersonOutline, MenuOutline, GlobeOutline, NotificationsOutline,
   ShieldCheckmarkOutline, BusinessOutline, BuildOutline,
-  DocumentTextOutline, AppsOutline,
+  DocumentTextOutline, AppsOutline, SparklesOutline,
 } from '@vicons/ionicons5'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
 import { useNotifyStore } from '@/stores/notify'
 import { useLocaleStore } from '@/stores/locale'
 import { SUPPORTED_LOCALES, type AppLocale } from '@/i18n'
+import ChatPanel from '@/modules/ai/views/ChatPanel.vue'
+import type { AiActionEvent } from '@/modules/ai/api/ai'
 import { useBreakpoint } from '@/shared/composables/useBreakpoint'
 import { formatDateTime } from '@/shared/utils/datetime'
 import { notifyApi, type NotifyInboxVO, type NotifyLevel } from '@/shared/api/notify'
@@ -34,6 +36,7 @@ const router = useRouter()
 const route = useRoute()
 const collapsed = ref(false)
 const drawerVisible = ref(false)
+const aiDrawerVisible = ref(false)
 
 const { t } = useI18n()
 const message = useMessage()
@@ -166,6 +169,16 @@ function handleLocaleChange(key: string) {
   localeStore.setLocale(key as AppLocale)
   message.success(t('common.localeChanged'))
 }
+
+// AI 助手操作结果跳转：关闭抽屉 + 路由到目标页（带高亮 id）
+function handleAiAction(a: AiActionEvent): void {
+  aiDrawerVisible.value = false
+  const location: { path: string; query?: Record<string, string> } = { path: a.path }
+  if (a.highlightId != null) {
+    location.query = { highlight: String(a.highlightId) }
+  }
+  router.push(location)
+}
 </script>
 
 <template>
@@ -222,6 +235,13 @@ function handleLocaleChange(key: string) {
       </NDrawerContent>
     </NDrawer>
 
+    <!-- AI 助手抽屉 -->
+    <NDrawer v-model:show="aiDrawerVisible" :width="isMobile ? '100%' : 420" placement="right">
+      <NDrawerContent :title="t('ai.title')" closable :native-scrollbar="false">
+        <ChatPanel @action="handleAiAction" />
+      </NDrawerContent>
+    </NDrawer>
+
     <NLayout>
       <!-- 顶栏 -->
       <NLayoutHeader bordered class="px-4 py-2 flex items-center justify-between bg-[rgb(var(--color-surface))]">
@@ -238,6 +258,15 @@ function handleLocaleChange(key: string) {
         </div>
 
         <NSpace align="center" :wrap="false">
+          <!-- AI 助手 -->
+          <NButton quaternary circle :aria-label="t('ai.title')" @click="aiDrawerVisible = true">
+            <template #icon>
+              <NIcon>
+                <SparklesOutline />
+              </NIcon>
+            </template>
+          </NButton>
+
           <!-- Language switcher -->
           <NDropdown :options="localeOptions" trigger="click" @select="handleLocaleChange">
             <NButton quaternary circle>
