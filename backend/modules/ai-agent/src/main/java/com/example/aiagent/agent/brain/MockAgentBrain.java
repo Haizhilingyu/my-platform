@@ -62,6 +62,11 @@ public class MockAgentBrain implements AgentBrain {
     return BrainDecision.reply("（Mock 助手）我可以帮你管理系统。试试：\n• 创建用户 alice 密码 Alice@123\n• 删除用户 42");
   }
 
+  @Override
+  public String summarize(String userMessage, String toolName, String toolResult) {
+    return ""; // Mock 直接展示工具结果，无需 LLM 二次总结
+  }
+
   private static boolean has(List<AgentTool> tools, String name) {
     return tools.stream().anyMatch(t -> t.name().equals(name));
   }

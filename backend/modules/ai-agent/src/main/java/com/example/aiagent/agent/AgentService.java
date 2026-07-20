@@ -37,11 +37,22 @@ public class AgentService {
               .orElseThrow(
                   () -> ForbiddenException.i18n("error.permission.denied", decision.toolName()));
       events.add(AgentEvent.tool(tool.name(), decision.toolArgs()));
-      ToolResult result = tool.execute().apply(decision.toolArgs());
+      ToolResult result;
+      try {
+        result = tool.execute().apply(decision.toolArgs());
+      } catch (Exception ex) {
+        events.add(AgentEvent.error(messageOf(ex)));
+        events.add(AgentEvent.done());
+        return events;
+      }
       events.add(
           result.success()
               ? AgentEvent.result(result.message())
               : AgentEvent.error(result.message()));
+      String summary = brain.summarize(userMessage, tool.name(), result.message());
+      if (summary != null && !summary.isBlank()) {
+        events.add(AgentEvent.token(summary));
+      }
       if (result.success() && result.navigatePath() != null) {
         events.add(AgentEvent.action(result.navigatePath(), result.resourceId()));
       }
@@ -50,5 +61,9 @@ public class AgentService {
     }
     events.add(AgentEvent.done());
     return events;
+  }
+
+  private static String messageOf(Exception ex) {
+    return ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage();
   }
 }
