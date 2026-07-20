@@ -39,6 +39,7 @@ const configTypes = [
   { label: t('sys.config.typeNumber'), value: 'NUMBER' },
   { label: t('sys.config.typeBoolean'), value: 'BOOLEAN' },
   { label: t('sys.config.typeJson'), value: 'JSON' },
+  { label: t('sys.config.typeSecret'), value: 'SECRET' },
 ]
 
 async function fetchData() {
@@ -95,11 +96,18 @@ async function handleSave() {
 // 配置暂不支持删除
 
 const columns = computed<DataTableColumns<SysConfig>>(() => [
-  { title: t('sys.config.key'), key: 'configKey', width: 200 },
-  { title: t('sys.config.value'), key: 'configValue', width: 200 },
+  { title: t('sys.config.key'), key: 'configKey', width: 220 },
+  {
+    title: t('sys.config.value'), key: 'configValue', width: 220,
+    // SECRET 类型（如 AI API Key）在列表中以圆点脱敏，避免明文泄露；编辑表单中仍可见以便修改。
+    render: (row) =>
+      row.configType === 'SECRET' && row.configValue
+        ? '••••••••••••'
+        : (row.configValue ?? ''),
+  },
   {
     title: t('sys.config.type'), key: 'configType', width: 100,
-    render: (row) => h(NTag, { size: 'small', type: 'info' }, { default: () => row.configType }),
+    render: (row) => h(NTag, { size: 'small', type: row.configType === 'SECRET' ? 'warning' : 'info' }, { default: () => row.configType }),
   },
   { title: t('sys.config.category'), key: 'category', width: 100 },
   { title: t('sys.config.description'), key: 'description', width: 200 },

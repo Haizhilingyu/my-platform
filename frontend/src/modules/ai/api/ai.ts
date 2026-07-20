@@ -15,11 +15,18 @@ export interface AiActionEvent {
   highlightId?: number | null
 }
 
+export interface AiConfirmEvent {
+  tool: string
+  args: Record<string, unknown>
+  message: string
+}
+
 export interface AiHandlers {
   onTool?: (e: AiToolEvent) => void
   onResult?: (text: string) => void
   onToken?: (text: string) => void
   onAction?: (e: AiActionEvent) => void
+  onConfirm?: (e: AiConfirmEvent) => void
   onError?: (text: string) => void
   onDone?: () => void
 }
@@ -48,7 +55,7 @@ export function parseSseBlock(block: string): SseBlock {
  * tool/action → 解析为对象；result/token/error → 取字符串（兼容裸串与 JSON 引号串）。
  */
 export function decodePayload(event: string, raw: string): unknown {
-  if (event === 'tool' || event === 'action') {
+  if (event === 'tool' || event === 'action' || event === 'confirm') {
     try {
       return JSON.parse(raw)
     } catch {
@@ -73,6 +80,9 @@ function dispatch(block: string, h: AiHandlers): void {
     case 'action':
       h.onAction?.(payload as AiActionEvent)
       break
+    case 'confirm':
+      h.onConfirm?.(payload as AiConfirmEvent)
+      break
     case 'result':
       h.onResult?.(payload as string)
       break
@@ -95,6 +105,7 @@ export async function streamChat(
   message: string,
   handlers: AiHandlers,
   signal?: AbortSignal,
+  confirm?: { tool: string; args: Record<string, unknown> },
 ): Promise<void> {
   const base = import.meta.env.VITE_API_BASE_URL || '/api'
   const token = localStorage.getItem('token')
@@ -106,7 +117,7 @@ export async function streamChat(
       Authorization: token ? `Bearer ${token}` : '',
       'Accept-Language': locale,
     },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify(confirm ? { message, confirm } : { message }),
     signal,
   })
   if (!resp.ok || !resp.body) {

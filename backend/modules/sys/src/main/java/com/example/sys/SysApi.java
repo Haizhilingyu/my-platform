@@ -1,11 +1,17 @@
 package com.example.sys;
 
+import com.example.sys.domain.SysRole;
+import com.example.sys.dto.RoleDTO;
 import com.example.sys.dto.UserCreateDTO;
+import com.example.sys.dto.UserVO;
 import com.example.sys.service.ConfigService;
 import com.example.sys.service.PermissionService;
+import com.example.sys.service.RoleService;
 import com.example.sys.service.UserService;
+import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 /**
@@ -20,6 +26,7 @@ public class SysApi {
   private final PermissionService permissionService;
   private final ConfigService configService;
   private final UserService userService;
+  private final RoleService roleService;
 
   /** 获取用户权限标识集合。 */
   public Set<String> getUserPermissions(Long userId) {
@@ -49,5 +56,42 @@ public class SysApi {
   /** 删除用户（供 ai-agent 等模块复用）。 */
   public void deleteUser(Long id) {
     userService.delete(id);
+  }
+
+  /** 用户列表（关键字模糊匹配，限 limit 条，供 AI 工具只读展示）。 */
+  public List<UserVO> listUsers(String keyword, int limit) {
+    int size = Math.max(1, Math.min(limit <= 0 ? 20 : limit, 50));
+    return userService
+        .search(
+            keyword == null || keyword.isBlank() ? null : keyword,
+            null,
+            null,
+            PageRequest.of(0, size))
+        .getContent();
+  }
+
+  /** 给用户分配角色（roleIds 覆盖式）。 */
+  public void assignRoles(Long userId, List<Long> roleIds) {
+    userService.assignRoles(userId, roleIds == null ? List.of() : roleIds);
+  }
+
+  /** 查询用户已分配的角色 ID。 */
+  public List<Long> getUserRoleIds(Long userId) {
+    return userService.getUserRoleIds(userId);
+  }
+
+  /** 全部角色列表（供 AI 工具只读展示）。 */
+  public List<SysRole> listRoles() {
+    return roleService.findAll();
+  }
+
+  /** 创建角色（供 ai-agent 等模块复用）。 */
+  public Long createRole(RoleDTO dto) {
+    return roleService.create(dto);
+  }
+
+  /** 给角色分配菜单（menuIds 覆盖式）。 */
+  public void assignRoleMenus(Long roleId, List<Long> menuIds) {
+    roleService.assignMenus(roleId, menuIds == null ? List.of() : menuIds);
   }
 }

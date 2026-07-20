@@ -1,6 +1,7 @@
 package com.example.aiagent.agent.brain;
 
 import com.example.aiagent.agent.tool.AgentTool;
+import com.example.aiagent.config.DeepSeekChatModelFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +10,6 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -21,8 +21,8 @@ import org.springframework.stereotype.Component;
 /**
  * DeepSeek 真实 LLM 大脑（Spring AI）。{@code app.ai.provider=deepseek} 时生效。
  *
- * <p>用 Spring AI 的 {@link ChatModel}（OpenAiChatModel，base-url 经 spring.ai.openai.base-url 指向
- * DeepSeek）做模型调用。 工具 schema 经 {@link FunctionToolCallback} 提供；{@code
+ * <p>用 Spring AI 的 OpenAiChatModel（由 {@link DeepSeekChatModelFactory} 按 sys_config 动态构建， base-url
+ * 指向 DeepSeek）做模型调用。 工具 schema 经 {@link FunctionToolCallback} 提供；{@code
  * internalToolExecutionEnabled=false} 让模型只「建议」工具调用， 由 AgentService 执行（保留权限双层校验 + @Auditable + 事件流
  * tool/result/action/token）。
  */
@@ -30,11 +30,11 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(prefix = "app.ai", name = "provider", havingValue = "deepseek")
 public class DeepSeekAgentBrain implements AgentBrain {
 
-  private final ChatModel chatModel;
+  private final DeepSeekChatModelFactory chatModelFactory;
   private final ObjectMapper objectMapper;
 
-  public DeepSeekAgentBrain(ChatModel chatModel, ObjectMapper objectMapper) {
-    this.chatModel = chatModel;
+  public DeepSeekAgentBrain(DeepSeekChatModelFactory chatModelFactory, ObjectMapper objectMapper) {
+    this.chatModelFactory = chatModelFactory;
     this.objectMapper = objectMapper;
   }
 
@@ -49,7 +49,7 @@ public class DeepSeekAgentBrain implements AgentBrain {
         new Prompt(
             List.of(systemMessage(), new UserMessage(userMessage == null ? "" : userMessage)),
             opts);
-    ChatResponse resp = chatModel.call(prompt);
+    ChatResponse resp = chatModelFactory.model().call(prompt);
     AssistantMessage am = resp.getResult().getOutput();
     if (am.hasToolCalls()) {
       List<AssistantMessage.ToolCall> calls = am.getToolCalls();
@@ -69,7 +69,7 @@ public class DeepSeekAgentBrain implements AgentBrain {
             new UserMessage(userMessage == null ? "" : userMessage),
             new AssistantMessage("已调用工具 " + toolName + "。"),
             new UserMessage("工具执行结果：" + toolResult + "\n请用一句简短的中文向用户总结，不要调用任何工具。"));
-    ChatResponse resp = chatModel.call(new Prompt(msgs));
+    ChatResponse resp = chatModelFactory.model().call(new Prompt(msgs));
     String c = resp.getResult().getOutput().getText();
     return c == null ? "" : c;
   }
@@ -96,6 +96,36 @@ public class DeepSeekAgentBrain implements AgentBrain {
                 FunctionToolCallback.builder("deleteUser", (DeleteUserInput in) -> "")
                     .description(t.description())
                     .inputType(DeleteUserInput.class)
+                    .build());
+        case "listUsers" ->
+            list.add(
+                FunctionToolCallback.builder("listUsers", (ListUsersInput in) -> "")
+                    .description(t.description())
+                    .inputType(ListUsersInput.class)
+                    .build());
+        case "assignRoles" ->
+            list.add(
+                FunctionToolCallback.builder("assignRoles", (AssignRolesInput in) -> "")
+                    .description(t.description())
+                    .inputType(AssignRolesInput.class)
+                    .build());
+        case "listRoles" ->
+            list.add(
+                FunctionToolCallback.builder("listRoles", (ListRolesInput in) -> "")
+                    .description(t.description())
+                    .inputType(ListRolesInput.class)
+                    .build());
+        case "createRole" ->
+            list.add(
+                FunctionToolCallback.builder("createRole", (CreateRoleInput in) -> "")
+                    .description(t.description())
+                    .inputType(CreateRoleInput.class)
+                    .build());
+        case "assignRoleMenus" ->
+            list.add(
+                FunctionToolCallback.builder("assignRoleMenus", (AssignRoleMenusInput in) -> "")
+                    .description(t.description())
+                    .inputType(AssignRoleMenusInput.class)
                     .build());
         case "navigateTo" ->
             list.add(
@@ -133,6 +163,20 @@ public class DeepSeekAgentBrain implements AgentBrain {
       java.util.Optional<Integer> unitId) {}
 
   record DeleteUserInput(Integer id) {}
+
+  record ListUsersInput(java.util.Optional<String> keyword, java.util.Optional<Integer> limit) {}
+
+  record AssignRolesInput(Integer userId, java.util.List<Long> roleIds) {}
+
+  record ListRolesInput() {}
+
+  record CreateRoleInput(
+      String roleCode,
+      String roleName,
+      java.util.Optional<String> dataScope,
+      java.util.Optional<String> remark) {}
+
+  record AssignRoleMenusInput(Integer roleId, java.util.List<Long> menuIds) {}
 
   record NavigateInput(String path, java.util.Optional<Integer> highlightId) {}
 }

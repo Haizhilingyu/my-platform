@@ -2,13 +2,13 @@
 import { ref, nextTick, watch } from 'vue'
 import { NInput, NButton, NIcon, NScrollbar, NSpin } from 'naive-ui'
 import { SendOutline, SparklesOutline, OpenOutline } from '@vicons/ionicons5'
-import { useAiChat } from '@/modules/ai/composables/useAiChat'
+import { useAiChat, type ChatMessage } from '@/modules/ai/composables/useAiChat'
 import type { AiActionEvent } from '@/modules/ai/api/ai'
 import { useI18n } from 'vue-i18n'
 
 const emit = defineEmits<{ (e: 'action', payload: AiActionEvent): void }>()
 const { t } = useI18n()
-const { messages, streaming, send } = useAiChat()
+const { messages, streaming, send, confirmExecute, confirmCancel } = useAiChat()
 const input = ref('')
 const scrollbarRef = ref<InstanceType<typeof NScrollbar> | null>(null)
 
@@ -31,6 +31,14 @@ function openAction(a?: AiActionEvent): void {
   if (a) {
     emit('action', a)
   }
+}
+
+async function onConfirmExecute(m: ChatMessage): Promise<void> {
+  if (!m.confirm) {
+    return
+  }
+  await confirmExecute(m, m.confirm, (a) => emit('action', a))
+  await scrollToBottom()
 }
 
 function runExample(text: string): void {
@@ -99,6 +107,39 @@ watch(messages, scrollToBottom, { deep: true })
             </template>
             {{ t('ai.viewResult') }}
           </NButton>
+          <!-- 破坏性工具二次确认卡片 -->
+          <div
+            v-if="m.confirm && m.confirmState === 'pending'"
+            class="mt-2 rounded-lg bg-amber-500/10 px-2 py-1.5"
+          >
+            <div class="text-xs mb-1.5">{{ m.confirm.message }}</div>
+            <div class="flex gap-2">
+              <NButton
+                size="tiny"
+                type="error"
+                :loading="streaming"
+                :disabled="streaming"
+                @click="onConfirmExecute(m)"
+              >
+                {{ t('ai.confirmExecute') }}
+              </NButton>
+              <NButton size="tiny" quaternary :disabled="streaming" @click="confirmCancel(m)">
+                {{ t('ai.confirmCancel') }}
+              </NButton>
+            </div>
+          </div>
+          <div
+            v-else-if="m.confirm && m.confirmState === 'executed'"
+            class="mt-1 text-xs opacity-60"
+          >
+            {{ t('ai.confirmExecuted') }}
+          </div>
+          <div
+            v-else-if="m.confirm && m.confirmState === 'cancelled'"
+            class="mt-1 text-xs opacity-60"
+          >
+            {{ t('ai.confirmCancelled') }}
+          </div>
         </div>
       </div>
     </NScrollbar>

@@ -8,6 +8,7 @@ export default {
   typeNumber: '数字',
   typeBoolean: '布尔',
   typeJson: 'JSON',
+  typeSecret: '密钥',
   key: '配置键',
   value: '配置值',
   type: '类型',

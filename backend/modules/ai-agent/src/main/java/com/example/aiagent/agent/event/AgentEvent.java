@@ -23,6 +23,11 @@ public record AgentEvent(String type, Object data) {
     return new AgentEvent("action", new NavAction(path, highlightId));
   }
 
+  /** 破坏性工具二次确认：请求用户确认后再执行。 */
+  public static AgentEvent confirm(String tool, Object args, String message) {
+    return new AgentEvent("confirm", new ConfirmInfo(tool, args, message));
+  }
+
   public static AgentEvent done() {
     return new AgentEvent("done", null);
   }
@@ -36,4 +41,7 @@ public record AgentEvent(String type, Object data) {
 
   /** 前端跳转动作。 */
   public record NavAction(String path, Long highlightId) {}
+
+  /** 二次确认信息：破坏性工具执行前，请用户确认。 */
+  public record ConfirmInfo(String tool, Object args, String message) {}
 }

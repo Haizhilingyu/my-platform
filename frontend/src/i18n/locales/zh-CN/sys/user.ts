@@ -37,12 +37,12 @@ export default {
   resetPassword: '重置密码',
 
   // Popconfirm
-  confirmResetPassword: '确认重置密码为 User@123456？',
+  confirmResetPassword: "确认重置密码为 User{'@'}123456？",
 
   // Toast messages
   unlockSuccess: '解锁成功',
   unlockFailed: '解锁失败',
-  passwordReset: '密码已重置为 User@123456',
+  passwordReset: "密码已重置为 User{'@'}123456",
   resetFailed: '重置失败',
 
   // Validation rules

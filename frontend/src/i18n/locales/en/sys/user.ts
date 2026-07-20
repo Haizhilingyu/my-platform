@@ -37,12 +37,12 @@ export default {
   resetPassword: 'Reset Password',
 
   // Popconfirm
-  confirmResetPassword: 'Confirm reset password to User@123456?',
+  confirmResetPassword: "Confirm reset password to User{'@'}123456?",
 
   // Toast messages
   unlockSuccess: 'Unlock successful',
   unlockFailed: 'Unlock failed',
-  passwordReset: 'Password has been reset to User@123456',
+  passwordReset: "Password has been reset to User{'@'}123456",
   resetFailed: 'Reset failed',
 
   // Validation rules

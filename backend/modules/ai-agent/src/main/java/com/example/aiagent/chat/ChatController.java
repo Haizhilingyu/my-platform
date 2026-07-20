@@ -28,12 +28,29 @@ public class ChatController {
 
   private final AgentService agentService;
   private final AgentProperties properties;
+  private final ChatRateLimiter rateLimiter;
 
   @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter chat(@RequestBody @Valid ChatRequest request) {
-    // 捕获当前用户（请求线程），稍后传播到异步线程——CurrentUser 是 ThreadLocal
     CurrentUser.UserInfo user = CurrentUser.get();
     SseEmitter emitter = new SseEmitter(60_000L);
+    // 限流：同步检查，超出立即返回错误事件，避免占用异步线程与 DeepSeek 调用。
+    if (!rateLimiter.tryAcquire(user.userId())) {
+      sendQuietly(emitter, AgentEvent.error("请求过于频繁，请稍后再试"));
+      emitter.complete();
+      return emitter;
+    }
+    // 入参兜底：既无消息又无二次确认回执，直接拒绝，避免空跑一次 DeepSeek 调用。
+    boolean hasMessage = request.getMessage() != null && !request.getMessage().isBlank();
+    boolean hasConfirm =
+        request.getConfirm() != null
+            && request.getConfirm().tool() != null
+            && !request.getConfirm().tool().isBlank();
+    if (!hasMessage && !hasConfirm) {
+      sendQuietly(emitter, AgentEvent.error("消息不能为空"));
+      emitter.complete();
+      return emitter;
+    }
     CompletableFuture.runAsync(
         () -> {
           try {
@@ -43,7 +60,7 @@ public class ChatController {
               emitter.complete();
               return;
             }
-            for (AgentEvent e : agentService.handle(request.getMessage())) {
+            for (AgentEvent e : agentService.handle(request.getMessage(), request.getConfirm())) {
               send(emitter, e);
             }
             emitter.complete();

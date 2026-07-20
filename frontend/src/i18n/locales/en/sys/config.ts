@@ -8,6 +8,7 @@ export default {
   typeNumber: 'Number',
   typeBoolean: 'Boolean',
   typeJson: 'JSON',
+  typeSecret: 'Secret',
   key: 'Config Key',
   value: 'Config Value',
   type: 'Type',
