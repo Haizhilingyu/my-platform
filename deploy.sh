@@ -75,8 +75,9 @@ REMOTE_SCRIPT
 
 echo "✅ [4/4] 部署完成!"
 echo ""
-echo "   URL:   https://$DOMAIN"
-echo "   状态:  curl -s https://$DOMAIN/actuator/health"
+# 访问端口用 8443（Cloudflare 支持的 HTTPS 端口，Caddyfile 中该域名仅配 :80 与 :8443；标准 :443 会 520）
+echo "   URL:   https://$DOMAIN:8443"
+echo "   状态:  curl -s https://$DOMAIN:8443/actuator/health"
 echo "   日志:  ssh $SERVER docker logs $APP_CONTAINER -f"
 echo "   重启:  ssh $SERVER docker restart $APP_CONTAINER"
 
