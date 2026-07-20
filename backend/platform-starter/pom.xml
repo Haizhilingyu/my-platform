@@ -45,5 +45,9 @@
       <groupId>com.example</groupId>
       <artifactId>i18n-module</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.example</groupId>
+      <artifactId>ai-agent-module</artifactId>
+    </dependency>
   </dependencies>
 </project>

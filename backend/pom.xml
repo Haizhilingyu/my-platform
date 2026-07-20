@@ -19,6 +19,7 @@
     <module>modules/notify</module>
     <module>modules/login-ldap</module>
     <module>modules/i18n</module>
+    <module>modules/ai-agent</module>
     <module>app</module>
   </modules>
 
@@ -146,6 +147,11 @@
       <dependency>
         <groupId>com.example</groupId>
         <artifactId>i18n-module</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.example</groupId>
+        <artifactId>ai-agent-module</artifactId>
         <version>${project.version}</version>
       </dependency>
 

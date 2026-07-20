@@ -1,7 +1,9 @@
 package com.example.sys;
 
+import com.example.sys.dto.UserCreateDTO;
 import com.example.sys.service.ConfigService;
 import com.example.sys.service.PermissionService;
+import com.example.sys.service.UserService;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -17,6 +19,7 @@ public class SysApi {
 
   private final PermissionService permissionService;
   private final ConfigService configService;
+  private final UserService userService;
 
   /** 获取用户权限标识集合。 */
   public Set<String> getUserPermissions(Long userId) {
@@ -36,5 +39,15 @@ public class SysApi {
   /** 按 key 获取配置值，支持默认值。 */
   public String getConfig(String key, String defaultValue) {
     return configService.getValue(key, defaultValue);
+  }
+
+  /** 创建用户（供 ai-agent 等模块复用，复用 UserService 全部校验/加密逻辑）。 */
+  public Long createUser(UserCreateDTO dto) {
+    return userService.create(dto);
+  }
+
+  /** 删除用户（供 ai-agent 等模块复用）。 */
+  public void deleteUser(Long id) {
+    userService.delete(id);
   }
 }
