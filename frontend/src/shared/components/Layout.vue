@@ -235,9 +235,9 @@ function handleAiAction(a: AiActionEvent): void {
       </NDrawerContent>
     </NDrawer>
 
-    <!-- AI 助手抽屉 -->
+    <!-- AI 助手抽屉：native-scrollbar=true 让 ChatPanel 的 h-full 相对 body 确定高度撑满（false 会包进 NScrollbar 导致高度塌陷） -->
     <NDrawer v-model:show="aiDrawerVisible" :width="isMobile ? '100%' : 420" placement="right">
-      <NDrawerContent :title="t('ai.title')" closable :native-scrollbar="false">
+      <NDrawerContent :title="t('ai.title')" closable :native-scrollbar="true" :body-content-style="{ padding: 0 }">
         <ChatPanel @action="handleAiAction" />
       </NDrawerContent>
     </NDrawer>
