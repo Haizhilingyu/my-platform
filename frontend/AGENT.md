@@ -388,6 +388,14 @@ export const useThemeStore = defineStore('theme', () => {
 
 **不允许先写实现再补测试。**
 
+强制执行点：
+- **任何 `feat:`/`fix:` 提交必须同提交包含测试变更**（新测试或更新的既有测试），实现与测试禁止拆成两个提交。
+- **提交前本地全绿**：`vitest run` 全量通过。红测试禁止提交；`--no-verify` 仅限不碰测试范围的 WIP。
+- **修改既有行为时先改测试**：测试即规格说明，行为变更必须先体现为断言变更。（2026-07 教训：AI copilot 提交给 user 视图新增 `route.query.highlight` 依赖却没更新测试，留下 8 个红用例。）
+- **组件新增运行时依赖（useRoute/useRouter/新 store/新 API）必须同步更新对应测试的 mock**。
+- **测试暴露实现 bug 时，先保留 failing test 再修实现**。（2026-07 实证：ChatPanel 测试暴露 `confirmState` 从未初始化，二次确认卡片线上从不渲染。）
+- 覆盖率硬门禁：≥80% 行/函数/语句 + ≥70% 分支（`npm run test:coverage`，CI 红灯即阻塞）。
+
 ### 测试命名
 
 用 `should <期望> when <条件>` 句式：

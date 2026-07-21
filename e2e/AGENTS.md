@@ -46,6 +46,8 @@ e2e/
 
 ## CONVENTIONS (E2E-specific)
 
+- **部署前必跑（MANDATORY PRE-DEPLOY GATE）** — 触发部署（merge 到 main / dispatch `deploy.yml`）前，必须在目标提交上跑通 `bash run-e2e.sh`：13 个 Playwright spec + 3 个 shell API E2E 全绿。CI 不跑 Playwright（见 NOTES 的 CI gap），这是唯一拦在部署前的端到端防线，跳过等于盲部。部署单/PR 需粘贴 run-e2e.sh 末尾 summary 作为证据。
+- **后端接口变更必须同步 E2E** — 增删 endpoint、改契约字段时，新增/更新对应 spec 才算功能完成。
 - **Numbered spec files** (`01-`, `02-`, …) — enforce execution order. Workers=1 because backend state is shared; parallel runs pollute.
 - **Direct DB/Redis fixtures** — Playwright bypasses app to seed/assert state. Used for: captcha solving (Redis), permission reset (DB), residual data cleanup (`global-setup.ts`).
 - **E2E-* prefix** for all test-created entities (users, roles, units) — `global-setup.ts` cleans these before each full run.
@@ -86,7 +88,7 @@ bash oauth2-e2e.sh
 
 ## NOTES
 
-- **CI gap**: `ci.yml` does NOT run Playwright. E2E is local-only via `run-e2e.sh`. Adding to CI requires docker-compose service in runner.
+- **CI gap**: `ci.yml` does NOT run Playwright. E2E is local-only via `run-e2e.sh` — 正因如此“部署前必跑 E2E”是人工强制门禁（见 CONVENTIONS 第一条）。Adding to CI requires docker-compose service in runner.
 - **Base image**: `mcr.microsoft.com/playwright:v1.61.1-jammy` if containerizing.
 - **Postgres port** (local stack): 5533 (NOT 5432). Redis: 6381. App: 8090.
 - **Test artifacts** (`test-results/`, `playwright-report/`, `logs/`) are gitignored — do not commit.
