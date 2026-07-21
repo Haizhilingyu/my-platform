@@ -16,7 +16,7 @@
   - `mock`（默认，`matchIfMissing=true`）：`MockAgentBrain` 关键词意图匹配，无需真实 provider；
   - `deepseek`：`DeepSeekAgentBrain` 真实 LLM（Spring AI 1.0.8，OpenAiChatModel 指向 DeepSeek），工具 schema 经 `FunctionToolCallback` 暴露、`internalToolExecutionEnabled=false` 仅「建议」工具调用，执行仍由 `AgentService` 完成（保留权限校验/审计/事件流）。
 - **破坏性操作二次确认**：`deleteUser`/`assignRoles`/`assignRoleMenus` 等覆盖/删除类工具，先发 `confirm` 事件请用户确认；客户端点「执行」回传 `confirm`（工具名+参数），服务端直接执行该调用（**不再过大脑**，避免重复 LLM 调用与决策漂移）。
-- **限流**：`ChatRateLimiter` 每用户固定时间窗口计数（内存实现），超出即在请求线程返回 `error` 事件，避免 DeepSeek 调用被刷导致成本失控。
+- **限流**：`ChatRateLimiter` 每用户固定时间窗口计数，主路径走 Redis（Lua 原子 `INCR + EXPIRE`，多实例共享计数），Redis 不可达时降级单实例内存兜底；超出即在请求线程返回 `error` 事件，避免 DeepSeek 调用被刷导致成本失控。
 
 ## 依赖
 - platform-common（Result / CurrentUser / ForbiddenException / @Auditable / Messages）
@@ -51,6 +51,10 @@ app:
       max-requests: 30      # 每用户每窗口最大对话次数；<=0 关闭限流
       window-seconds: 60
 ```
+
+限流计数键为 Redis 的 `ai:ratelimit:{userId}`（窗口 TTL = `window-seconds`）。连接复用平台级
+`spring.data.redis.*`（platform-common 的 `RedisConfig` 已注入 `StringRedisTemplate`）；Redis 不可达时自动
+降级为单实例内存计数（仅日志告警，不中断对话）。
 
 DeepSeek 连接参数（api-key/base-url/model）通过 `DeepSeekChatModelFactory` **从 sys_config 读取并懒构建缓存**——
 管理员在『系统设置 > 配置』改 `ai.deepseek.*` 后下次调用自动按新配置重建模型（支持「界面改 Key 即生效」）。
@@ -89,6 +93,8 @@ event: done
 `tool`→`result`→（`action`）→`done`。
 
 ## 后续阶段（未实现）
-- 软删策略（当前 deleteUser 为硬删除）。
-- 限流改为 Redis 实现，支持多实例部署。
-- 前端聊天面板（Layout 抽屉）+ action 事件渲染跳转。
+- 软删策略（当前 deleteUser 为硬删除）。这是 sys 模块横切改动：需给 `SysUser` 加软删标记 + Flyway 迁移，并改造 `UserService.delete`/`deleteBatch`、登录鉴权、用户名唯一约束、列表查询过滤等全链路；AI 工具复用 `SysApi.deleteUser` 即随之生效。需先确认语义（「仅 AI 软删」还是「全系统软删」、与现有 `status` 禁用态的关系）。
+
+## 已落地（历史规划）
+- ✅ 限流改为 Redis 实现：`ChatRateLimiter` 以 Lua 原子 `INCR + EXPIRE` 计数为主路径（多实例共享计数），Redis 不可达时自动降级为单实例内存兜底，`app.ai.rate-limit.*` 配置不变。
+- ✅ 前端聊天面板：`Layout.vue` 右上角 AI 抽屉 + `ChatPanel`，`action` 事件经 `handleAiAction` 路由跳转并带 `?highlight=<id>`，用户/角色视图按行高亮目标。
