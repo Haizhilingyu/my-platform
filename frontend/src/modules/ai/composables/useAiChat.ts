@@ -91,6 +91,8 @@ export function useAiChat() {
       },
       onConfirm: (c: AiConfirmEvent) => {
         assistant.confirm = c
+        // 初始化为 pending，模板据此展示执行/取消按钮（否则确认卡片永远不渲染）。
+        assistant.confirmState = 'pending'
       },
       onError: (t: string) => {
         assistant.text = t
