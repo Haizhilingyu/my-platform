@@ -198,3 +198,115 @@ describe('app/index.vue 表单校验', () => {
     )
   })
 })
+
+describe('app/index.vue 行操作', () => {
+  function makeRow() {
+    return {
+      id: 9,
+      clientId: 'cid-9',
+      clientName: '已有应用',
+      redirectUris: ['https://a.com/cb'],
+      postLogoutRedirectUris: ['https://a.com/out'],
+      scopes: ['read'],
+      grantTypes: ['authorization_code'],
+      enabled: true,
+      createdAt: '2026-07-01T10:00:00Z',
+    }
+  }
+
+  const setupStateOf = (wrapper: ReturnType<typeof mountApp>) =>
+    (wrapper.vm as unknown as { $: { setupState: Record<string, unknown> } }).$.setupState
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(openAppApi.list).mockResolvedValue({
+      data: { list: [makeRow()], total: 1 },
+    } as never)
+  })
+
+  it('行渲染 scope/grantType 标签与启用开关', async () => {
+    const wrapper = mountApp()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('cid-9')
+    expect(wrapper.text()).toContain('已有应用')
+    expect(wrapper.text()).toContain('read')
+  })
+
+  it('切换启用状态调用 update 并原地更新行', async () => {
+    const wrapper = mountApp()
+    await flushPromises()
+    const row = makeRow()
+
+    await (setupStateOf(wrapper).handleToggleEnabled as (r: unknown, v: boolean) => Promise<void>)(
+      row,
+      false,
+    )
+
+    expect(openAppApi.update).toHaveBeenCalledWith(9, expect.objectContaining({ enabled: false }))
+    expect(row.enabled).toBe(false)
+  })
+
+  it('编辑行预填表单，支持增删重定向 URI', async () => {
+    const wrapper = mountApp()
+    await flushPromises()
+    const ss = setupStateOf(wrapper)
+
+    await (ss.handleEdit as (r: unknown) => Promise<void>)(makeRow())
+    await flushPromises()
+
+    const form = ss.form as {
+      clientName: string
+      redirectUris: string[]
+      postLogoutRedirectUris: string[]
+    }
+    // 表单已预填行数据（input 值不进 textContent，断言 setupState 的 form）
+    expect(form.clientName).toBe('已有应用')
+    expect(form.redirectUris).toEqual(['https://a.com/cb'])
+
+    // 增删 redirectUri / postLogoutUri 表单项
+    ;(ss.addRedirectUri as () => void)()
+    expect(form.redirectUris).toHaveLength(2)
+    ;(ss.removeRedirectUri as (i: number) => void)(1)
+    expect(form.redirectUris).toEqual(['https://a.com/cb'])
+    ;(ss.addPostLogoutUri as () => void)()
+    expect(form.postLogoutRedirectUris).toHaveLength(2)
+    ;(ss.removePostLogoutUri as (i: number) => void)(1)
+    expect(form.postLogoutRedirectUris).toEqual(['https://a.com/out'])
+  })
+
+  it('重置密钥调用 resetSecret 并弹窗展示', async () => {
+    const wrapper = mountApp()
+    await flushPromises()
+
+    await (setupStateOf(wrapper).handleResetSecret as (r: unknown) => Promise<void>)(makeRow())
+
+    expect(openAppApi.resetSecret).toHaveBeenCalledWith(9)
+  })
+
+  it('删除应用调用 delete 并刷新列表', async () => {
+    const wrapper = mountApp()
+    await flushPromises()
+    vi.mocked(openAppApi.list).mockClear()
+
+    await (setupStateOf(wrapper).handleDelete as (r: unknown) => Promise<void>)(makeRow())
+    await flushPromises()
+
+    expect(openAppApi.delete).toHaveBeenCalledWith(9)
+    expect(openAppApi.list).toHaveBeenCalledTimes(1)
+  })
+
+  it('复制文本写入剪贴板并提示成功', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    })
+    const wrapper = mountApp()
+    await flushPromises()
+
+    await (setupStateOf(wrapper).copyText as (t: string) => Promise<void>)('secret-value')
+
+    expect(writeText).toHaveBeenCalledWith('secret-value')
+  })
+})

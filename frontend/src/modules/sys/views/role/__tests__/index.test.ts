@@ -3,6 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import RoleIndex from '@/modules/sys/views/role/index.vue'
 import { roleApi } from '@/modules/sys/api/role'
+import { menuApi } from '@/modules/sys/api/menu'
+import { unitApi } from '@/modules/sys/api/unit'
 
 /**
  * 角色管理视图 CRUD 表单校验边界值测试。
@@ -220,5 +222,110 @@ describe('role/index.vue 表单校验', () => {
       expect(roleApi.update).toHaveBeenCalledWith(7, expect.anything())
       expect(roleApi.create).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe('role/index.vue 行操作与授权', () => {
+  const roleRow = {
+    id: 1,
+    roleCode: 'sys_admin',
+    roleName: '系统管理员',
+    dataScope: 'ALL',
+    status: 1,
+    remark: '内置角色',
+  }
+
+  const setupStateOf = (wrapper: ReturnType<typeof mountRole>) =>
+    (wrapper.vm as unknown as { $: { setupState: Record<string, unknown> } }).$.setupState
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(roleApi.list).mockResolvedValue({ data: [roleRow] } as never)
+  })
+
+  it('行渲染 dataScope 与状态标签', async () => {
+    const wrapper = mountRole()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('sys_admin')
+    expect(wrapper.text()).toContain('全部数据')
+  })
+
+  it('授权流程：加载菜单树 → 打开弹窗 → 保存授权', async () => {
+    vi.mocked(menuApi.tree).mockResolvedValue({
+      data: [
+        {
+          id: 1,
+          menuName: '系统管理',
+          path: '',
+          visible: 1,
+          children: [
+            { id: 2, menuName: '用户管理', path: '/sys/user', visible: 1, children: [] },
+          ],
+        },
+      ],
+    } as never)
+    vi.mocked(roleApi.getRoleMenus).mockResolvedValue({ data: [2] } as never)
+    const wrapper = mountRole()
+    await flushPromises()
+
+    const ss = setupStateOf(wrapper)
+    await (ss.handlePermission as (row: unknown) => Promise<void>)(roleRow)
+    await flushPromises()
+
+    expect(menuApi.tree).toHaveBeenCalled()
+    expect(roleApi.getRoleMenus).toHaveBeenCalledWith(1)
+    // flattenMenuTree 在弹窗 NTree 渲染中执行
+    expect(document.body.textContent).toContain('系统管理')
+
+    await (ss.handleSavePermission as () => Promise<void>)()
+    expect(roleApi.assignMenus).toHaveBeenCalledWith(1, [2])
+  })
+
+  it('删除角色后刷新列表', async () => {
+    const wrapper = mountRole()
+    await flushPromises()
+    vi.mocked(roleApi.list).mockClear()
+
+    const ss = setupStateOf(wrapper)
+    await (ss.handleDelete as (row: unknown) => Promise<void>)(roleRow)
+    await flushPromises()
+
+    expect(roleApi.delete).toHaveBeenCalledWith(1)
+    expect(roleApi.list).toHaveBeenCalledTimes(1)
+  })
+
+  it('编辑角色：加载表单并触发 flattenUnitTree（自定义数据范围）', async () => {
+    // Mock nested unit tree to trigger flattenUnitTree when custom scope is selected
+    vi.mocked(unitApi.tree).mockResolvedValue({
+      data: [
+        {
+          id: 1,
+          unitName: '总公司',
+          children: [
+            { id: 2, unitName: '技术部', children: [] },
+          ],
+        },
+      ],
+    } as never)
+    const wrapper = mountRole()
+    await flushPromises()
+
+    const ss = setupStateOf(wrapper)
+    await (ss.handleEdit as (row: unknown) => Promise<void>)(roleRow)
+    await flushPromises()
+
+    // Verify edit modal opens with role data
+    expect(ss.editingId as number).toBe(1)
+    expect((ss.form as Record<string, unknown>).roleCode).toBe('sys_admin')
+
+    // 直接验证 flattenUnitTree（自定义数据范围时用于渲染单位下拉）：
+    // NSelect 选项文本在关闭态下不渲染进 DOM，故不走 DOM 断言，改为直接调用纯函数。
+    const flattened = (ss.flattenUnitTree as (units: unknown[]) => unknown[])([
+      { id: 1, unitName: '总公司', children: [{ id: 2, unitName: '技术部', children: [] }] },
+    ])
+    expect(flattened).toHaveLength(1)
+    expect((flattened as Array<{ children?: unknown[] }>)[0].children).toHaveLength(1)
+    expect(ss.editingId as number).toBe(1)
   })
 })

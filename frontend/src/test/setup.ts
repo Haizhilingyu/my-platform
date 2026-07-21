@@ -1,3 +1,15 @@
+/**
+ * jsdom 环境补丁：naive-ui 的 NScrollbar 内部对容器 div 调用 `element.scrollTo({top,left,behavior})`，
+ * 而 jsdom 仅在 window 上实现了 scrollTo，Element 上没有 → 触发 "container.scrollTo is not a function"。
+ * 该错误以 Unhandled Rejection 形式跨测试文件污染 worker 池，使其他不相关用例偶发失败（如 router 守卫测试）。
+ * 此处补一个 no-op polyfill，签名对齐 WHATWG ScrollToOptions。
+ */
+if (typeof Element !== 'undefined' && typeof Element.prototype.scrollTo !== 'function') {
+  Element.prototype.scrollTo = function scrollTo(_options?: ScrollToOptions | number): void {
+    /* no-op for jsdom */
+  }
+}
+
 import { beforeEach } from 'vitest'
 import { config } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'

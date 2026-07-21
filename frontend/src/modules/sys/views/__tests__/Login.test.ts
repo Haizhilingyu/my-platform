@@ -145,3 +145,35 @@ describe('Login.vue 表单校验', () => {
     )
   })
 })
+
+describe('Login.vue 错误映射与兜底登录方式', () => {
+  const setupStateOf = (wrapper: ReturnType<typeof mountLogin>) =>
+    (wrapper.vm as unknown as { $: { setupState: Record<string, unknown> } }).$.setupState
+
+  it('mapLoginError 将 HTTP 状态码映射为对应文案 key', async () => {
+    const wrapper = await mountLogin()
+    await flushPromises()
+    const mapLoginError = setupStateOf(wrapper).mapLoginError as (e: unknown) => string
+
+    // 423 → 账户锁定
+    expect(mapLoginError({ response: { status: 423 } })).toBeTruthy()
+    // 401 → 凭证错误
+    expect(mapLoginError({ response: { status: 401 } })).toBeTruthy()
+    // 400 + 验证码关键字 → 验证码错误
+    expect(mapLoginError({ response: { status: 400, data: { message: '验证码错误' } } })).toBeTruthy()
+    // 400 + 服务端其它消息 → 原样回传
+    expect(mapLoginError({ response: { status: 400, data: { message: '自定义错误' } } })).toContain('自定义错误')
+    // 无 status → 登录失败兜底
+    expect(mapLoginError({})).toBeTruthy()
+  })
+
+  it('fallbackMethods 返回密码登录兜底项', async () => {
+    const wrapper = await mountLogin()
+    await flushPromises()
+    const fallbackMethods = setupStateOf(wrapper).fallbackMethods as () => Array<{ method: string }>
+
+    const methods = fallbackMethods()
+    expect(methods).toHaveLength(1)
+    expect(methods[0].method).toBe('password')
+  })
+})

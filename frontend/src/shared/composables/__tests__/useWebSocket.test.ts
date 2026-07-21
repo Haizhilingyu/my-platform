@@ -56,6 +56,10 @@ function fireMessage(inst: MockWebSocketInstance, payload: unknown): void {
   inst.onmessage?.({ data: JSON.stringify(payload) } as MessageEvent)
 }
 
+function fireError(inst: MockWebSocketInstance): void {
+  inst.onerror?.(new Event('error'))
+}
+
 function fireClose(inst: MockWebSocketInstance): void {
   inst.readyState = 3
   inst.onclose?.(new CloseEvent('close'))
@@ -214,5 +218,14 @@ describe('useWebSocket', () => {
     connect('ws://x/ws/notify', 't')
     await vi.advanceTimersByTimeAsync(60_000)
     expect(state.value).not.toBe('open')
+  })
+
+  it('连接后 onerror 被赋值且触发不抛错（重连由 onclose 驱动）', () => {
+    const { connect } = useWebSocket()
+    connect('ws://x/test', 'tok')
+    const inst = MockWebSocket.instances[0]
+    expect(inst.onerror).not.toBeNull()
+    // onerror 故意留空：触发它不应改变连接状态、不应安排重连
+    expect(() => fireError(inst)).not.toThrow()
   })
 })

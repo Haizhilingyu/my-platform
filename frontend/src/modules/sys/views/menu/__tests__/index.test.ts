@@ -146,4 +146,12 @@ describe('menu/index.vue 表单校验', () => {
       permission: 'sys:user:list',
     }))
   })
+  it('handleExpand 更新展开键集合', async () => {
+    const wrapper = await mountMenu()
+    await flushPromises()
+    const ss = (wrapper.vm as unknown as { $: { setupState: Record<string, unknown> } }).$.setupState
+
+    ;(ss.handleExpand as (keys: Array<string | number>) => void)([1, 2, 3])
+    expect(ss.expandedKeys as number[]).toEqual([1, 2, 3])
+  })
 })

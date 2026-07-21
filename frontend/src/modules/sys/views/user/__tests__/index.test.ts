@@ -21,6 +21,7 @@ vi.mock('@/modules/sys/api/user', () => ({
     assignRoles: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue({}),
     unlock: vi.fn().mockResolvedValue({}),
+    resetPassword: vi.fn().mockResolvedValue({}),
   },
 }))
 
@@ -34,6 +35,12 @@ vi.mock('@/modules/sys/api/unit', () => ({
 
 vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({ hasPermission: () => true }),
+}))
+
+// 组件通过 useRoute().query.highlight 支持 AI 助手跳转高亮，测试环境无路由需 mock。
+vi.mock('vue-router', () => ({
+  useRoute: () => ({ query: {} }),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }))
 
 vi.mock('naive-ui', async () => {
@@ -222,10 +229,42 @@ describe('user/index.vue 表单校验', () => {
       expect(usernameInputs.length).toBe(0)
 
       await clickSave()
-
       expect(userApi.update).toHaveBeenCalledTimes(1)
       expect(userApi.update).toHaveBeenCalledWith(42, expect.anything())
       expect(userApi.create).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('功能交互', () => {
+    const mockUser = {
+      id: 1,
+      username: 'testuser',
+      realName: 'Test User',
+      email: 'test@example.com',
+      phone: '13800138000',
+      unitName: 'Test Unit',
+      status: 1,
+      locked: true,
+    }
+
+    it('should call API handlers when functions are invoked with data', async () => {
+      userApi.list.mockResolvedValue({ data: { list: [mockUser], total: 1 } })
+      const wrapper = await mountUser()
+      await flushPromises()
+
+      const ss = (wrapper.vm as unknown as { $: { setupState: Record<string, unknown> } }).$.setupState
+
+      await (ss.handleDelete as (row: unknown) => Promise<void>)(mockUser)
+      await flushPromises()
+      expect(userApi.delete).toHaveBeenCalledWith(1)
+
+      await (ss.handleUnlock as (row: unknown) => Promise<void>)(mockUser)
+      await flushPromises()
+      expect(userApi.unlock).toHaveBeenCalledWith(1)
+
+      await (ss.handleResetPassword as (row: unknown) => Promise<void>)(mockUser)
+      await flushPromises()
+      expect(userApi.resetPassword).toHaveBeenCalledWith(1, 'User@123456')
     })
   })
 })

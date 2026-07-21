@@ -173,3 +173,52 @@ describe('unit/index.vue 表单校验', () => {
     })
   })
 })
+
+describe('unit/index.vue 功能交互', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  it('should invoke tree renderLabel and trigger handleEdit/handleDelete/handleExpand when operating on tree nodes', async () => {
+    const treeData = [
+      {
+        id: 1,
+        unitCode: 'HQ',
+        unitName: '总部',
+        parentId: null,
+        status: 1,
+        sort: 1,
+        children: [
+          { id: 2, unitCode: 'DEV', unitName: '研发', parentId: 1, status: 1, sort: 2 },
+        ],
+      },
+    ]
+
+    unitApi.tree.mockResolvedValue({ data: treeData })
+    const wrapper = await mountUnit()
+    const ss = (wrapper.vm as unknown as { $: { setupState: Record<string, unknown> } }).$.setupState
+
+    // Verify tree data was loaded (renderLabel will execute for each node)
+    expect((ss.tree as Array<unknown>).length).toBe(1)
+
+    // Test handleEdit
+    await (ss.handleEdit as (row: unknown) => void)(treeData[0])
+    await flushPromises()
+    expect(document.body.textContent).toContain('编辑单位')
+
+    // Test handleDelete
+    await (ss.handleDelete as (row: unknown) => Promise<void>)(treeData[0])
+    await flushPromises()
+    expect(unitApi.delete).toHaveBeenCalledWith(1)
+
+    // Test handleExpand
+    const expandedKeys = [1, 2]
+    ;(ss.handleExpand as (keys: Array<string | number>) => void)(expandedKeys)
+    await flushPromises()
+    expect((ss.expandedKeys as number[])).toEqual(expandedKeys)
+  })
+})
