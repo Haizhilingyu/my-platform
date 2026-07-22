@@ -4,12 +4,12 @@ import { apiLogin } from '../fixtures/auth'
 import { queryOne, queryAll, execute } from '../fixtures/db'
 
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:8090'
-const USERNAME = 'e2e-user'
+const USERNAME = 'e2e_user'
 
 test.describe('用户管理 CRUD', () => {
   test.afterEach(async () => {
-    await execute('DELETE FROM sys_user_role WHERE user_id IN (SELECT id FROM sys_user WHERE username LIKE $1)', ['e2e-%'])
-    await execute('DELETE FROM sys_user WHERE username LIKE $1', ['e2e-%'])
+    await execute('DELETE FROM sys_user_role WHERE user_id IN (SELECT id FROM sys_user WHERE username LIKE $1)', ['e2e\\_%'])
+    await execute('DELETE FROM sys_user WHERE username LIKE $1', ['e2e\\_%'])
   })
 
   test('用户列表加载 + admin 可见', async ({ page }) => {
@@ -139,7 +139,7 @@ test.describe('用户管理 CRUD', () => {
     })
     const roleRes = await request.post('/api/sys/role', {
       headers: { Authorization: `Bearer ${token}` },
-      data: { roleCode: 'e2e-role-assign', roleName: 'E2E分配测试', dataScope: 'SELF' },
+      data: { roleCode: 'e2e_role_assign', roleName: 'E2E分配测试', dataScope: 'SELF' },
     })
     const roleId = (await roleRes.json()).data
     const userRow = await queryOne('SELECT id FROM sys_user WHERE username = $1', [USERNAME])

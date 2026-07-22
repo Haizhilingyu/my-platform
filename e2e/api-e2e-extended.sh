@@ -58,12 +58,26 @@ echo -e "${BOLD}=== Layer 1 扩展：全链路 API e2e（后端 ${BASE}）===${R
 
 command -v jq >/dev/null 2>&1 || { echo "${RED}错误：未安装 jq${RESET}"; exit 2; }
 
+# 验证码解题（同 api-e2e.sh）：后端开启了图形验证码校验。
+solve_captcha() {
+  local cap_json cap_id cap_ans
+  cap_json=$(curl -s "${BASE}/api/sys/auth/captcha")
+  cap_id=$(echo "$cap_json" | jq -r '.data.captchaId // empty')
+  for _ in 1 2 3 4 5; do
+    cap_ans=$(docker exec my-platform-redis redis-cli GET "captcha:${cap_id}" 2>/dev/null | tr -d '"\r\n')
+    [ -n "$cap_ans" ] && break
+    sleep 0.2
+  done
+  echo "${cap_id}:${cap_ans}"
+}
+
 # ---------------------------------------------------------------------------
 # 0. 管理员登录（后续用例的基础）
 # ---------------------------------------------------------------------------
-resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/sys/auth/login" \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"admin","password":"admin123"}')
+CAP=$(solve_captcha); CAP_ID="${CAP%%:*}"; CAP_ANS="${CAP##*:}"
+resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/api/sys/auth/login" \
+  -H 'Content-Type: application/json' -H 'Accept-Language: zh-CN' \
+  -d '{"username":"admin","password":"admin123","captchaId":"'"$CAP_ID"'","captchaCode":"'"$CAP_ANS"'"}')
 code=$(echo "$resp" | tail -1)
 body=$(echo "$resp" | sed '$d')
 ADMIN_TOKEN=$(echo "$body" | jq -r '.data.token // empty' 2>/dev/null)
@@ -80,7 +94,7 @@ AUTH="Authorization: Bearer ${ADMIN_TOKEN}"
 # ---------------------------------------------------------------------------
 # 1. 图形验证码：GET /sys/auth/captcha → 200 + captchaId + img
 # ---------------------------------------------------------------------------
-resp=$(curl -s -w $'\n%{http_code}' "${BASE}/sys/auth/captcha")
+resp=$(curl -s -w $'\n%{http_code}' "${BASE}/api/sys/auth/captcha")
 code=$(echo "$resp" | tail -1)
 body=$(echo "$resp" | sed '$d')
 captcha_id=$(echo "$body" | jq -r '.data.captchaId // empty' 2>/dev/null)
@@ -92,7 +106,7 @@ assert_case "captcha 返回图片数据非空" $([ -n "$captcha_img" ] && [ "$ca
 # ---------------------------------------------------------------------------
 # 2. 登录方式发现：GET /sys/auth/login-methods → 200 + 含 "password"
 # ---------------------------------------------------------------------------
-resp=$(curl -s -w $'\n%{http_code}' "${BASE}/sys/auth/login-methods")
+resp=$(curl -s -w $'\n%{http_code}' "${BASE}/api/sys/auth/login-methods")
 code=$(echo "$resp" | tail -1)
 body=$(echo "$resp" | sed '$d')
 has_password=$(echo "$body" | jq -r '[.data[]?.method] | index("password") != null' 2>/dev/null)
@@ -110,7 +124,7 @@ else
   LOCK_USER="locktest_$(date +%s)"
   LOCK_PASS="Temp@Lock123"
   # 创建临时用户（admin 有 sys:user:add 权限，V2 播种）
-  resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/sys/user" \
+  resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/api/sys/user" \
     -H "$AUTH" -H 'Content-Type: application/json' \
     -d "{\"username\":\"${LOCK_USER}\",\"password\":\"${LOCK_PASS}\",\"realName\":\"锁定测试\",\"status\":1,\"unitId\":1}")
   code=$(echo "$resp" | tail -1)
@@ -121,13 +135,13 @@ else
     printf "${GREEN}  ✓ 创建临时用户 ${LOCK_USER} (id=${LOCK_USER_ID})${RESET}\n"
 
     # 给临时用户分配角色（role_id=2 普通角色，避免无角色无法登录）
-    curl -s -o /dev/null -X POST "${BASE}/sys/user/${LOCK_USER_ID}/roles" \
+    curl -s -o /dev/null -X POST "${BASE}/api/sys/user/${LOCK_USER_ID}/roles" \
       -H "$AUTH" -H 'Content-Type: application/json' -d '[2]'
 
     # 故意错误登录 5 次（默认阈值 3，多打几次确保触发）
     LOCKED=0
     for i in 1 2 3 4 5; do
-      resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/sys/auth/login" \
+      resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/api/sys/auth/login" \
         -H 'Content-Type: application/json' \
         -d "{\"username\":\"${LOCK_USER}\",\"password\":\"wrong\"}")
       code=$(echo "$resp" | tail -1)
@@ -139,20 +153,20 @@ else
     assert_case "连续错误登录后应返回 423（账号锁定）" $LOCKED
 
     # 管理员解锁
-    resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/sys/user/${LOCK_USER_ID}/unlock" \
+    resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/api/sys/user/${LOCK_USER_ID}/unlock" \
       -H "$AUTH")
     code=$(echo "$resp" | tail -1)
     assert_case "管理员解锁应返回 200" $([ "$code" = "200" ] && echo 0 || echo 1)
 
     # 解锁后正确密码应能登录（或至少不再 423）
-    resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/sys/auth/login" \
+    resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/api/sys/auth/login" \
       -H 'Content-Type: application/json' \
       -d "{\"username\":\"${LOCK_USER}\",\"password\":\"${LOCK_PASS}\"}")
     code=$(echo "$resp" | tail -1)
     assert_case "解锁后登录不应再返回 423" $([ "$code" != "423" ] && echo 0 || echo 1)
 
     # 清理临时用户
-    curl -s -o /dev/null -X DELETE "${BASE}/sys/user/${LOCK_USER_ID}" -H "$AUTH"
+    curl -s -o /dev/null -X DELETE "${BASE}/api/sys/user/${LOCK_USER_ID}" -H "$AUTH"
   else
     skip_case "登录锁定/解锁" "临时用户创建失败 (code=${code})，可能缺 sys:user:add 权限"
   fi
@@ -161,7 +175,7 @@ fi
 # ---------------------------------------------------------------------------
 # 4. 在线会话：GET /sys/auth/sessions → 200 + 列表
 # ---------------------------------------------------------------------------
-resp=$(curl -s -w $'\n%{http_code}' "${BASE}/sys/auth/sessions" -H "$AUTH")
+resp=$(curl -s -w $'\n%{http_code}' "${BASE}/api/sys/auth/sessions" -H "$AUTH")
 code=$(echo "$resp" | tail -1)
 body=$(echo "$resp" | sed '$d')
 session_count=$(echo "$body" | jq '.data | length' 2>/dev/null)
@@ -173,7 +187,7 @@ assert_case "当前用户应至少有 1 个活跃会话" $([ -n "$session_count"
 # ---------------------------------------------------------------------------
 # 5. 数据权限范围：GET /sys/user（admin 应能看到全部用户）
 # ---------------------------------------------------------------------------
-resp=$(curl -s -w $'\n%{http_code}' "${BASE}/sys/user?pageNum=1&pageSize=50" -H "$AUTH")
+resp=$(curl -s -w $'\n%{http_code}' "${BASE}/api/sys/user?pageNum=1&pageSize=50" -H "$AUTH")
 code=$(echo "$resp" | tail -1)
 body=$(echo "$resp" | sed '$d')
 user_total=$(echo "$body" | jq -r '.data.total // (.data | length) // empty' 2>/dev/null)
@@ -190,7 +204,7 @@ assert_case "用户总数应 >= 1" $([ -n "$user_total" ] && [ "$user_total" -ge
 if [ "${SKIP_NOTIFY:-0}" = "1" ]; then
   skip_case "消息发布/收件箱" "SKIP_NOTIFY=1"
 else
-  resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/sys/notify/publish" \
+  resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/api/sys/notify/publish" \
     -H "$AUTH" -H 'Content-Type: application/json' \
     -d '{"title":"e2e测试消息","content":"T29全链路验证","level":"NORMAL","recipients":[{"type":"USER","id":1}]}')
   code=$(echo "$resp" | tail -1)
@@ -202,7 +216,7 @@ else
     assert_case "发布结果应含 messageId" $([ -n "$msg_id" ] && [ "$msg_id" != "null" ] && echo 0 || echo 1)
 
     # 验证收件箱（admin id=1）—— 通知收件箱查询端点
-    resp=$(curl -s -w $'\n%{http_code}' "${BASE}/sys/notify/inbox?pageNum=1&pageSize=5" -H "$AUTH")
+    resp=$(curl -s -w $'\n%{http_code}' "${BASE}/api/sys/notify/inbox?pageNum=1&pageSize=5" -H "$AUTH")
     code=$(echo "$resp" | tail -1)
     if [ "$code" = "200" ]; then
       inbox_count=$(echo "$body" | jq '.data | length' 2>/dev/null)
@@ -221,7 +235,7 @@ fi
 # ---------------------------------------------------------------------------
 # 7. 审计日志查询：GET /sys/audit/logs?action=LOGIN → 200 + 含 LOGIN 记录
 # ---------------------------------------------------------------------------
-resp=$(curl -s -w $'\n%{http_code}' "${BASE}/sys/audit/logs?action=LOGIN&pageNum=1&pageSize=5" -H "$AUTH")
+resp=$(curl -s -w $'\n%{http_code}' "${BASE}/api/sys/audit/logs?action=LOGIN&pageNum=1&pageSize=5" -H "$AUTH")
 code=$(echo "$resp" | tail -1)
 body=$(echo "$resp" | sed '$d')
 if [ "$code" = "200" ]; then

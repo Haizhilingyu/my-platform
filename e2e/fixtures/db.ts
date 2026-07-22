@@ -17,7 +17,7 @@ export function getDbConfig() {
     port: parseInt(process.env.E2E_DB_PORT || '5533'),
     database: process.env.E2E_DB_NAME || 'platform',
     user: process.env.E2E_DB_USER || 'postgres',
-    password: process.env.E2E_DB_PASS || '${PG_PASSWORD:-changeme}',
+    password: process.env.E2E_DB_PASS || 'Postgres@2025',
   }
 }
 

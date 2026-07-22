@@ -19,7 +19,7 @@ backend/
 ├── pom.xml                    # 根 POM（parent），统一 dependencyManagement + pluginManagement
 ├── checkstyle.xml             # Checkstyle 规则
 ├── platform-common/           # 公共基础（被所有模块依赖）
-├── platform-starter/           # 聚合 starter（引入后自动装配所有业务模块）
+├── platform-starter/           # 核心 starter（common + security + sys 三件套；可选模块由 app 按需引用）
 ├── modules/                   # 业务模块目录
 │   └── sys/                   # 系统设置模块（示例）
 └── app/                       # 主应用启动入口
@@ -47,6 +47,7 @@ modules/<module-name>/
 │   ├── controller/                 # REST Controller
 │   ├── dto/                        # 请求/响应 DTO
 │   ├── events/                     # 领域事件（record）
+│   ├── menu/                       # 菜单注册（实现 MenuContributor，自动注册 sys_menu）
 │   └── autoconfig/                 # 该模块的 AutoConfiguration
 └── src/main/resources/
     ├── META-INF/spring/
@@ -211,12 +212,12 @@ throw new ForbiddenException("无权限");
 
 ### Flyway 迁移规范
 
-- 版本号用 `V<序号>__<描述>.sql`（双下划线）
-- V1: 表结构
-- V2: 初始数据
-- 后续 V3, V4...: 增量修改
+- **开发阶段（当前）**：所有模块表结构 + 种子数据合并为单一 `app/src/main/resources/db/migration/V1__init.sql`。
+  开发环境 Docker 每次重建全新库（不挂载 volume），Flyway 从头执行这一个版本即可初始化全部表和数据。
+  菜单注册由各模块 `MenuContributor` 代码注册（见「新增业务模块」），不在此脚本中。
+- **正式发布后**：引入增量版本管理（`V2__xxx.sql`, `V3__xxx.sql`...），按发布顺序递增。
 - 所有 DDL 必须 `IF NOT EXISTS`
-- 所有 DML 必须 `ON CONFLICT DO NOTHING`
+- 所有种子 DML 用 `INSERT ... SELECT ... WHERE NOT EXISTS`（H2/PG 兼容）
 - `flyway.baseline-on-migrate=true` 允许在非空库中启用
 
 ### 表命名
@@ -400,33 +401,66 @@ src/test/java/<package>/
 7. `git add` 时 pre-commit 会自动运行测试
 
 ## 常见任务（Agent 操作指南）
-
 ### 新增业务模块
 
-1. 在 `backend/pom.xml` 的 `<modules>` 中添加
-2. 在 `backend/modules/` 创建目录，复制 sys 模块结构
-3. 编写 `pom.xml`（继承根 POM，依赖 `platform-common`）
-4. 创建 domain → repository → service → controller → dto → events
-5. 如果模块有独立配置，创建 `autoconfig/SysXxxAutoConfiguration.java`
-6. 创建 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
-7. 编写 `MODULE.md`
-8. 编写 Flyway SQL 迁移脚本
-9. 在 `platform-starter/pom.xml` 中添加依赖
-10. 运行 `mvn clean compile -DskipTests` 验证
+> **核心原则**：模块完全自包含——加 Maven 依赖即自动装配（AutoConfiguration）+ 自动注册菜单（MenuContributor）。
+> platform-starter 只含三件套（common + security + sys），可选业务模块由 `app/pom.xml` 按需引用。
+
+**1. 脚手架**：在 `backend/modules/` 创建目录，`pom.xml` 继承根 POM，依赖 `platform-common`（+ `sys-module` 如需调 `SysApi`）：
+
+```xml
+<dependency><groupId>com.example</groupId><artifactId>platform-common</artifactId></dependency>
+<dependency><groupId>com.example</groupId><artifactId>sys-module</artifactId></dependency> <!-- 可选 -->
+```
+
+在 `backend/pom.xml` 的 `<modules>` 添加子模块。
+
+**2. 代码**：创建 `domain/` → `repository/` → `service/` → `controller/` → `dto/`（遵循上方命名规范）。
+
+**3. AutoConfiguration**：创建 `autoconfig/<Module>AutoConfiguration.java`（`@ComponentScan` + `@EntityScan` + `@EnableJpaRepositories`），注册到 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`。
+
+**4. 表结构（Flyway）**：`src/main/resources/db/migration/V<N>__<desc>.sql`，只管**本模块的表 DDL**。版本号需避开其他模块已用的号（跨模块共享同一 `classpath:db/migration` 空间）。**不要在此 INSERT sys_menu**——菜单改用步骤 5。
+
+**5. 菜单自动注册（关键）**：实现 `MenuContributor` bean，声明本模块的菜单。加依赖后 `MenuBootstrap`（sys 模块）启动时自动 upsert `sys_menu` + 绑定 admin 角色：
+
+```java
+// modules/<module>/src/main/java/.../menu/<Module>MenuConfiguration.java
+@Configuration
+public class FooMenuConfiguration {
+  @Bean
+  MenuContributor fooMenus() {
+    return () -> List.of(
+      // 目录（可选：如果需要独立顶级目录）
+      MenuDefinition.directory("Foo 管理", "/foo", "Apps", 10, null),
+      // 页面（permission 是幂等键，parentPath 指向父目录的 path）
+      MenuDefinition.page("foo:item:list", "Foo 列表", "/foo/item", "foo/item/index", "Cube", 1, "/foo"),
+      // 按钮权限点（parentPath 指向所属 PAGE 的 path）
+      MenuDefinition.button("foo:item:add", "新增 Foo", 1, "/foo/item"),
+      // 也可以挂在已有的「系统管理」目录下（path=/sys）
+      MenuDefinition.page("foo:settings:list", "Foo 设置", "/sys/foo", "sys/foo/index", "Build", 8, "/sys")
+    );
+  }
+}
+```
+
+`MenuDefinition` 工厂方法：`directory(name, path, icon, sort, parentPath)` / `page(permission, name, path, component, icon, sort, parentPath)` / `button(permission, name, sort, parentPath)`。`MenuContributor` 接口和 `MenuDefinition` 在 `com.example.common.menu` 包。
+
+**6. 集成**：在 `app/pom.xml` 添加依赖即完成。编写 `MODULE.md`。运行 `mvn clean compile -DskipTests` 验证。
+
+> **菜单注册机制要点**：幂等——按 `permission`（PAGE/BUTTON）或 `path`+`menuType`（DIRECTORY）查重，重复启动不报错；层级排序——DIRECTORY→PAGE→BUTTON，保证父先于子解析 `parent_id`；admin 自动绑定——无需手动 `INSERT sys_role_menu`。与现有 Flyway 菜单 INSERT 并存幂等，逐步删除各模块的菜单 Flyway 迁移即可。
 
 ### 新增 REST API
 
 1. 在 `dto/` 创建请求/响应 DTO（带 `@Valid` 注解）
 2. 在 `service/` 中实现业务逻辑（注意事务注解）
 3. 在 `controller/` 中添加接口方法，标注 `@RequiresPermission`
-4. 如需新权限标识，在菜单表中添加 BUTTON 类型记录
+4. 如需新权限标识，在模块的 `MenuContributor` 中用 `MenuDefinition.button(...)` 声明（启动时自动注册到 sys_menu + 绑定 admin）
 
 ### 新增数据库表
 
-1. 创建新的 Flyway SQL 脚本：`V3__<description>.sql`
-2. 放在 `modules/<name>/src/main/resources/db/migration/`
-3. 所有 DDL 加 `IF NOT EXISTS`
-4. 如需初始数据，另建 V4 脚本加 `ON CONFLICT DO NOTHING`
+- **开发阶段**：直接在 `app/src/main/resources/db/migration/V1__init.sql` 末尾追加 `CREATE TABLE`（DDL 加 `IF NOT EXISTS`）。
+  开发环境每次 `docker compose down -v && up` 重建全新库，无需增量版本。
+- **正式发布后**：新建 `V<N>__<description>.sql` 增量迁移脚本。
 
 ### 本地运行
 

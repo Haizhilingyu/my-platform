@@ -26,6 +26,8 @@ GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; BOLD='\033[1m'; RESET
 export NO_PROXY='localhost,127.0.0.1'
 export no_proxy='localhost,127.0.0.1'
 unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY 2>/dev/null || true
+# E2E fixtures 直接连 DB（绕过应用），密码须与 docker-compose.local.yml 中 POSTGRES_PASSWORD 一致。
+export E2E_DB_PASS='Postgres@2025'
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 E2E_DIR="${ROOT}/e2e"
@@ -35,9 +37,11 @@ mkdir -p "$LOG_DIR"
 
 APP_URL="http://localhost:8090"
 KEEP_STACK=false
+PW_ARGS=()
 for arg in "$@"; do
   case "$arg" in
     --keep-stack) KEEP_STACK=true ;;
+    *) PW_ARGS+=("$arg") ;;  # 其余参数（如 spec 文件名）透传给 playwright
   esac
 done
 
@@ -108,7 +112,7 @@ npx playwright install chromium || { echo -e "${RED}playwright 浏览器安装�
 # ---------------------------------------------------------------------------
 echo -e "${BOLD}--- [4/4] Playwright 测试 ---${RESET}"
 TEST_RC=0
-npx playwright test --reporter=list "$@" 2>&1 | tee "$LOG_DIR/playwright.log" || TEST_RC=$?
+npx playwright test --reporter=list ${PW_ARGS[@]+"${PW_ARGS[@]}"} 2>&1 | tee "$LOG_DIR/playwright.log" || TEST_RC=$?
 
 # 过滤掉 --keep-stack，避免传给 playwright
 if [ "$TEST_RC" -ne 0 ]; then

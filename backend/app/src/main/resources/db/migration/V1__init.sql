@@ -1,3 +1,323 @@
+-- ============================================================================
+-- 平台初始数据库脚本（开发环境单一版本，无增量迁移管理）
+--
+-- 所有模块的表结构 DDL + 基础种子数据合并为一个 V1。
+-- 菜单注册由各模块的 MenuContributor 在应用启动时代码注册（sys 模块 MenuBootstrap），
+-- 不在此脚本中 INSERT 业务模块菜单。核心 sys 菜单保留为种子。
+-- 后续正式发布时再引入增量版本管理。
+-- ============================================================================
+
+-- ===== sys 模块表结构 =====
+
+-- =============================================
+-- sys 模块初始化表结构
+-- =============================================
+
+-- 单位表
+CREATE TABLE IF NOT EXISTS sys_unit (
+    id          BIGSERIAL PRIMARY KEY,
+    parent_id   BIGINT,
+    unit_code   VARCHAR(64)  NOT NULL UNIQUE,
+    unit_name   VARCHAR(128) NOT NULL,
+    sort        INTEGER      NOT NULL DEFAULT 0,
+    status      INTEGER      NOT NULL DEFAULT 1,
+    remark      VARCHAR(500),
+    created_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+    created_by  VARCHAR(64),
+    updated_by  VARCHAR(64)
+);
+COMMENT ON TABLE sys_unit IS '单位/组织表';
+
+-- 用户表
+CREATE TABLE IF NOT EXISTS sys_user (
+    id          BIGSERIAL PRIMARY KEY,
+    username    VARCHAR(64)  NOT NULL UNIQUE,
+    password    VARCHAR(128) NOT NULL,
+    real_name   VARCHAR(64),
+    email       VARCHAR(128),
+    phone       VARCHAR(20),
+    unit_id     BIGINT,
+    avatar      VARCHAR(500),
+    status      INTEGER      NOT NULL DEFAULT 1,
+    remark      VARCHAR(500),
+    created_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+    created_by  VARCHAR(64),
+    updated_by  VARCHAR(64)
+);
+COMMENT ON TABLE sys_user IS '系统用户表';
+
+-- 角色表
+CREATE TABLE IF NOT EXISTS sys_role (
+    id          BIGSERIAL PRIMARY KEY,
+    role_code   VARCHAR(64)  NOT NULL UNIQUE,
+    role_name   VARCHAR(64)  NOT NULL,
+    data_scope  VARCHAR(20)  NOT NULL DEFAULT 'SELF',
+    status      INTEGER      NOT NULL DEFAULT 1,
+    remark      VARCHAR(500),
+    created_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+    created_by  VARCHAR(64),
+    updated_by  VARCHAR(64)
+);
+COMMENT ON TABLE sys_role IS '角色表';
+
+-- 菜单/权限表
+CREATE TABLE IF NOT EXISTS sys_menu (
+    id          BIGSERIAL PRIMARY KEY,
+    parent_id   BIGINT,
+    menu_name   VARCHAR(64)  NOT NULL,
+    menu_type   VARCHAR(20)  NOT NULL,
+    path        VARCHAR(200),
+    component   VARCHAR(200),
+    permission  VARCHAR(100),
+    icon        VARCHAR(64),
+    sort        INTEGER      NOT NULL DEFAULT 0,
+    visible     INTEGER      NOT NULL DEFAULT 1,
+    status      INTEGER      NOT NULL DEFAULT 1,
+    created_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
+    created_by  VARCHAR(64),
+    updated_by  VARCHAR(64)
+);
+COMMENT ON TABLE sys_menu IS '菜单/权限表';
+
+-- 用户-角色关联表
+CREATE TABLE IF NOT EXISTS sys_user_role (
+    user_id     BIGINT NOT NULL,
+    role_id     BIGINT NOT NULL,
+    PRIMARY KEY (user_id, role_id)
+);
+COMMENT ON TABLE sys_user_role IS '用户-角色关联表';
+
+-- 角色-菜单关联表
+CREATE TABLE IF NOT EXISTS sys_role_menu (
+    role_id     BIGINT NOT NULL,
+    menu_id     BIGINT NOT NULL,
+    PRIMARY KEY (role_id, menu_id)
+);
+COMMENT ON TABLE sys_role_menu IS '角色-菜单关联表';
+
+-- 系统配置表
+CREATE TABLE IF NOT EXISTS sys_config (
+    id           BIGSERIAL PRIMARY KEY,
+    config_key   VARCHAR(100) NOT NULL UNIQUE,
+    config_value TEXT,
+    config_type  VARCHAR(20)  NOT NULL DEFAULT 'STRING',
+    description  VARCHAR(200),
+    category     VARCHAR(50)  NOT NULL DEFAULT 'default',
+    created_at   TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMP    NOT NULL DEFAULT NOW(),
+    created_by   VARCHAR(64),
+    updated_by   VARCHAR(64)
+);
+COMMENT ON TABLE sys_config IS '系统配置表';
+
+-- 索引
+CREATE INDEX IF NOT EXISTS idx_sys_user_unit       ON sys_user(unit_id);
+CREATE INDEX IF NOT EXISTS idx_sys_user_status     ON sys_user(status);
+CREATE INDEX IF NOT EXISTS idx_sys_menu_parent     ON sys_menu(parent_id);
+CREATE INDEX IF NOT EXISTS idx_sys_menu_type       ON sys_menu(menu_type);
+CREATE INDEX IF NOT EXISTS idx_sys_user_role_user  ON sys_user_role(user_id);
+CREATE INDEX IF NOT EXISTS idx_sys_user_role_role  ON sys_user_role(role_id);
+CREATE INDEX IF NOT EXISTS idx_sys_role_menu_role  ON sys_role_menu(role_id);
+CREATE INDEX IF NOT EXISTS idx_sys_role_menu_menu  ON sys_role_menu(menu_id);
+CREATE INDEX IF NOT EXISTS idx_sys_config_category ON sys_config(category);
+
+-- ===== sys 数据权限表 =====
+
+-- =============================================
+-- V3: 数据权限 —— 角色-自定义数据范围关联表
+-- =============================================
+-- 当角色的 data_scope = 'CUSTOM' 时，本表存储该角色可见的自定义单位集合。
+-- 仅使用 BIGINT + 复合主键 + 标准 FK 语法，H2（PostgreSQL 兼容模式）与 PostgreSQL 均可执行。
+
+CREATE TABLE IF NOT EXISTS sys_role_data_scope (
+    role_id   BIGINT NOT NULL,
+    unit_id   BIGINT NOT NULL,
+    PRIMARY KEY (role_id, unit_id)
+);
+COMMENT ON TABLE sys_role_data_scope IS '角色-自定义数据范围关联表（data_scope=CUSTOM 时生效）';
+
+ALTER TABLE sys_role_data_scope
+    ADD CONSTRAINT fk_role_data_scope_role
+    FOREIGN KEY (role_id) REFERENCES sys_role (id) ON DELETE CASCADE;
+
+ALTER TABLE sys_role_data_scope
+    ADD CONSTRAINT fk_role_data_scope_unit
+    FOREIGN KEY (unit_id) REFERENCES sys_unit (id) ON DELETE CASCADE;
+
+CREATE INDEX IF NOT EXISTS idx_role_data_scope_role ON sys_role_data_scope(role_id);
+CREATE INDEX IF NOT EXISTS idx_role_data_scope_unit ON sys_role_data_scope(unit_id);
+
+-- ===== sys_user locale 列 =====
+
+-- =============================================
+-- B3: 为 sys_user 增加 locale 字段，存储用户语言偏好 (zh-CN / en)
+-- 默认 zh-CN，与登录前 JwtAuthFilter 的回退值保持一致
+-- =============================================
+
+ALTER TABLE sys_user ADD COLUMN locale VARCHAR(10) NOT NULL DEFAULT 'zh-CN';
+
+COMMENT ON COLUMN sys_user.locale IS '用户语言偏好 (zh-CN, en)';
+
+-- ===== notify 模块表结构 =====
+
+-- =============================================
+-- notify 模块初始化表结构
+--
+-- 注意：版本号使用 V10 而非 V1，因为 sys 模块已占用 V1/V2/V3，
+-- 同一 classpath:db/migration 下 V1 会冲突。
+-- 模块单独部署时可改为 V1；与 sys 共部署时用 V10+。
+-- 表结构 H2 (PostgreSQL 兼容模式) 与 PostgreSQL 14+ 均可执行。
+-- =============================================
+
+-- 消息主表
+CREATE TABLE IF NOT EXISTS notify_message (
+    id             BIGSERIAL    PRIMARY KEY,
+    title          VARCHAR(200) NOT NULL,
+    content        TEXT         NOT NULL,
+    level          VARCHAR(20)  NOT NULL DEFAULT 'NORMAL',
+    sender_id      BIGINT,
+    business_type  VARCHAR(64),
+    created_at     TIMESTAMP    NOT NULL DEFAULT NOW(),
+    expire_time    TIMESTAMP
+);
+COMMENT ON TABLE  notify_message IS '消息主表';
+COMMENT ON COLUMN notify_message.level IS '紧急度：URGENT / IMPORTANT / NORMAL';
+
+-- 接收范围表（每条消息 N 行：USER/ROLE/UNIT + 接收方 ID）
+CREATE TABLE IF NOT EXISTS notify_recipient (
+    id             BIGSERIAL    PRIMARY KEY,
+    message_id     BIGINT       NOT NULL,
+    recipient_type VARCHAR(20)  NOT NULL,
+    recipient_id   BIGINT       NOT NULL,
+    CONSTRAINT fk_notify_recipient_message
+        FOREIGN KEY (message_id) REFERENCES notify_message(id) ON DELETE CASCADE
+);
+COMMENT ON TABLE  notify_recipient IS '消息接收范围表';
+COMMENT ON COLUMN notify_recipient.recipient_type IS '接收方类型：USER / ROLE / UNIT';
+
+-- 用户收件箱（每用户 × 每消息一行，携带 seq 用于断线重连补播）
+CREATE TABLE IF NOT EXISTS notify_user_inbox (
+    id           BIGSERIAL    PRIMARY KEY,
+    user_id      BIGINT       NOT NULL,
+    message_id   BIGINT       NOT NULL,
+    seq          BIGINT       NOT NULL,
+    delivered    BOOLEAN      NOT NULL DEFAULT FALSE,
+    delivered_at TIMESTAMP,
+    read_status  BOOLEAN      NOT NULL DEFAULT FALSE,
+    read_time    TIMESTAMP,
+    created_at   TIMESTAMP    NOT NULL DEFAULT NOW(),
+    CONSTRAINT fk_notify_inbox_message
+        FOREIGN KEY (message_id) REFERENCES notify_message(id) ON DELETE CASCADE,
+    CONSTRAINT uk_notify_inbox_user_seq UNIQUE (user_id, seq)
+);
+COMMENT ON TABLE  notify_user_inbox IS '用户收件箱';
+COMMENT ON COLUMN notify_user_inbox.seq IS '用户维度单调递增序号，用于断线重连补播';
+
+-- 索引
+CREATE INDEX IF NOT EXISTS idx_notify_message_level       ON notify_message(level);
+CREATE INDEX IF NOT EXISTS idx_notify_message_created_at  ON notify_message(created_at);
+CREATE INDEX IF NOT EXISTS idx_notify_recipient_message   ON notify_recipient(message_id);
+CREATE INDEX IF NOT EXISTS idx_notify_recipient_type_id   ON notify_recipient(recipient_type, recipient_id);
+CREATE INDEX IF NOT EXISTS idx_notify_inbox_user          ON notify_user_inbox(user_id);
+CREATE INDEX IF NOT EXISTS idx_notify_inbox_user_delivered ON notify_user_inbox(user_id, delivered);
+CREATE INDEX IF NOT EXISTS idx_notify_inbox_user_read     ON notify_user_inbox(user_id, read_status);
+
+-- ===== audit 模块表结构 =====
+
+-- =============================================
+-- audit 模块初始化表结构
+-- =============================================
+-- 审计日志表：append-only，仅记录写入时间（无 updated_* / *_by 审计列）。
+
+CREATE TABLE IF NOT EXISTS audit_log (
+    id           BIGSERIAL    PRIMARY KEY,
+    actor        VARCHAR(64),
+    actor_type   VARCHAR(20),
+    action       VARCHAR(64)  NOT NULL,
+    target_type  VARCHAR(64),
+    target_id    VARCHAR(64),
+    ip           VARCHAR(64),
+    user_agent   TEXT,
+    params       TEXT,
+    result       VARCHAR(20)  NOT NULL,
+    error_msg    TEXT,
+    created_at   TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+COMMENT ON TABLE audit_log IS '审计日志表';
+
+CREATE INDEX IF NOT EXISTS idx_audit_actor_action_time ON audit_log(actor, action, created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_created_at        ON audit_log(created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_target            ON audit_log(target_type, target_id);
+
+-- ===== openapp 模块表结构 =====
+
+-- =============================================
+-- openapp 模块初始化表结构
+-- 外部应用（OAuth2 授权服务器）+ 持久化 JWK + 授权记录
+-- H2 + PostgreSQL 兼容：数组用逗号分隔 TEXT 存储，不使用 PG 数组类型
+-- =============================================
+
+-- 外部应用（OAuth2 客户端）
+CREATE TABLE IF NOT EXISTS openapp_client (
+    id                          BIGSERIAL      PRIMARY KEY,
+    client_id                   VARCHAR(128)   NOT NULL UNIQUE,
+    client_secret               VARCHAR(256)   NOT NULL,
+    client_name                 VARCHAR(128),
+    redirect_uris               VARCHAR(1024),
+    post_logout_redirect_uris   VARCHAR(1024),
+    scopes                      VARCHAR(1024),
+    grant_types                 VARCHAR(256),
+    authentication_methods      VARCHAR(256),
+    enabled                     BOOLEAN        NOT NULL DEFAULT TRUE,
+    created_at                  TIMESTAMP      NOT NULL DEFAULT NOW(),
+    updated_at                  TIMESTAMP      NOT NULL DEFAULT NOW()
+);
+COMMENT ON TABLE openapp_client IS '外部应用（OAuth2 客户端）表，client_secret 存 BCrypt 哈希';
+
+-- OAuth2 授权记录（授权服务器授权服务使用）
+CREATE TABLE IF NOT EXISTS oauth_authorization (
+    id                          BIGSERIAL      PRIMARY KEY,
+    registered_client_id        VARCHAR(128)   NOT NULL,
+    principal_name              VARCHAR(256)   NOT NULL,
+    access_token                VARCHAR(4096),
+    access_token_expires_at     TIMESTAMP,
+    refresh_token               VARCHAR(4096),
+    attributes                  VARCHAR(4096),
+    created_at                  TIMESTAMP      NOT NULL DEFAULT NOW()
+);
+COMMENT ON TABLE oauth_authorization IS 'OAuth2 授权记录表（access_token/refresh_token 审计）';
+
+-- 持久化 JWK 密钥存储（密钥轮转：active → grace → expired）
+CREATE TABLE IF NOT EXISTS openapp_jwk (
+    id                          BIGSERIAL      PRIMARY KEY,
+    kid                         VARCHAR(128)   NOT NULL UNIQUE,
+    key_type                    VARCHAR(32)    NOT NULL,
+    key_data                    VARCHAR(8192)  NOT NULL,
+    status                      VARCHAR(16)    NOT NULL DEFAULT 'active',
+    created_at                  TIMESTAMP      NOT NULL DEFAULT NOW(),
+    rotated_at                  TIMESTAMP
+);
+COMMENT ON TABLE openapp_jwk IS '持久化 JWK 密钥存储，key_data 为 AES 加密后的 RSAKey JSON';
+
+-- 初始化一个 active 状态占位由应用启动时 JWK 轮转服务自动生成（若表为空）
+
+-- openapp logout webhook 列
+
+-- =============================================
+-- V31: openapp 登出 webhook
+-- 为 openapp_client 增加 logout_webhook_url 列：用户登出时向该 URL 推送 {event,userId,username,timestamp}
+-- H2 + PostgreSQL 兼容：使用 ADD COLUMN IF NOT EXISTS（H2 2.x / PG 9.6+ 均支持）
+-- =============================================
+
+ALTER TABLE openapp_client ADD COLUMN IF NOT EXISTS logout_webhook_url VARCHAR(1024);
+COMMENT ON COLUMN openapp_client.logout_webhook_url IS '登出 webhook URL，用户登出时 POST {event:logout,userId,username,timestamp}';
+
+-- ===== i18n 模块表结构 + 种子数据 =====
+
 -- =============================================
 -- i18n 模块初始化：i18n_message 表结构 + 种子数据
 -- =============================================
@@ -1079,3 +1399,164 @@ INSERT INTO i18n_message (message_key, locale, module, value) SELECT 'sys.menu.5
 
 -- zh-CN menu names: seeded from sys_menu.menu_name at runtime
 INSERT INTO i18n_message (message_key, locale, module, value) SELECT 'sys.menu.' || sm.id || '.name', 'zh-CN', 'sys', sm.menu_name FROM sys_menu sm WHERE NOT EXISTS (SELECT 1 FROM i18n_message m WHERE m.message_key = 'sys.menu.' || sm.id || '.name' AND m.locale = 'zh-CN');
+
+-- ===== sys 基础种子数据（admin 用户/角色/单位/配置 + 核心菜单）=====
+
+-- =============================================
+-- sys 模块初始数据：超级管理员 + 基础菜单
+-- =============================================
+-- 幂等写法说明：原 PG 专有的 `INSERT ... ON CONFLICT (...) DO NOTHING` 在 H2（即便处于
+-- PostgreSQL 兼容模式）下不被支持。这里改用标准 SQL 的
+-- `INSERT ... SELECT ... WHERE NOT EXISTS (...)`，在 PostgreSQL 15+ 与 H2 上语义完全
+-- 等价（已存在则不插入、不报错），生产播种行为保持不变。
+
+-- 默认单位：总部
+INSERT INTO sys_unit (id, parent_id, unit_code, unit_name, sort, status)
+SELECT 1, NULL, 'HQ', '总部', 0, 1
+WHERE NOT EXISTS (SELECT 1 FROM sys_unit WHERE unit_code = 'HQ');
+
+-- 超级管理员用户 (密码: admin123, BCrypt加密)
+INSERT INTO sys_user (id, username, password, real_name, unit_id, status)
+SELECT 1, 'admin', '$2a$10$HH.rhJLgwoJdgh4Nu.NIeuRD.NMWvZP9fAOAC9cY13cmQq8XSAKRy', '超级管理员', 1, 1
+WHERE NOT EXISTS (SELECT 1 FROM sys_user WHERE username = 'admin');
+
+-- 超级管理员角色
+INSERT INTO sys_role (id, role_code, role_name, data_scope, status)
+SELECT 1, 'admin', '超级管理员', 'ALL', 1
+WHERE NOT EXISTS (SELECT 1 FROM sys_role WHERE role_code = 'admin');
+
+-- 给 admin 绑定 admin 角色
+INSERT INTO sys_user_role (user_id, role_id)
+SELECT 1, 1
+WHERE NOT EXISTS (SELECT 1 FROM sys_user_role WHERE user_id = 1 AND role_id = 1);
+
+-- 基础菜单：系统管理目录（批量幂等：按主键 id 去重）
+INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, component, permission, icon, sort, visible, status)
+SELECT v.id, v.parent_id, v.menu_name, v.menu_type, v.path, v.component, v.permission, v.icon, v.sort, v.visible, v.status
+FROM (VALUES
+    (1,  NULL, '系统管理', 'DIRECTORY', '/sys',      NULL,                   NULL,              'Settings',        1, 1, 1),
+    (2,  1,    '用户管理', 'PAGE',      '/sys/user', 'sys/user/index',       'sys:user:list',   'User',            1, 1, 1),
+    (3,  2,    '用户新增', 'BUTTON',    NULL,        NULL,                   'sys:user:add',    NULL,              1, 1, 1),
+    (4,  2,    '用户编辑', 'BUTTON',    NULL,        NULL,                   'sys:user:edit',   NULL,              2, 1, 1),
+    (5,  2,    '用户删除', 'BUTTON',    NULL,        NULL,                   'sys:user:delete', NULL,              3, 1, 1),
+    (6,  2,    '重置密码', 'BUTTON',    NULL,        NULL,                   'sys:user:reset',  NULL,              4, 1, 1),
+    (7,  2,    '分配角色', 'BUTTON',    NULL,        NULL,                   'sys:user:role',   NULL,              5, 1, 1),
+    (10, 1,    '角色管理', 'PAGE',      '/sys/role', 'sys/role/index',       'sys:role:list',   'UserFilled',      2, 1, 1),
+    (11, 10,   '角色新增', 'BUTTON',    NULL,        NULL,                   'sys:role:add',    NULL,              1, 1, 1),
+    (12, 10,   '角色编辑', 'BUTTON',    NULL,        NULL,                   'sys:role:edit',   NULL,              2, 1, 1),
+    (13, 10,   '角色删除', 'BUTTON',    NULL,        NULL,                   'sys:role:delete', NULL,              3, 1, 1),
+    (14, 10,   '权限分配', 'BUTTON',    NULL,        NULL,                   'sys:role:perm',   NULL,              4, 1, 1),
+    (20, 1,    '菜单管理', 'PAGE',      '/sys/menu', 'sys/menu/index',       'sys:menu:list',   'Menu',            3, 1, 1),
+    (21, 20,   '菜单新增', 'BUTTON',    NULL,        NULL,                   'sys:menu:add',    NULL,              1, 1, 1),
+    (22, 20,   '菜单编辑', 'BUTTON',    NULL,        NULL,                   'sys:menu:edit',   NULL,              2, 1, 1),
+    (23, 20,   '菜单删除', 'BUTTON',    NULL,        NULL,                   'sys:menu:delete', NULL,              3, 1, 1),
+    (30, 1,    '单位管理', 'PAGE',      '/sys/unit', 'sys/unit/index',       'sys:unit:list',   'OfficeBuilding',  4, 1, 1),
+    (31, 30,   '单位新增', 'BUTTON',    NULL,        NULL,                   'sys:unit:add',    NULL,              1, 1, 1),
+    (32, 30,   '单位编辑', 'BUTTON',    NULL,        NULL,                   'sys:unit:edit',   NULL,              2, 1, 1),
+    (33, 30,   '单位删除', 'BUTTON',    NULL,        NULL,                   'sys:unit:delete', NULL,              3, 1, 1),
+    (40, 1,    '系统配置', 'PAGE',      '/sys/config','sys/config/index',    'sys:config:list', 'Tools',           5, 1, 1),
+    (41, 40,   '配置新增', 'BUTTON',    NULL,        NULL,                   'sys:config:add',  NULL,              1, 1, 1),
+    (42, 40,   '配置编辑', 'BUTTON',    NULL,        NULL,                   'sys:config:edit', NULL,              2, 1, 1)
+) AS v(id, parent_id, menu_name, menu_type, path, component, permission, icon, sort, visible, status)
+WHERE NOT EXISTS (SELECT 1 FROM sys_menu m WHERE m.id = v.id);
+
+-- 给 admin 角色绑定所有菜单
+INSERT INTO sys_role_menu (role_id, menu_id)
+SELECT 1, m.id FROM sys_menu m
+WHERE NOT EXISTS (SELECT 1 FROM sys_role_menu rm WHERE rm.role_id = 1 AND rm.menu_id = m.id);
+
+-- 基础系统配置（批量幂等：按 config_key 去重）
+INSERT INTO sys_config (config_key, config_value, config_type, description, category)
+SELECT v.config_key, v.config_value, v.config_type, v.description, v.category
+FROM (VALUES
+    ('sys.password.min-length',    '8',                       'NUMBER', '密码最小长度',         'security'),
+    ('sys.password.require-upper', 'true',                    'BOOLEAN','密码必须包含大写字母',  'security'),
+    ('sys.user.default-avatar',    '/img/default-avatar.png', 'STRING', '默认头像路径',         'user'),
+    ('sys.session.timeout',        '86400',                   'NUMBER', '会话超时（秒）',       'security')
+) AS v(config_key, config_value, config_type, description, category)
+WHERE NOT EXISTS (SELECT 1 FROM sys_config c WHERE c.config_key = v.config_key);
+
+-- ===== AI 配置种子 =====
+
+-- AI Copilot 配置种子：把 DeepSeek 连接参数迁到 sys_config（界面可配），不再依赖服务器环境变量。
+-- 去重插入，兼容已存在数据 / 重复执行。
+INSERT INTO sys_config (config_key, config_value, config_type, description, category) VALUES
+  ('ai.deepseek.api-key', '', 'SECRET',
+   'DeepSeek/OpenAI 兼容 API Key（界面配置，勿放入服务器环境变量）', 'ai'),
+  ('ai.deepseek.base-url', 'https://api.deepseek.com', 'STRING',
+   'OpenAI 兼容 base-url，默认指向 DeepSeek 官方', 'ai'),
+  ('ai.deepseek.model', 'deepseek-chat', 'STRING',
+   '模型名，默认 deepseek-chat', 'ai')
+ON CONFLICT (config_key) DO NOTHING;
+
+-- ===== 菜单名翻译（i18n_message）=====
+
+-- =============================================
+-- i18n 管理菜单（已迁移至代码注册）+ 菜单名翻译数据
+-- =============================================
+-- 此前的 sys_menu + sys_role_menu INSERT 已迁移到 I18nMenuConfiguration（MenuContributor），
+-- 由 sys 模块的 MenuBootstrap 启动时幂等自动注册 + 绑定 admin 角色。
+-- 此文件保留 i18n_message（菜单名翻译）数据播种。
+
+-- 国际化管理菜单自身的显示名 i18n key（与 MenuContributor 注册的 permission 对应的菜单显示名翻译）
+INSERT INTO i18n_message (message_key, locale, module, value)
+SELECT 'sys.menu.70.name', 'zh-CN', 'sys', '国际化管理'
+WHERE NOT EXISTS (SELECT 1 FROM i18n_message m WHERE m.message_key = 'sys.menu.70.name' AND m.locale = 'zh-CN');
+INSERT INTO i18n_message (message_key, locale, module, value)
+SELECT 'sys.menu.70.name', 'en', 'sys', 'Internationalization'
+WHERE NOT EXISTS (SELECT 1 FROM i18n_message m WHERE m.message_key = 'sys.menu.70.name' AND m.locale = 'en');
+INSERT INTO i18n_message (message_key, locale, module, value)
+SELECT 'sys.menu.71.name', 'zh-CN', 'sys', '编辑翻译'
+WHERE NOT EXISTS (SELECT 1 FROM i18n_message m WHERE m.message_key = 'sys.menu.71.name' AND m.locale = 'zh-CN');
+INSERT INTO i18n_message (message_key, locale, module, value)
+SELECT 'sys.menu.71.name', 'en', 'sys', 'Edit Translation'
+WHERE NOT EXISTS (SELECT 1 FROM i18n_message m WHERE m.message_key = 'sys.menu.71.name' AND m.locale = 'en');
+INSERT INTO i18n_message (message_key, locale, module, value)
+SELECT 'sys.menu.72.name', 'zh-CN', 'sys', '导入翻译'
+WHERE NOT EXISTS (SELECT 1 FROM i18n_message m WHERE m.message_key = 'sys.menu.72.name' AND m.locale = 'zh-CN');
+INSERT INTO i18n_message (message_key, locale, module, value)
+SELECT 'sys.menu.72.name', 'en', 'sys', 'Import Translation'
+WHERE NOT EXISTS (SELECT 1 FROM i18n_message m WHERE m.message_key = 'sys.menu.72.name' AND m.locale = 'en');
+INSERT INTO i18n_message (message_key, locale, module, value)
+SELECT 'sys.menu.73.name', 'zh-CN', 'sys', '导出翻译'
+WHERE NOT EXISTS (SELECT 1 FROM i18n_message m WHERE m.message_key = 'sys.menu.73.name' AND m.locale = 'zh-CN');
+INSERT INTO i18n_message (message_key, locale, module, value)
+SELECT 'sys.menu.73.name', 'en', 'sys', 'Export Translation'
+WHERE NOT EXISTS (SELECT 1 FROM i18n_message m WHERE m.message_key = 'sys.menu.73.name' AND m.locale = 'en');
+
+-- openapp 菜单英文名
+
+-- =============================================
+-- 补齐 openapp 菜单(60~63)缺失的英文翻译
+--
+-- 背景：外部应用菜单的中文翻译在旧 menu_translation 表迁移时已带入
+-- i18n_message，但英文(en)从未播种，导致 locale=en 时 MenuService 解析
+-- sys.menu.6X.name 抛 NoSuchMessageException(已被代码兜底，此处补齐数据)。
+-- 幂等：受 (message_key, locale) 唯一约束保护。
+-- =============================================
+
+INSERT INTO i18n_message (message_key, locale, module, value)
+SELECT 'sys.menu.60.name', 'en', 'sys', 'External Applications'
+WHERE NOT EXISTS (SELECT 1 FROM i18n_message m WHERE m.message_key = 'sys.menu.60.name' AND m.locale = 'en');
+INSERT INTO i18n_message (message_key, locale, module, value)
+SELECT 'sys.menu.61.name', 'en', 'sys', 'Add Application'
+WHERE NOT EXISTS (SELECT 1 FROM i18n_message m WHERE m.message_key = 'sys.menu.61.name' AND m.locale = 'en');
+INSERT INTO i18n_message (message_key, locale, module, value)
+SELECT 'sys.menu.62.name', 'en', 'sys', 'Edit Application'
+WHERE NOT EXISTS (SELECT 1 FROM i18n_message m WHERE m.message_key = 'sys.menu.62.name' AND m.locale = 'en');
+INSERT INTO i18n_message (message_key, locale, module, value)
+SELECT 'sys.menu.63.name', 'en', 'sys', 'Delete Application'
+WHERE NOT EXISTS (SELECT 1 FROM i18n_message m WHERE m.message_key = 'sys.menu.63.name' AND m.locale = 'en');
+
+-- ===== 同步 IDENTITY 序列（种子用显式 id 插入后推进序列）=====
+
+-- Sync IDENTITY sequences after seed inserts.
+-- Flyway inserts with explicit IDs bypass sequence advancement, causing
+-- duplicate key errors on subsequent JPA inserts (nextval returns a stale value).
+-- This runs last (V99) so all module seed data is already present.
+
+SELECT setval('sys_user_id_seq', COALESCE((SELECT MAX(id) FROM sys_user), 0) + 1, false);
+SELECT setval('sys_role_id_seq', COALESCE((SELECT MAX(id) FROM sys_role), 0) + 1, false);
+SELECT setval('sys_menu_id_seq', COALESCE((SELECT MAX(id) FROM sys_menu), 0) + 1, false);
+SELECT setval('sys_unit_id_seq', COALESCE((SELECT MAX(id) FROM sys_unit), 0) + 1, false);
+SELECT setval('sys_config_id_seq', COALESCE((SELECT MAX(id) FROM sys_config), 0) + 1, false);

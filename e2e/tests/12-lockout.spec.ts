@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { getCaptchaAnswer, redisExists, redisDelete, getRedis } from '../fixtures/redis'
+import { apiLogin } from '../fixtures/auth'
+import { execute } from '../fixtures/db'
 
 /**
  * 账号锁定端到端测试 —— 验证 LoginSecurityService 在真实链路（API → Redis）下的行为：
@@ -8,13 +10,16 @@ import { getCaptchaAnswer, redisExists, redisDelete, getRedis } from '../fixture
  *   - 锁定后通过 UI 登录仍停留在 /login 且 token 为空
  *
  * 关键约定：
- *   - 使用不存在的测试账号 `e2e-locktest`，避免触碰 admin 或种子用户
+ *   - 使用真实存在的测试账号 `e2e_locktest`（beforeAll 经 API 创建），因为后端
+ *     LoginSecurityService 只对「用户存在但密码错误」累计失败计数——不存在的用户名
+ *     直接返回「用户不存在」，永远不触发锁定。afterAll 清理该用户。
  *   - afterEach 清理 `user:lock:` / `login:fail:` 两个 Redis key，防止污染其他测试
  *   - 阈值不硬编码：循环失败直到 lock key 出现（默认 3，可由配置覆盖）
  */
 
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:8090'
-const LOCK_USER = 'e2e-locktest'
+const LOCK_USER = 'e2e_locktest'
+const LOCK_PASSWORD = 'LockTest1!'
 const FAIL_KEY = `login:fail:${LOCK_USER}`
 const LOCK_KEY = `user:lock:${LOCK_USER}`
 
@@ -42,6 +47,21 @@ async function bruteForceUntilLocked(username: string, password: string): Promis
   }
   return false
 }
+
+test.beforeAll(async () => {
+  // 后端只对存在的用户累计登录失败：先创建专用测试账号，否则锁定逻辑永不触发。
+  const token = await apiLogin()
+  await fetch(`${BASE}/api/sys/user`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: LOCK_USER, password: LOCK_PASSWORD, realName: 'lockout-test' }),
+  })
+})
+
+test.afterAll(async () => {
+  await execute('DELETE FROM sys_user_role WHERE user_id IN (SELECT id FROM sys_user WHERE username = $1)', [LOCK_USER])
+  await execute('DELETE FROM sys_user WHERE username = $1', [LOCK_USER])
+})
 
 test.describe('账号锁定（LoginSecurityService 端到端）', () => {
   test.afterEach(async () => {

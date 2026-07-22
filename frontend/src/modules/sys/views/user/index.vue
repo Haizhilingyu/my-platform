@@ -126,7 +126,9 @@ async function handleSave() {
         unitId: form.value.unitId || undefined,
         status: form.value.status,
       })
-      await userApi.assignRoles(editingId.value, form.value.roleIds)
+      if (form.value.roleIds.length > 0) {
+        await userApi.assignRoles(editingId.value, form.value.roleIds)
+      }
       message.success(t('common.modifySuccess'))
     } else {
       await userApi.create({

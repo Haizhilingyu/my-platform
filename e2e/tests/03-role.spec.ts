@@ -4,12 +4,12 @@ import { apiLogin } from '../fixtures/auth'
 import { queryOne, queryAll, execute } from '../fixtures/db'
 
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:8090'
-const ROLE_CODE = 'e2e-role-1'
+const ROLE_CODE = 'e2e_role_1'
 
 test.describe('角色管理 CRUD', () => {
   test.afterEach(async () => {
-    await execute('DELETE FROM sys_role_menu WHERE role_id IN (SELECT id FROM sys_role WHERE role_code LIKE $1)', ['e2e-%'])
-    await execute('DELETE FROM sys_role WHERE role_code LIKE $1', ['e2e-%'])
+    await execute('DELETE FROM sys_role_menu WHERE role_id IN (SELECT id FROM sys_role WHERE role_code LIKE $1)', ['e2e\\_%'])
+    await execute('DELETE FROM sys_role WHERE role_code LIKE $1', ['e2e\\_%'])
   })
 
   test('角色列表加载', async ({ page }) => {

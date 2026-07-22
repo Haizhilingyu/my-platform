@@ -2,12 +2,12 @@ import { test, expect } from '@playwright/test'
 import { loggedInPage } from '../fixtures/helpers'
 import { queryOne, execute } from '../fixtures/db'
 
-const ROOT_CODE = 'E2E-UNIT-ROOT'
-const CHILD_CODE = 'E2E-UNIT-CHILD'
+const ROOT_CODE = 'E2E_UNIT_ROOT'
+const CHILD_CODE = 'E2E_UNIT_CHILD'
 
 test.describe('单位管理 CRUD + Bug2 回归', () => {
   test.afterEach(async () => {
-    await execute("DELETE FROM sys_unit WHERE unit_code LIKE 'E2E-%'")
+    await execute("DELETE FROM sys_unit WHERE unit_code LIKE 'E2E\\_%'")
   })
 
   test('单位树渲染', async ({ page }) => {

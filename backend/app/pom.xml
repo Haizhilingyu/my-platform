@@ -18,6 +18,31 @@
       <groupId>com.example</groupId>
       <artifactId>platform-starter</artifactId>
     </dependency>
+    <!-- 可选业务模块：按需引用，加依赖即自动装配（AutoConfiguration）+ 自动注册菜单（MenuContributor） -->
+    <dependency>
+      <groupId>com.example</groupId>
+      <artifactId>audit-module</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.example</groupId>
+      <artifactId>notify-module</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.example</groupId>
+      <artifactId>openapp-module</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.example</groupId>
+      <artifactId>login-ldap-module</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.example</groupId>
+ <artifactId>i18n-module</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.example</groupId>
+      <artifactId>ai-agent-module</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>

@@ -52,11 +52,17 @@ spring:
       # 后者支持不重新打 jar 更新前端（挂载卷覆盖）。
       static-locations: classpath:/static/,file:/app/static/optional/
 
-  # Spring AI：不使用其自动装配的 OpenAiChatModel（连接参数改由 sys_config 提供，见
-  # DeepSeekChatModelFactory）。排除 OpenAiChatAutoConfiguration，避免空 api-key 报错与重复 bean。
+  # Spring AI：不使用其任何自动装配的 OpenAi*Model（连接参数改由 sys_config 提供，见
+  # DeepSeekChatModelFactory，仅构造 ChatModel）。排除全部 OpenAi 自动配置，避免空 api-key 时
+  # audio/image/embedding/moderation 等 bean 强制校验 api-key 导致应用上下文启动崩溃。
   autoconfigure:
     exclude:
       - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration
 
 server:
   port: 8090

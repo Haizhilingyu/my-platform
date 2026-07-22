@@ -5,7 +5,7 @@ import { execute } from '../fixtures/db'
 
 test.describe('外部应用管理 (OAuth2 clients)', () => {
   test.afterEach(async () => {
-    await execute("DELETE FROM openapp_client WHERE client_name LIKE 'e2e-%'")
+    await execute("DELETE FROM openapp_client WHERE client_name LIKE 'e2e\\_%'")
   })
 
   test('应用列表页正确渲染', async ({ page }) => {
@@ -24,7 +24,7 @@ test.describe('外部应用管理 (OAuth2 clients)', () => {
 
   test('API 创建客户端 → UI 列表显示 + DB 入库', async ({ page, request }) => {
     const token = await apiLogin()
-    const appName = `e2e-app-${Date.now()}`
+    const appName = `e2e_app_${Date.now()}`
 
     const res = await request.post('/api/sys/openapp/clients', {
       headers: { Authorization: `Bearer ${token}` },
