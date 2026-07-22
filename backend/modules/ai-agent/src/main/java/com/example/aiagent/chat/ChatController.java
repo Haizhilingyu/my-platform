@@ -6,6 +6,7 @@ import com.example.aiagent.chat.dto.ChatRequest;
 import com.example.aiagent.config.AgentProperties;
 import com.example.common.security.CurrentUser;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,12 @@ public class ChatController {
   private final ChatRateLimiter rateLimiter;
 
   @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public SseEmitter chat(@RequestBody @Valid ChatRequest request) {
+  public SseEmitter chat(@RequestBody @Valid ChatRequest request, HttpServletResponse response) {
+    // 禁用代理层（Caddy/Cloudflare/nginx）对 SSE 的缓冲，否则流式事件被攒在代理缓冲区，
+    // 浏览器直到连接关闭或缓冲区满才能收到数据，表现为「一直 loading」。
+    response.setHeader("Cache-Control", "no-cache, no-transform");
+    response.setHeader("X-Accel-Buffering", "no");
+    response.setHeader("Connection", "keep-alive");
     CurrentUser.UserInfo user = CurrentUser.get();
     SseEmitter emitter = new SseEmitter(60_000L);
     // 限流：同步检查，超出立即返回错误事件，避免占用异步线程与 DeepSeek 调用。
