@@ -45,6 +45,7 @@ class ChatControllerTest {
   private AgentService agentService;
   private AgentProperties properties;
   private ChatRateLimiter rateLimiter;
+  private com.example.sys.SysApi sysApi;
   private MockMvc mvc;
 
   @BeforeEach
@@ -52,10 +53,13 @@ class ChatControllerTest {
     agentService = mock(AgentService.class);
     properties = mock(AgentProperties.class);
     rateLimiter = mock(ChatRateLimiter.class);
+    sysApi = mock(com.example.sys.SysApi.class);
     when(properties.isEnabled()).thenReturn(true);
+    when(properties.getProvider()).thenReturn("mock");
     when(rateLimiter.tryAcquire(any())).thenReturn(true);
     mvc =
-        MockMvcBuilders.standaloneSetup(new ChatController(agentService, properties, rateLimiter))
+        MockMvcBuilders.standaloneSetup(
+                new ChatController(agentService, properties, rateLimiter, sysApi))
             .build();
     CurrentUser.set(new CurrentUser.UserInfo(1L, "tester", null, Set.of(), Set.of("*")));
   }

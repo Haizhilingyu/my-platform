@@ -31,6 +31,7 @@ public class ChatController {
   private final AgentService agentService;
   private final AgentProperties properties;
   private final ChatRateLimiter rateLimiter;
+  private final com.example.sys.SysApi sysApi;
 
   @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter chat(@RequestBody @Valid ChatRequest request, HttpServletResponse response) {
@@ -57,6 +58,15 @@ public class ChatController {
       sendQuietly(emitter, AgentEvent.error("消息不能为空"));
       emitter.complete();
       return emitter;
+    }
+    // 预检：DeepSeek 模式下若 API Key 未配置，同步返回友好提示，不进异步流程（避免 SSE 流被代理缓冲吞掉 error 事件）
+    if (properties.isEnabled() && "deepseek".equalsIgnoreCase(properties.getProvider())) {
+      String keyHint = checkDeepSeekKey();
+      if (keyHint != null) {
+        sendQuietly(emitter, AgentEvent.error(keyHint));
+        emitter.complete();
+        return emitter;
+      }
     }
     CompletableFuture.runAsync(
         () -> {
@@ -111,6 +121,15 @@ public class ChatController {
     }
     sb.append("[U] ").append(currentMessage);
     return sb.toString();
+  }
+
+  /** DeepSeek 模式预检：api-key 为空时返回友好提示，否则返回 null（已就绪）。 */
+  private String checkDeepSeekKey() {
+    String apiKey = sysApi.getConfig("ai.deepseek.api-key", properties.getDeepseek().getApiKey());
+    if (apiKey == null || apiKey.isBlank()) {
+      return "AI 助手尚未配置模型 API Key。请前往「系统管理 → 系统配置」设置 ai.deepseek.api-key 后重试。";
+    }
+    return null;
   }
 
   private static String messageOf(Exception ex) {
