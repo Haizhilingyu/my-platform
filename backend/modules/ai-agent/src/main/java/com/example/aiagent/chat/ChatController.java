@@ -125,7 +125,10 @@ public class ChatController {
 
   /** DeepSeek 模式预检：api-key 为空时返回友好提示，否则返回 null（已就绪）。 */
   private String checkDeepSeekKey() {
-    String apiKey = sysApi.getConfig("ai.deepseek.api-key", properties.getDeepseek().getApiKey());
+    // sys_config 可能有空串记录（种子），空时 fallback 到 properties（环境变量 APP_AI_DEEPSEEK_API_KEY）
+    String dbKey = sysApi.getConfig("ai.deepseek.api-key", null);
+    String envKey = properties.getDeepseek().getApiKey();
+    String apiKey = (dbKey != null && !dbKey.isBlank()) ? dbKey : envKey;
     if (apiKey == null || apiKey.isBlank()) {
       return "AI 助手尚未配置模型 API Key。请前往「系统管理 → 系统配置」设置 ai.deepseek.api-key 后重试。";
     }
