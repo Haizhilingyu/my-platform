@@ -38,7 +38,7 @@ COPY backend/app ./app
 COPY --from=frontend-builder /build/dist/ ./app/src/main/resources/static/
 
 # 构建 fat jar（跳过测试/代码质量检查，由 CI 其他环节保障）
-RUN mvn package -DskipTests -B \
+RUN mvn clean package -DskipTests -B \
     -Dspotless.check.skip=true \
     -Dcheckstyle.skip=true \
     -Dspotbugs.skip=true \
