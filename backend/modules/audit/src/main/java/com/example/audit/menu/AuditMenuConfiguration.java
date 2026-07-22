@@ -9,9 +9,8 @@ import org.springframework.context.annotation.Configuration;
 /**
  * 审计模块菜单注册。
  *
- * <p>声明「审计日志」页面菜单（挂在「系统管理」目录 /sys 下），替代此前 Flyway V21__audit_menu.sql 的硬编码
- * INSERT。加 audit-module 依赖后，菜单由 {@link com.example.sys.menu.MenuBootstrap} 启动时自动注册并绑定 admin
- * 角色，无需 DBA 手动跑 SQL。
+ * <p>声明「审计日志」页面菜单（挂在「系统管理」目录 /sys 下），替代此前 Flyway V21__audit_menu.sql 的硬编码 INSERT。加 audit-module
+ * 依赖后，菜单由 {@link com.example.sys.menu.MenuBootstrap} 启动时自动注册并绑定 admin 角色，无需 DBA 手动跑 SQL。
  */
 @Configuration
 public class AuditMenuConfiguration {

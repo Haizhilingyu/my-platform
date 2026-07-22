@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
+import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { NMenu, NDropdown, NPopover, NLayoutSider, NButton } from 'naive-ui'
 import { MoonOutline } from '@vicons/ionicons5'
@@ -15,7 +15,7 @@ import { notifyApi } from '@/shared/api/notify'
  *  - 用户下拉 logout → 登出并回登录页；
  *  - 铃铛下拉打开时拉取最近未读，"查看全部"跳消息中心；
  *  - 语言切换 / 主题切换；
- *  - AI 抽屉 action 跳转（带 highlight query）；
+ *  - AI 气泡 action 跳转（带 highlight query，对话框保持开启）；
  *  - 移动端不渲染 sider。
  */
 
@@ -31,7 +31,14 @@ const { authState, themeState, notifyState, localeState, bpState, routeState, ro
           visible: 1,
           icon: 'Settings',
           children: [
-            { id: 2, menuName: '用户管理', path: '/sys/user', visible: 1, icon: 'User', children: [] },
+            {
+              id: 2,
+              menuName: '用户管理',
+              path: '/sys/user',
+              visible: 1,
+              icon: 'User',
+              children: [],
+            },
             { id: 3, menuName: '隐藏菜单', path: '/sys/hidden', visible: 0, children: [] },
           ],
         },
@@ -68,7 +75,13 @@ vi.mock('@/shared/api/notify', () => ({
     inbox: vi.fn().mockResolvedValue({
       data: {
         list: [
-          { id: 1, title: '未读一', level: 'URGENT', readStatus: false, createdAt: '2026-07-01T10:00:00Z' },
+          {
+            id: 1,
+            title: '未读一',
+            level: 'URGENT',
+            readStatus: false,
+            createdAt: '2026-07-01T10:00:00Z',
+          },
         ],
         total: 1,
       },
@@ -79,7 +92,20 @@ vi.mock('naive-ui', async () => {
   const actual = await vi.importActual<typeof import('naive-ui')>('naive-ui')
   return {
     ...actual,
-    useMessage: () => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn(), loading: vi.fn() }),
+    useMessage: () => ({
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      info: vi.fn(),
+      loading: vi.fn(),
+    }),
+    useDialog: () => ({
+      warning: vi.fn(),
+      create: vi.fn(),
+      info: vi.fn(),
+      success: vi.fn(),
+      error: vi.fn(),
+    }),
   }
 })
 
@@ -162,37 +188,49 @@ describe('Layout.vue 应用外壳', () => {
     expect(notifyApi.inbox).toHaveBeenCalledWith({ pageNum: 1, pageSize: 5, readStatus: false })
   })
 
-  /** 打开 AI 抽屉并等待 ChatPanel 懒渲染挂载。 */
-  async function openAiDrawer(wrapper: ReturnType<typeof mountLayout>) {
+  /** 点击右下角 AI 气泡按钮，等待 ChatPanel 懒渲染挂载。 */
+  async function openAiBubble(wrapper: VueWrapper): Promise<void> {
+    // FAB 在 Teleport(to=body) 内，按组件类型 + aria-label 定位（VTU 跨 teleport 追踪组件树）
     const aiBtn = wrapper
       .findAllComponents(NButton)
       .find((b) => b.attributes('aria-label') === 'AI 助手')
-    expect(aiBtn).toBeTruthy()
+    expect(aiBtn, '右下角 AI 气泡按钮应存在').toBeTruthy()
     await aiBtn!.trigger('click')
     await flushPromises()
   }
 
-  it('AI 助手 action 关闭抽屉并带 highlight 跳转', async () => {
+  it('点击右下角气泡按钮打开聊天面板', async () => {
     const wrapper = mountLayout()
-    await openAiDrawer(wrapper)
+    expect(wrapper.findComponent(ChatPanel).exists()).toBe(false)
 
-    wrapper
-      .findComponent(ChatPanel)
-      .vm.$emit('action', { path: '/sys/user', highlightId: 5 })
+    await openAiBubble(wrapper)
+
+    expect(wrapper.findComponent(ChatPanel).exists()).toBe(true)
+  })
+
+  it('AI 助手 action 跳转且保持气泡对话框开启（带 highlight）', async () => {
+    const wrapper = mountLayout()
+    await openAiBubble(wrapper)
+
+    wrapper.findComponent(ChatPanel).vm.$emit('action', { path: '/sys/user', highlightId: 5 })
+    await flushPromises()
 
     expect(routerMock.push).toHaveBeenCalledWith({
       path: '/sys/user',
       query: { highlight: '5' },
     })
+    // 跳转不应关闭对话框：用户需看到 AI 回复，页面在面板下方跳转
+    expect(wrapper.findComponent(ChatPanel).exists()).toBe(true)
   })
 
-  it('AI action 无 highlightId 时只带 path 跳转', async () => {
+  it('AI action 无 highlightId 时只带 path 跳转，对话框保持开启', async () => {
     const wrapper = mountLayout()
-    await openAiDrawer(wrapper)
-
+    await openAiBubble(wrapper)
     wrapper.findComponent(ChatPanel).vm.$emit('action', { path: '/sys/role' })
+    await flushPromises()
 
     expect(routerMock.push).toHaveBeenCalledWith({ path: '/sys/role' })
+    expect(wrapper.findComponent(ChatPanel).exists()).toBe(true)
   })
 
   it('移动端不渲染 sider，改用抽屉', () => {
@@ -205,7 +243,8 @@ describe('Layout.vue 应用外壳', () => {
   it('goToInbox 关闭铃铛下拉并跳转收件箱', async () => {
     const wrapper = mountLayout()
     await flushPromises()
-    const ss = (wrapper.vm as unknown as { $: { setupState: Record<string, unknown> } }).$.setupState
+    const ss = (wrapper.vm as unknown as { $: { setupState: Record<string, unknown> } }).$
+      .setupState
 
     ;(ss.goToInbox as () => void)()
     await flushPromises()

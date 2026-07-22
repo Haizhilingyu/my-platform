@@ -3,10 +3,11 @@ package com.example.common.menu;
 /**
  * 菜单定义（不可变值对象）。
  *
- * <p>模块通过 {@link MenuContributor} 声明自己的菜单项。每个菜单项用 {@link #permission} 作为幂等键
- * （已存在则更新属性，不存在则插入）；用 {@link #parentPath} 关联父菜单（父菜单的 {@code path} 字段）。
+ * <p>模块通过 {@link MenuContributor} 声明自己的菜单项。每个菜单项用 {@link #permission} 作为幂等键 （已存在则更新属性，不存在则插入）；用
+ * {@link #parentPath} 关联父菜单（父菜单的 {@code path} 字段）。
  *
  * <h3>菜单类型</h3>
+ *
  * <ul>
  *   <li>{@code DIRECTORY} — 目录（如「系统管理」，有 path 如 {@code /sys}，permission 可为 null）
  *   <li>{@code PAGE} — 页面（有 path + component + permission）
@@ -37,7 +38,8 @@ public record MenuDefinition(
   /** 目录菜单工厂。 */
   public static MenuDefinition directory(
       String menuName, String path, String icon, int sort, String parentPath) {
-    return new MenuDefinition(null, menuName, "DIRECTORY", path, null, icon, sort, parentPath, true);
+    return new MenuDefinition(
+        null, menuName, "DIRECTORY", path, null, icon, sort, parentPath, true);
   }
 
   /** 页面菜单工厂。 */
@@ -56,6 +58,7 @@ public record MenuDefinition(
   /** 按钮权限点工厂（无 path/component，parentPath 指向所属 PAGE 的 path）。 */
   public static MenuDefinition button(
       String permission, String menuName, int sort, String parentPath) {
-    return new MenuDefinition(permission, menuName, "BUTTON", null, null, null, sort, parentPath, true);
+    return new MenuDefinition(
+        permission, menuName, "BUTTON", null, null, null, sort, parentPath, true);
   }
 }

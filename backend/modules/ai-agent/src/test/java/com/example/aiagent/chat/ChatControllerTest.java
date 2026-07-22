@@ -32,9 +32,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 /**
  * ChatController 集成测试（MockMvc standaloneSetup）。
  *
- * <p>验证 {@code /api/ai/chat} SSE 端点的完整契约：限流拦截、入参兜底、enabled 开关、事件转发与二次确认回执。
- * 用 standaloneSetup（不启动 Spring 上下文）隔离 GlobalExceptionHandler / Security 过滤链，聚焦 Controller 本身；
- * AgentService / AgentProperties / ChatRateLimiter 以 Mock 替换，CurrentUser 在请求线程预置。
+ * <p>验证 {@code /api/ai/chat} SSE 端点的完整契约：限流拦截、入参兜底、enabled 开关、事件转发与二次确认回执。 用 standaloneSetup（不启动
+ * Spring 上下文）隔离 GlobalExceptionHandler / Security 过滤链，聚焦 Controller 本身； AgentService /
+ * AgentProperties / ChatRateLimiter 以 Mock 替换，CurrentUser 在请求线程预置。
  *
  * <p>这是 ai-agent 模块此前缺失的 Controller 层集成测试——对比 sys 模块每个 Controller 均有 {@code *ControllerTest}，
  * ChatController 作为模块唯一对外端点此前零覆盖。

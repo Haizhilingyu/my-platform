@@ -9,8 +9,8 @@ import org.springframework.context.annotation.Configuration;
 /**
  * i18n 模块菜单注册。
  *
- * <p>声明「国际化管理」页面 + 3 个按钮权限点，替代此前 V105__i18n_permissions.sql 中的 sys_menu INSERT。
- * 加 i18n-module 依赖后自动注册并绑定 admin。V105 中的 i18n_message（菜单名翻译）数据由 V105 自身保留。
+ * <p>声明「国际化管理」页面 + 3 个按钮权限点，替代此前 V105__i18n_permissions.sql 中的 sys_menu INSERT。 加 i18n-module
+ * 依赖后自动注册并绑定 admin。V105 中的 i18n_message（菜单名翻译）数据由 V105 自身保留。
  */
 @Configuration
 public class I18nMenuConfiguration {

@@ -65,9 +65,9 @@ public class ChatRateLimiter {
   /**
    * Spring 构造：注入 Redis 模板（计数主路径）。
    *
-   * <p>本类另有一个单参数的降级构造（无 Redis，测试/内存兜底），故存在多个构造函数。Spring 在面对多构造且无
-   * {@code @Autowired} 标注时会回退查找无参默认构造并报 {@code NoSuchMethodException}，导致 bean 创建失败、整个
-   * 应用上下文启动崩溃。在此显式标注，指明 Spring 使用双参数构造注入。
+   * <p>本类另有一个单参数的降级构造（无 Redis，测试/内存兜底），故存在多个构造函数。Spring 在面对多构造且无 {@code @Autowired}
+   * 标注时会回退查找无参默认构造并报 {@code NoSuchMethodException}，导致 bean 创建失败、整个 应用上下文启动崩溃。在此显式标注，指明 Spring
+   * 使用双参数构造注入。
    */
   @Autowired
   public ChatRateLimiter(AgentProperties properties, StringRedisTemplate redis) {

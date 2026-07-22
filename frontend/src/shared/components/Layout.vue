@@ -2,17 +2,43 @@
 import { h, computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
-  NLayout, NLayoutHeader, NLayoutSider, NLayoutContent,
-  NMenu, NButton, NIcon, NSpace, NDropdown, NAvatar, NText,
-  NDrawer, NDrawerContent, NBadge, NPopover, NTag, NSpin,
+  NLayout,
+  NLayoutHeader,
+  NLayoutSider,
+  NLayoutContent,
+  NMenu,
+  NButton,
+  NIcon,
+  NSpace,
+  NDropdown,
+  NAvatar,
+  NText,
+  NDrawer,
+  NDrawerContent,
+  NBadge,
+  NPopover,
+  NTag,
+  NSpin,
+  NTooltip,
   type MenuOption,
 } from 'naive-ui'
 import {
-  SettingsOutline, MoonOutline, SunnyOutline, LogOutOutline,
-  PersonOutline, MenuOutline, GlobeOutline, NotificationsOutline,
-  ShieldCheckmarkOutline, BusinessOutline, BuildOutline,
-  DocumentTextOutline, AppsOutline, SparklesOutline,
-  TrashOutline, CloseOutline,
+  SettingsOutline,
+  MoonOutline,
+  SunnyOutline,
+  LogOutOutline,
+  PersonOutline,
+  MenuOutline,
+  GlobeOutline,
+  NotificationsOutline,
+  ShieldCheckmarkOutline,
+  BusinessOutline,
+  BuildOutline,
+  DocumentTextOutline,
+  AppsOutline,
+  SparklesOutline,
+  TrashOutline,
+  CloseOutline,
 } from '@vicons/ionicons5'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
@@ -115,9 +141,7 @@ function handleMenuUpdate(key: string) {
   }
 }
 
-const userOptions = [
-  { label: t('layout.logout'), key: 'logout', icon: renderIcon(LogOutOutline) },
-]
+const userOptions = [{ label: t('layout.logout'), key: 'logout', icon: renderIcon(LogOutOutline) }]
 
 function handleUserAction(key: string) {
   if (key === 'logout') {
@@ -164,7 +188,7 @@ function goToInbox(): void {
 
 // Language switcher
 const localeOptions = computed<DropdownOption[]>(() =>
-  SUPPORTED_LOCALES.map(l => ({ label: l.label, key: l.value }))
+  SUPPORTED_LOCALES.map((l) => ({ label: l.label, key: l.value })),
 )
 
 function handleLocaleChange(key: string) {
@@ -172,9 +196,9 @@ function handleLocaleChange(key: string) {
   message.success(t('common.localeChanged'))
 }
 
-// AI 助手操作结果跳转：关闭抽屉 + 路由到目标页（带高亮 id）
+// AI 助手操作结果跳转：保持对话框开启，路由到目标页（带高亮 id）
+// 用户需看到 AI 回复，页面在面板下方跳转 —— 对话框不随跳转关闭
 function handleAiAction(a: AiActionEvent): void {
-  aiBubbleVisible.value = false
   const location: { path: string; query?: Record<string, string> } = { path: a.path }
   if (a.highlightId != null) {
     location.query = { highlight: String(a.highlightId) }
@@ -214,7 +238,9 @@ function handleClearHistory(): void {
     >
       <div class="py-5 flex flex-col h-full border-b border-[rgb(var(--color-border))]">
         <div :class="['px-3 mb-4 flex items-center', collapsed ? 'justify-center' : 'gap-2']">
-          <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-[rgb(var(--color-primary))]">
+          <div
+            class="w-8 h-8 rounded-lg flex items-center justify-center bg-[rgb(var(--color-primary))]"
+          >
             <NIcon size="20" color="white">
               <SettingsOutline />
             </NIcon>
@@ -230,31 +256,26 @@ function handleClearHistory(): void {
           @update:value="handleMenuUpdate"
         />
         <div v-if="!collapsed" class="px-3 pb-4 mt-auto">
-          <span class="micro-label font-mono-data text-[rgb(var(--color-text-secondary))]">v1.0.0</span>
+          <span class="micro-label font-mono-data text-[rgb(var(--color-text-secondary))]">
+            v1.0.0
+          </span>
         </div>
       </div>
     </NLayoutSider>
 
     <!-- 移动端：NDrawer 抽屉 -->
-    <NDrawer
-      v-if="isMobile"
-      v-model:show="drawerVisible"
-      :width="240"
-      placement="left"
-    >
+    <NDrawer v-if="isMobile" v-model:show="drawerVisible" :width="240" placement="left">
       <NDrawerContent title="My Platform" :native-scrollbar="false">
-        <NMenu
-          :options="menuOptions"
-          :value="activeKey"
-          @update:value="handleMenuUpdate"
-        />
+        <NMenu :options="menuOptions" :value="activeKey" @update:value="handleMenuUpdate" />
       </NDrawerContent>
     </NDrawer>
 
-
     <NLayout>
       <!-- 顶栏 -->
-      <NLayoutHeader bordered class="px-4 py-2 flex items-center justify-between bg-[rgb(var(--color-surface))]">
+      <NLayoutHeader
+        bordered
+        class="px-4 py-2 flex items-center justify-between bg-[rgb(var(--color-surface))]"
+      >
         <div class="flex items-center gap-2 min-w-0">
           <!-- 移动端：hamburger 触发抽屉 -->
           <NButton v-if="isMobile" quaternary circle @click="drawerVisible = true">
@@ -264,19 +285,12 @@ function handleClearHistory(): void {
               </NIcon>
             </template>
           </NButton>
-          <NText class="font-display font-semibold truncate">{{ t(route.meta.titleKey || 'route.dashboard') }}</NText>
+          <NText class="font-display font-semibold truncate">
+            {{ t(route.meta.titleKey || 'route.dashboard') }}
+          </NText>
         </div>
 
         <NSpace align="center" :wrap="false">
-          <!-- AI 助手（切换悬浮气泡）-->
-          <NButton quaternary circle :aria-label="t('ai.title')" @click="aiBubbleVisible = !aiBubbleVisible">
-            <template #icon>
-              <NIcon>
-                <SparklesOutline />
-              </NIcon>
-            </template>
-          </NButton>
-
           <!-- Language switcher -->
           <NDropdown :options="localeOptions" trigger="click" @select="handleLocaleChange">
             <NButton quaternary circle>
@@ -349,7 +363,9 @@ function handleClearHistory(): void {
                 </ul>
               </NSpin>
               <div class="px-3 py-2 border-t border-[rgb(var(--color-border))]">
-                <NButton text type="primary" block @click="goToInbox">{{ t('layout.viewAll') }}</NButton>
+                <NButton text type="primary" block @click="goToInbox">
+                  {{ t('layout.viewAll') }}
+                </NButton>
               </div>
             </div>
           </NPopover>
@@ -361,23 +377,43 @@ function handleClearHistory(): void {
                 {{ authStore.user?.username?.charAt(0).toUpperCase() || 'U' }}
               </NAvatar>
               <!-- 移动端隐藏用户名文字，仅保留头像 -->
-              <NText v-if="!isMobile">{{ authStore.user?.realName || authStore.user?.username }}</NText>
+              <NText v-if="!isMobile">
+                {{ authStore.user?.realName || authStore.user?.username }}
+              </NText>
             </NSpace>
           </NDropdown>
         </NSpace>
       </NLayoutHeader>
 
       <!-- 内容区 -->
-      <NLayoutContent
-        class="p-4"
-        :native-scrollbar="false"
-        content-style="min-height: 100%;"
-      >
+      <NLayoutContent class="p-4" :native-scrollbar="false" content-style="min-height: 100%;">
         <RouterView />
       </NLayoutContent>
     </NLayout>
-    <!-- AI 助手悬浮气泡面板 -->
+    <!-- AI 助手：右下角悬浮气泡按钮（面板开启时隐藏，关闭后复现） -->
     <Teleport to="body">
+      <Transition name="ai-bubble">
+        <NTooltip v-if="!aiBubbleVisible" trigger="hover" placement="top-end">
+          <template #trigger>
+            <NButton
+              circle
+              type="primary"
+              size="large"
+              :aria-label="t('ai.bubbleTooltip')"
+              class="fixed right-6 bottom-6 z-[2000] shadow-lg"
+              @click="aiBubbleVisible = true"
+            >
+              <template #icon>
+                <NIcon size="24">
+                  <SparklesOutline />
+                </NIcon>
+              </template>
+            </NButton>
+          </template>
+          {{ t('ai.bubbleTooltip') }}
+        </NTooltip>
+      </Transition>
+      <!-- AI 助手悬浮气泡面板 -->
       <Transition name="ai-bubble">
         <div
           v-if="aiBubbleVisible"
@@ -393,7 +429,9 @@ function handleClearHistory(): void {
           }"
         >
           <!-- 头部 -->
-          <div class="flex items-center justify-between px-4 py-2.5 border-b border-[rgb(var(--color-border))] shrink-0">
+          <div
+            class="flex items-center justify-between px-4 py-2.5 border-b border-[rgb(var(--color-border))] shrink-0"
+          >
             <div class="flex items-center gap-2">
               <NIcon size="18" class="text-[rgb(var(--color-primary))]">
                 <SparklesOutline />
@@ -401,11 +439,27 @@ function handleClearHistory(): void {
               <span class="font-medium text-sm">{{ t('ai.title') }}</span>
             </div>
             <div class="flex items-center gap-1">
-              <NButton quaternary circle size="tiny" :title="t('ai.clearHistory')" @click="handleClearHistory">
-                <template #icon><NIcon size="14"><TrashOutline /></NIcon></template>
+              <NButton
+                quaternary
+                circle
+                size="tiny"
+                :title="t('ai.clearHistory')"
+                @click="handleClearHistory"
+              >
+                <template #icon>
+                  <NIcon size="14"><TrashOutline /></NIcon>
+                </template>
               </NButton>
-              <NButton quaternary circle size="tiny" :title="t('ai.closeChat')" @click="aiBubbleVisible = false">
-                <template #icon><NIcon size="16"><CloseOutline /></NIcon></template>
+              <NButton
+                quaternary
+                circle
+                size="tiny"
+                :title="t('ai.closeChat')"
+                @click="aiBubbleVisible = false"
+              >
+                <template #icon>
+                  <NIcon size="16"><CloseOutline /></NIcon>
+                </template>
               </NButton>
             </div>
           </div>

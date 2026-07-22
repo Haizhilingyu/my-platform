@@ -37,7 +37,7 @@
     </dependency>
     <dependency>
       <groupId>com.example</groupId>
- <artifactId>i18n-module</artifactId>
+      <artifactId>i18n-module</artifactId>
     </dependency>
     <dependency>
       <groupId>com.example</groupId>

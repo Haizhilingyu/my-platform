@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
  * 菜单启动注册器。
  *
  * <p>应用启动时收集所有 {@link MenuContributor} bean，将声明的菜单幂等注册到 {@code sys_menu} 表：
+ *
  * <ol>
  *   <li>按 path 深度排序（DIRECTORY → PAGE → BUTTON），保证父菜单先注册以解析 {@code parent_id}
  *   <li>按 {@code permission}（PAGE/BUTTON）或 {@code path}（DIRECTORY）做幂等 upsert
@@ -24,8 +25,8 @@ import org.springframework.stereotype.Component;
  *   <li>自动绑定 admin 角色（{@code role_code='admin'}），使超级管理员获得新菜单权限
  * </ol>
  *
- * <p>Flyway 先于此 runner 执行，因此引用核心模块种子数据中的目录（如 {@code /sys}）总能查到。
- * 与现有 Flyway 菜单 INSERT 并存幂等——同一 permission 不会重复插入。
+ * <p>Flyway 先于此 runner 执行，因此引用核心模块种子数据中的目录（如 {@code /sys}）总能查到。 与现有 Flyway 菜单 INSERT 并存幂等——同一
+ * permission 不会重复插入。
  */
 @Slf4j
 @Component
@@ -84,8 +85,8 @@ public class MenuBootstrap implements ApplicationRunner {
   /**
    * 幂等 upsert：按 permission（PAGE/BUTTON）或 path+menuType（DIRECTORY）查重。 存在则更新可变属性，不存在则插入。
    *
-   * <p>插入时显式分配 id = MAX(id)+1（子查询），不依赖 IDENTITY 序列——Flyway 种子用显式 id 绕过序列推进，
-   * IDENTITY nextval 可能返回已占用的 id 导致主键冲突。
+   * <p>插入时显式分配 id = MAX(id)+1（子查询），不依赖 IDENTITY 序列——Flyway 种子用显式 id 绕过序列推进， IDENTITY nextval
+   * 可能返回已占用的 id 导致主键冲突。
    *
    * @return 菜单 id；定义异常时返回 null
    */
@@ -131,9 +132,7 @@ public class MenuBootstrap implements ApplicationRunner {
     if (def.permission() != null && !def.permission().isBlank()) {
       List<Long> ids =
           jdbcTemplate.queryForList(
-              "SELECT id FROM sys_menu WHERE permission = ?",
-              Long.class,
-              def.permission());
+              "SELECT id FROM sys_menu WHERE permission = ?", Long.class, def.permission());
       return ids.isEmpty() ? null : ids.get(0);
     }
     if (def.path() != null) {
@@ -154,8 +153,7 @@ public class MenuBootstrap implements ApplicationRunner {
       return null;
     }
     List<Long> ids =
-        jdbcTemplate.queryForList(
-            "SELECT id FROM sys_menu WHERE path = ?", Long.class, parentPath);
+        jdbcTemplate.queryForList("SELECT id FROM sys_menu WHERE path = ?", Long.class, parentPath);
     return ids.isEmpty() ? null : ids.get(0);
   }
 

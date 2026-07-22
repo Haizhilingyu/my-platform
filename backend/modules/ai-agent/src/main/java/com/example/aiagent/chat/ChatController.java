@@ -5,8 +5,8 @@ import com.example.aiagent.agent.event.AgentEvent;
 import com.example.aiagent.chat.dto.ChatRequest;
 import com.example.aiagent.config.AgentProperties;
 import com.example.common.security.CurrentUser;
-import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -116,7 +116,9 @@ public class ChatController {
     StringBuilder sb = new StringBuilder();
     for (ChatRequest.HistoryMessage h : history) {
       if (h != null && h.text() != null && !h.text().isBlank()) {
-        sb.append("user".equals(h.role()) ? "[U] " : "[A] ").append(h.text(), 0, Math.min(h.text().length(), 200)).append('\n');
+        sb.append("user".equals(h.role()) ? "[U] " : "[A] ")
+            .append(h.text(), 0, Math.min(h.text().length(), 200))
+            .append('\n');
       }
     }
     sb.append("[U] ").append(currentMessage);
