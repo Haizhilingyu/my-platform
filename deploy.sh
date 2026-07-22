@@ -55,9 +55,14 @@ MSETTINGS
 echo "   Building Docker image..."
 docker build -t $IMAGE_NAME -f docker/Dockerfile .
 
-# 重启 app 容器（PG/Redis 保持运行）
-echo "   Restarting app container..."
-docker compose up -d --force-recreate --no-deps app
+# Flyway 从多版本合并为单一 V1，需重建数据库（开发阶段不持久化数据）
+echo "   Rebuilding database (Flyway V1 consolidation)..."
+docker compose down -v 2>/dev/null || true
+docker volume rm ${REMOTE_DIR##*/}_pgdata 2>/dev/null || true
+
+# 全量启动（含 PG/Redis/App），全新数据库执行 V1 初始化
+echo "   Starting full stack..."
+docker compose up -d --remove-orphans
 
 # 确保 Caddy 配置包含域名（首次部署时自动添加）
 if ! grep -q "$DOMAIN" $CADDYFILE; then
