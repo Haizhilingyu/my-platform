@@ -27,7 +27,7 @@ tar czf /tmp/my-platform-src.tar.gz \
   --exclude='.git' --exclude='node_modules' --exclude='target' \
   --exclude='.idea' --exclude='dist' --exclude='__pycache__' \
   --exclude='*.o' --exclude='*.a' --exclude='.DS_Store' \
-  --exclude='test-results' --exclude='logs' \
+  --exclude='._*' --exclude='test-results' --exclude='logs' \
   --exclude='.playwright-mcp' --exclude='.sisyphus' \
   --exclude='coverage' \
   -C "$PROJECT_ROOT" .
@@ -41,7 +41,8 @@ ssh -o StrictHostKeyChecking=no "$SERVER" bash << REMOTE_SCRIPT
 set -euo pipefail
 cd $REMOTE_DIR
 
-# 解压最新源码（docker-compose.yml 在根目录，不在 tar 包内，不会覆盖）
+# 清理旧文件（增量解压会残留已删除的文件，导致 Flyway 版本冲突等问题）
+rm -rf backend frontend docker client-sdk-*
 tar xzf /tmp/my-platform-src.tar.gz 2>/dev/null || true
 
 # 使用 Maven Central（服务器在美国，阿里云镜像反而慢）
