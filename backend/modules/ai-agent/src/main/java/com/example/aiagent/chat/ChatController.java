@@ -8,6 +8,7 @@ import com.example.common.security.CurrentUser;
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -66,7 +67,11 @@ public class ChatController {
               emitter.complete();
               return;
             }
-            for (AgentEvent e : agentService.handle(request.getMessage(), request.getConfirm())) {
+            String contextMessage =
+                request.getHistory() != null && !request.getHistory().isEmpty()
+                    ? buildContext(request.getMessage(), request.getHistory())
+                    : request.getMessage();
+            for (AgentEvent e : agentService.handle(contextMessage, request.getConfirm())) {
               send(emitter, e);
             }
             emitter.complete();
@@ -93,6 +98,19 @@ public class ChatController {
     } catch (IOException ignored) {
       // 客户端已断开，忽略
     }
+  }
+
+  /** 将历史对话拼成上下文前缀，供大脑做多轮意图理解。仅 Mock/关键词匹配受益；DeepSeek 直接读 history 更精确。 */
+  private static String buildContext(
+      String currentMessage, List<ChatRequest.HistoryMessage> history) {
+    StringBuilder sb = new StringBuilder();
+    for (ChatRequest.HistoryMessage h : history) {
+      if (h != null && h.text() != null && !h.text().isBlank()) {
+        sb.append("user".equals(h.role()) ? "[U] " : "[A] ").append(h.text(), 0, Math.min(h.text().length(), 200)).append('\n');
+      }
+    }
+    sb.append("[U] ").append(currentMessage);
+    return sb.toString();
   }
 
   private static String messageOf(Exception ex) {

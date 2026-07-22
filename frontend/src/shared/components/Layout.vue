@@ -12,6 +12,7 @@ import {
   PersonOutline, MenuOutline, GlobeOutline, NotificationsOutline,
   ShieldCheckmarkOutline, BusinessOutline, BuildOutline,
   DocumentTextOutline, AppsOutline, SparklesOutline,
+  TrashOutline, CloseOutline,
 } from '@vicons/ionicons5'
 import { useThemeStore } from '@/stores/theme'
 import { useAuthStore } from '@/stores/auth'
@@ -25,7 +26,7 @@ import { formatDateTime } from '@/shared/utils/datetime'
 import { notifyApi, type NotifyInboxVO, type NotifyLevel } from '@/shared/api/notify'
 import type { MenuTreeNode } from '@/modules/sys/api/types'
 import { useI18n } from 'vue-i18n'
-import { useMessage } from 'naive-ui'
+import { useMessage, useDialog } from 'naive-ui'
 import { type DropdownOption } from 'naive-ui'
 
 const themeStore = useThemeStore()
@@ -36,7 +37,8 @@ const router = useRouter()
 const route = useRoute()
 const collapsed = ref(false)
 const drawerVisible = ref(false)
-const aiDrawerVisible = ref(false)
+const aiBubbleVisible = ref(false)
+const aiChatKey = ref(0)
 
 const { t } = useI18n()
 const message = useMessage()
@@ -172,12 +174,26 @@ function handleLocaleChange(key: string) {
 
 // AI 助手操作结果跳转：关闭抽屉 + 路由到目标页（带高亮 id）
 function handleAiAction(a: AiActionEvent): void {
-  aiDrawerVisible.value = false
+  aiBubbleVisible.value = false
   const location: { path: string; query?: Record<string, string> } = { path: a.path }
   if (a.highlightId != null) {
     location.query = { highlight: String(a.highlightId) }
   }
   router.push(location)
+}
+
+const dialog = useDialog()
+
+function handleClearHistory(): void {
+  dialog.warning({
+    title: t('ai.clearHistory'),
+    content: t('ai.clearHistoryConfirm'),
+    positiveText: t('common.confirm'),
+    negativeText: t('common.cancel'),
+    onPositiveClick: () => {
+      aiChatKey.value++
+    },
+  })
 }
 </script>
 
@@ -235,12 +251,6 @@ function handleAiAction(a: AiActionEvent): void {
       </NDrawerContent>
     </NDrawer>
 
-    <!-- AI 助手抽屉：native-scrollbar=true 让 ChatPanel 的 h-full 相对 body 确定高度撑满（false 会包进 NScrollbar 导致高度塌陷） -->
-    <NDrawer v-model:show="aiDrawerVisible" :width="isMobile ? '100%' : 420" placement="right">
-      <NDrawerContent :title="t('ai.title')" closable :native-scrollbar="true" :body-content-style="{ padding: 0 }">
-        <ChatPanel @action="handleAiAction" />
-      </NDrawerContent>
-    </NDrawer>
 
     <NLayout>
       <!-- 顶栏 -->
@@ -258,8 +268,8 @@ function handleAiAction(a: AiActionEvent): void {
         </div>
 
         <NSpace align="center" :wrap="false">
-          <!-- AI 助手 -->
-          <NButton quaternary circle :aria-label="t('ai.title')" @click="aiDrawerVisible = true">
+          <!-- AI 助手（切换悬浮气泡）-->
+          <NButton quaternary circle :aria-label="t('ai.title')" @click="aiBubbleVisible = !aiBubbleVisible">
             <template #icon>
               <NIcon>
                 <SparklesOutline />
@@ -366,5 +376,57 @@ function handleAiAction(a: AiActionEvent): void {
         <RouterView />
       </NLayoutContent>
     </NLayout>
+    <!-- AI 助手悬浮气泡面板 -->
+    <Teleport to="body">
+      <Transition name="ai-bubble">
+        <div
+          v-if="aiBubbleVisible"
+          class="fixed z-[2000] flex flex-col bg-[rgb(var(--color-surface))] shadow-2xl"
+          :style="{
+            right: isMobile ? '8px' : '24px',
+            bottom: isMobile ? '8px' : '24px',
+            width: isMobile ? 'calc(100vw - 16px)' : '380px',
+            height: isMobile ? 'calc(100vh - 16px)' : 'min(560px, 70vh)',
+            borderRadius: isMobile ? '12px' : '16px',
+            border: '1px solid rgb(var(--color-border))',
+            overflow: 'hidden',
+          }"
+        >
+          <!-- 头部 -->
+          <div class="flex items-center justify-between px-4 py-2.5 border-b border-[rgb(var(--color-border))] shrink-0">
+            <div class="flex items-center gap-2">
+              <NIcon size="18" class="text-[rgb(var(--color-primary))]">
+                <SparklesOutline />
+              </NIcon>
+              <span class="font-medium text-sm">{{ t('ai.title') }}</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <NButton quaternary circle size="tiny" :title="t('ai.clearHistory')" @click="handleClearHistory">
+                <template #icon><NIcon size="14"><TrashOutline /></NIcon></template>
+              </NButton>
+              <NButton quaternary circle size="tiny" :title="t('ai.closeChat')" @click="aiBubbleVisible = false">
+                <template #icon><NIcon size="16"><CloseOutline /></NIcon></template>
+              </NButton>
+            </div>
+          </div>
+          <!-- 聊天内容 -->
+          <div class="flex-1 min-h-0">
+            <ChatPanel :key="aiChatKey" @action="handleAiAction" />
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </NLayout>
 </template>
+
+<style scoped>
+.ai-bubble-enter-active,
+.ai-bubble-leave-active {
+  transition: all 0.25s ease;
+}
+.ai-bubble-enter-from,
+.ai-bubble-leave-to {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+}
+</style>

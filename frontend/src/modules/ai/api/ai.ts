@@ -100,16 +100,20 @@ function dispatch(block: string, h: AiHandlers): void {
   }
 }
 
-/** 发起对话并以流式回调接收事件。 */
+/** 发起对话并以流式回调接收事件。history 为最近对话上下文，供后端意图理解。 */
 export async function streamChat(
   message: string,
   handlers: AiHandlers,
   signal?: AbortSignal,
   confirm?: { tool: string; args: Record<string, unknown> },
+  history?: { role: string; text: string }[],
 ): Promise<void> {
   const base = import.meta.env.VITE_API_BASE_URL || '/api'
   const token = localStorage.getItem('token')
   const locale = localStorage.getItem('locale') || 'zh-CN'
+  const body: Record<string, unknown> = { message }
+  if (confirm) body.confirm = confirm
+  if (history && history.length > 0) body.history = history
   const resp = await fetch(`${base}/ai/chat`, {
     method: 'POST',
     headers: {
@@ -117,7 +121,7 @@ export async function streamChat(
       Authorization: token ? `Bearer ${token}` : '',
       'Accept-Language': locale,
     },
-    body: JSON.stringify(confirm ? { message, confirm } : { message }),
+    body: JSON.stringify(body),
     signal,
   })
   if (!resp.ok || !resp.body) {
