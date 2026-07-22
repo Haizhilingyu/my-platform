@@ -66,8 +66,9 @@ export function useAiChat() {
     confirm: { tool: string; args: Record<string, unknown> } | undefined,
     onAction?: (a: AiActionEvent) => void,
   ): Promise<void> {
-    const assistant: ChatMessage = { role: 'assistant', text: '', pending: true, ts: Date.now() }
-    messages.value.push(assistant)
+    messages.value.push({ role: 'assistant', text: '', pending: true, ts: Date.now() })
+    // push 后取回响应式代理引用 —— 后续 token/tool/action 增量修改必须经过代理才触发 Vue 响应式
+    const assistant = messages.value[messages.value.length - 1]
     streaming.value = true
     controller = new AbortController()
     try {
@@ -76,7 +77,13 @@ export function useAiChat() {
         .filter((m) => !m.pending && !m.error)
         .slice(-MAX_HISTORY)
         .map((m) => ({ role: m.role, text: m.text }))
-      await streamChat(message, handlersFor(assistant, onAction), controller.signal, confirm, history)
+      await streamChat(
+        message,
+        handlersFor(assistant, onAction),
+        controller.signal,
+        confirm,
+        history,
+      )
     } catch (e) {
       const msg = e instanceof Error ? e.message : '请求失败'
       if (!assistant.text) {
@@ -90,10 +97,7 @@ export function useAiChat() {
     }
   }
 
-  function handlersFor(
-    assistant: ChatMessage,
-    onAction?: (a: AiActionEvent) => void,
-  ) {
+  function handlersFor(assistant: ChatMessage, onAction?: (a: AiActionEvent) => void) {
     return {
       onToken: (t: string) => {
         assistant.text += t

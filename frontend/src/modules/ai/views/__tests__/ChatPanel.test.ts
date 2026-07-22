@@ -78,7 +78,13 @@ describe('ChatPanel.vue AI 对话面板', () => {
 
     await submitText(wrapper, '查一下用户列表')
 
-    expect(streamChat).toHaveBeenCalledWith('查一下用户列表', expect.anything(), expect.anything(), undefined)
+    expect(streamChat).toHaveBeenCalledWith(
+      '查一下用户列表',
+      expect.anything(),
+      expect.anything(),
+      undefined,
+      expect.anything(),
+    )
     expect(wrapper.text()).toContain('查一下用户列表')
     expect(wrapper.text()).toContain('已查询')
   })
@@ -119,7 +125,9 @@ describe('ChatPanel.vue AI 对话面板', () => {
     const wrapper = mountPanel()
 
     await submitText(wrapper, '创建用户')
-    const actionBtn = wrapper.findAll('button').find((b) => b.text().length > 0 && b.html().includes('svg'))
+    const actionBtn = wrapper
+      .findAll('button')
+      .find((b) => b.text().length > 0 && b.html().includes('svg'))
     // 找到“查看结果”按钮（mt-2 class 的 tiny 按钮）
     const viewBtn = wrapper.findAll('button').find((b) => b.classes().includes('mt-2'))
     expect(viewBtn ?? actionBtn).toBeTruthy()
@@ -141,7 +149,9 @@ describe('ChatPanel.vue AI 对话面板', () => {
     vi.mocked(streamChat).mockClear()
     mockStreamScript((h) => h.onDone())
 
-    const execBtn = wrapper.findAll('button').find((b) => b.classes().includes('n-button--error-type'))
+    const execBtn = wrapper
+      .findAll('button')
+      .find((b) => b.classes().includes('n-button--error-type'))
     expect(execBtn).toBeTruthy()
     await execBtn!.trigger('click')
     await flushPromises()
@@ -151,6 +161,7 @@ describe('ChatPanel.vue AI 对话面板', () => {
       expect.anything(),
       expect.anything(),
       { tool: 'delete_user', args: { id: 5 } },
+      expect.anything(),
     )
   })
 

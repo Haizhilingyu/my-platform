@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useAiChat } from '@/modules/ai/composables/useAiChat'
+import { watch } from 'vue'
 import { streamChat } from '@/modules/ai/api/ai'
 
 /**
@@ -37,6 +38,9 @@ function mockStreamScript(script: (h: Handlers) => void) {
 describe('useAiChat', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.removeItem('ai-chat-history')
+    // useAiChat 的 messages 是模块级单例（ref(loadHistory())），跨用例需重置
+    useAiChat().clear()
   })
 
   it('send 推送用户消息并通过 token 累积助手回复', async () => {
@@ -55,6 +59,31 @@ describe('useAiChat', () => {
     expect(messages.value[1]).toMatchObject({ role: 'assistant', text: '你好', pending: false })
   })
 
+  it('流式 token 增量触发响应式更新（UI 实时渲染的前提）', async () => {
+    // 回归 bug：handlersFor 闭包里的 assistant 指向 push 前的原始对象，
+    // 修改它不触发 Vue 响应式 → token 到达但 UI 不更新，直到下一次数组变动才"补刷"。
+    const seenTexts: string[] = []
+
+    const { messages, send } = useAiChat()
+
+    watch(
+      () => messages.value[messages.value.length - 1]?.text ?? '',
+      (txt) => seenTexts.push(txt),
+      { flush: 'sync' },
+    )
+
+    mockStreamScript((h) => {
+      h.onToken('你')
+      h.onToken('好')
+      h.onDone()
+    })
+    await send('hi')
+
+    // 每个 token 到达都应触发响应式回调，捕获序列至少包含 '你' 和 '你好'
+    expect(seenTexts).toContain('你')
+    expect(seenTexts).toContain('你好')
+  })
+
   it('空文本不发送', async () => {
     const { messages, send } = useAiChat()
     await send('   ')
@@ -64,9 +93,7 @@ describe('useAiChat', () => {
 
   it('流式中重复发送被忽略', async () => {
     let resolveStream!: () => void
-    vi.mocked(streamChat).mockImplementation(
-      () => new Promise<void>((r) => (resolveStream = r)),
-    )
+    vi.mocked(streamChat).mockImplementation(() => new Promise<void>((r) => (resolveStream = r)))
     const { messages, streaming, send } = useAiChat()
 
     const p1 = send('第一条')
@@ -138,6 +165,7 @@ describe('useAiChat', () => {
       expect.anything(),
       expect.anything(),
       { tool: 'delete_user', args: { id: 5 } },
+      expect.anything(),
     )
     expect(messages.value[2]).toMatchObject({ role: 'user', text: '✓ 确认删除用户 5？' })
   })
