@@ -1,6 +1,7 @@
 package com.example.aiagent.agent.brain;
 
 import com.example.aiagent.agent.tool.AgentTool;
+import com.example.aiagent.chat.dto.HistoryMessage;
 import java.util.List;
 
 /**
@@ -13,8 +14,10 @@ public interface AgentBrain {
   /**
    * @param userMessage 用户消息
    * @param availableTools 当前用户可见的工具集合（已按权限筛选）
+   * @param relevantHistory 与当前消息最相关的历史对话（时间正序，已截断），供多轮意图理解
    */
-  BrainDecision decide(String userMessage, List<AgentTool> availableTools);
+  BrainDecision decide(
+      String userMessage, List<AgentTool> availableTools, List<HistoryMessage> relevantHistory);
 
   /** 工具执行后，用自然语言向用户总结结果。返回空串表示无需额外总结（如 Mock 直接展示工具结果）。 */
   String summarize(String userMessage, String toolName, String toolResult);

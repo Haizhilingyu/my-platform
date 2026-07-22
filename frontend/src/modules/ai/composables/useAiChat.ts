@@ -1,9 +1,17 @@
-import { ref, watch } from 'vue'
-import { streamChat, type AiActionEvent, type AiConfirmEvent } from '@/modules/ai/api/ai'
+import { ref } from 'vue'
+import {
+  streamChat,
+  fetchHistory,
+  deleteHistoryMessage,
+  type AiActionEvent,
+  type AiConfirmEvent,
+} from '@/modules/ai/api/ai'
 
 export interface ChatMessage {
   role: 'user' | 'assistant'
   text: string
+  /** 数据库主键；服务端加载的消息有值，本轮新发的消息在下次打开面板前为 undefined。 */
+  id?: number
   tool?: string
   action?: AiActionEvent
   pending?: boolean
@@ -15,23 +23,21 @@ export interface ChatMessage {
   ts?: number
 }
 
-const STORAGE_KEY = 'ai-chat-history'
-const MAX_HISTORY = 10
-
 /** AI 对话状态与发送逻辑。 */
 export function useAiChat() {
-  const messages = ref<ChatMessage[]>(loadHistory())
+  const messages = ref<ChatMessage[]>([])
   const streaming = ref(false)
   let controller: AbortController | null = null
 
-  // 消息变化时自动持久化（只存已完成的消息，不含 pending/error）
-  watch(
-    messages,
-    (msgs) => {
-      persist(msgs)
-    },
-    { deep: true },
-  )
+  /** 从服务端加载最近历史（失败时保持空面板，不打扰用户）。 */
+  async function loadHistory(): Promise<void> {
+    try {
+      const list = await fetchHistory()
+      messages.value = list.map((m) => ({ id: m.id, role: m.role, text: m.text, ts: Date.now() }))
+    } catch {
+      // 忽略：面板保持欢迎态
+    }
+  }
 
   async function send(text: string, onAction?: (a: AiActionEvent) => void): Promise<void> {
     const content = text.trim()
@@ -61,6 +67,13 @@ export function useAiChat() {
     originMsg.confirmState = 'cancelled'
   }
 
+  /** 单条删除：成功后从本地移除；失败抛错由调用方提示。无 id（未持久化）直接忽略。 */
+  async function deleteMessage(m: ChatMessage): Promise<void> {
+    if (m.id == null) return
+    await deleteHistoryMessage(m.id)
+    messages.value = messages.value.filter((x) => x !== m)
+  }
+
   async function run(
     message: string,
     confirm: { tool: string; args: Record<string, unknown> } | undefined,
@@ -72,18 +85,7 @@ export function useAiChat() {
     streaming.value = true
     controller = new AbortController()
     try {
-      // 构建历史上下文（排除当前 pending 的 assistant），传给后端做意图理解
-      const history = messages.value
-        .filter((m) => !m.pending && !m.error)
-        .slice(-MAX_HISTORY)
-        .map((m) => ({ role: m.role, text: m.text }))
-      await streamChat(
-        message,
-        handlersFor(assistant, onAction),
-        controller.signal,
-        confirm,
-        history,
-      )
+      await streamChat(message, handlersFor(assistant, onAction), controller.signal, confirm)
     } catch (e) {
       const msg = e instanceof Error ? e.message : '请求失败'
       if (!assistant.text) {
@@ -133,32 +135,14 @@ export function useAiChat() {
     streaming.value = false
   }
 
-  function clear(): void {
-    messages.value = []
-    localStorage.removeItem(STORAGE_KEY)
-  }
-
-  return { messages, streaming, send, confirmExecute, confirmCancel, stop, clear }
-}
-
-function loadHistory(): ChatMessage[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as ChatMessage[]
-    // 只恢复已完成的对话（过滤掉 pending/error 状态）
-    return parsed.filter((m) => !m.pending && !m.error).slice(-MAX_HISTORY)
-  } catch {
-    return []
-  }
-}
-
-function persist(msgs: ChatMessage[]): void {
-  try {
-    // 只持久化已完成的对话
-    const clean = msgs.filter((m) => !m.pending && !m.error && m.text).slice(-MAX_HISTORY)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(clean))
-  } catch {
-    // localStorage 满或隐私模式，静默失败
+  return {
+    messages,
+    streaming,
+    send,
+    confirmExecute,
+    confirmCancel,
+    stop,
+    loadHistory,
+    deleteMessage,
   }
 }

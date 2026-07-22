@@ -17,8 +17,8 @@ export default {
   // Floating bubble
   bubbleTooltip: 'AI Assistant',
   closeChat: 'Close',
-  clearHistory: 'Clear chat',
-  clearHistoryConfirm: 'Clear all conversation history?',
+  deleteConfirm: 'Delete this message?',
+  deleteFailed: 'Failed to delete message',
   // Capability guide
   capabilities: 'I can help you',
   capUserMgmt: 'User Management',

@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { ref, nextTick, computed, watch } from 'vue'
-import { NInput, NButton, NIcon, NScrollbar, NSpin } from 'naive-ui'
+import { ref, nextTick, computed, watch, onMounted } from 'vue'
+import { NInput, NButton, NIcon, NScrollbar, NSpin, NPopconfirm, useMessage } from 'naive-ui'
 import {
-  SendOutline, SparklesOutline, OpenOutline,
-  PersonOutline, ShieldCheckmarkOutline, NavigateOutline,
+  SendOutline,
+  SparklesOutline,
+  OpenOutline,
+  TrashOutline,
+  PersonOutline,
+  ShieldCheckmarkOutline,
+  NavigateOutline,
 } from '@vicons/ionicons5'
 import { useAiChat, type ChatMessage } from '@/modules/ai/composables/useAiChat'
 import type { AiActionEvent } from '@/modules/ai/api/ai'
@@ -11,9 +16,13 @@ import { useI18n } from 'vue-i18n'
 
 const emit = defineEmits<{ (e: 'action', payload: AiActionEvent): void }>()
 const { t } = useI18n()
-const { messages, streaming, send, confirmExecute, confirmCancel } = useAiChat()
+const { messages, streaming, send, confirmExecute, confirmCancel, loadHistory, deleteMessage } =
+  useAiChat()
+const message = useMessage()
 const input = ref('')
 const scrollbarRef = ref<InstanceType<typeof NScrollbar> | null>(null)
+
+onMounted(() => void loadHistory())
 
 const hasHistory = computed(() => messages.value.length > 0)
 
@@ -53,6 +62,14 @@ function runExample(text: string): void {
   void submit()
 }
 
+async function onDelete(m: ChatMessage): Promise<void> {
+  try {
+    await deleteMessage(m)
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { message?: string } } }
+    message.error(err.response?.data?.message || t('ai.deleteFailed'))
+  }
+}
 
 watch(messages, scrollToBottom, { deep: true })
 </script>
@@ -102,7 +119,10 @@ watch(messages, scrollToBottom, { deep: true })
       <div
         v-for="(m, i) in messages"
         :key="i"
-        :class="['mb-2.5 flex flex-col', m.role === 'user' ? 'items-end' : 'items-start']"
+        :class="[
+          'mb-2.5 flex flex-col group relative',
+          m.role === 'user' ? 'items-end' : 'items-start',
+        ]"
       >
         <div
           :class="[
@@ -131,7 +151,9 @@ watch(messages, scrollToBottom, { deep: true })
             class="mt-2"
             @click="openAction(m.action)"
           >
-            <template #icon><NIcon><OpenOutline /></NIcon></template>
+            <template #icon>
+              <NIcon><OpenOutline /></NIcon>
+            </template>
             {{ t('ai.viewResult') }}
           </NButton>
           <!-- 破坏性工具二次确认 -->
@@ -141,7 +163,13 @@ watch(messages, scrollToBottom, { deep: true })
           >
             <div class="text-xs mb-2">{{ m.confirm.message }}</div>
             <div class="flex gap-2">
-              <NButton size="tiny" type="error" :loading="streaming" :disabled="streaming" @click="onConfirmExecute(m)">
+              <NButton
+                size="tiny"
+                type="error"
+                :loading="streaming"
+                :disabled="streaming"
+                @click="onConfirmExecute(m)"
+              >
                 {{ t('ai.confirmExecute') }}
               </NButton>
               <NButton size="tiny" quaternary :disabled="streaming" @click="confirmCancel(m)">
@@ -149,12 +177,36 @@ watch(messages, scrollToBottom, { deep: true })
               </NButton>
             </div>
           </div>
-          <div v-else-if="m.confirm && m.confirmState === 'executed'" class="mt-1 text-xs opacity-50">
+          <div
+            v-else-if="m.confirm && m.confirmState === 'executed'"
+            class="mt-1 text-xs opacity-50"
+          >
             {{ t('ai.confirmExecuted') }}
           </div>
-          <div v-else-if="m.confirm && m.confirmState === 'cancelled'" class="mt-1 text-xs opacity-50">
+          <div
+            v-else-if="m.confirm && m.confirmState === 'cancelled'"
+            class="mt-1 text-xs opacity-50"
+          >
             {{ t('ai.confirmCancelled') }}
           </div>
+          <!-- 单条删除（仅持久化消息有 id） -->
+          <NPopconfirm
+            v-if="m.id != null"
+            :positive-text="t('common.confirm')"
+            :negative-text="t('common.cancel')"
+            @positive-click="onDelete(m)"
+          >
+            <template #trigger>
+              <NButton
+                text
+                size="tiny"
+                class="!absolute -top-1.5 -right-1.5 opacity-0 group-hover:opacity-70 transition-opacity"
+              >
+                <NIcon size="12"><TrashOutline /></NIcon>
+              </NButton>
+            </template>
+            {{ t('ai.deleteConfirm') }}
+          </NPopconfirm>
         </div>
       </div>
     </NScrollbar>
@@ -170,8 +222,16 @@ watch(messages, scrollToBottom, { deep: true })
           :autosize="{ minRows: 1, maxRows: 3 }"
           @keydown.enter.exact.prevent="submit"
         />
-        <NButton type="primary" circle :loading="streaming" :disabled="!input.trim()" @click="submit">
-          <template #icon><NIcon><SendOutline /></NIcon></template>
+        <NButton
+          type="primary"
+          circle
+          :loading="streaming"
+          :disabled="!input.trim()"
+          @click="submit"
+        >
+          <template #icon>
+            <NIcon><SendOutline /></NIcon>
+          </template>
         </NButton>
       </div>
     </div>

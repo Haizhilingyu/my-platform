@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { parseSseBlock, decodePayload, streamChat, type AiHandlers } from '../ai'
+import {
+  parseSseBlock,
+  decodePayload,
+  streamChat,
+  fetchHistory,
+  deleteHistoryMessage,
+  type AiHandlers,
+} from '../ai'
+import { http } from '@/modules/sys/api/http'
 
 describe('parseSseBlock', () => {
   it('parses event and data lines', () => {
@@ -53,7 +61,10 @@ function readerFrom(text: string, chunkSize = text.length) {
   }
 }
 
-function mockSseResponse(body: string, opts: { ok?: boolean; status?: number; chunkSize?: number } = {}) {
+function mockSseResponse(
+  body: string,
+  opts: { ok?: boolean; status?: number; chunkSize?: number } = {},
+) {
   const { ok = true, status = 200, chunkSize } = opts
   vi.stubGlobal(
     'fetch',
@@ -166,5 +177,40 @@ describe('streamChat', () => {
   it('HTTP 非 2xx 时抛错', async () => {
     mockSseResponse('', { ok: false, status: 401 })
     await expect(streamChat('hi', {})).rejects.toThrow('HTTP 401')
+  })
+})
+
+vi.mock('@/modules/sys/api/http', () => ({
+  http: {
+    get: vi.fn(),
+    delete: vi.fn(),
+  },
+}))
+
+describe('fetchHistory / deleteHistoryMessage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('fetchHistory 调用 GET /ai/chat/history 并返回 data 数组', async () => {
+    vi.mocked(http.get).mockResolvedValue({
+      code: 200,
+      data: [{ id: 1, role: 'user', text: '历史' }],
+    })
+    const list = await fetchHistory()
+    expect(http.get).toHaveBeenCalledWith('/ai/chat/history')
+    expect(list).toEqual([{ id: 1, role: 'user', text: '历史' }])
+  })
+
+  it('fetchHistory data 为空时返回空数组', async () => {
+    vi.mocked(http.get).mockResolvedValue({ code: 200, data: null })
+    const list = await fetchHistory()
+    expect(list).toEqual([])
+  })
+
+  it('deleteHistoryMessage 调用 DELETE /ai/chat/history/:id', async () => {
+    vi.mocked(http.delete).mockResolvedValue({ code: 200 })
+    await deleteHistoryMessage(7)
+    expect(http.delete).toHaveBeenCalledWith('/ai/chat/history/7')
   })
 })

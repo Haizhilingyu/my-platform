@@ -17,8 +17,8 @@ export default {
   // 悬浮气泡
   bubbleTooltip: 'AI 助手',
   closeChat: '关闭',
-  clearHistory: '清空对话',
-  clearHistoryConfirm: '确定清空所有对话记录？',
+  deleteConfirm: '删除这条消息？',
+  deleteFailed: '删除失败，请重试',
   // 能力引导
   capabilities: '我能帮你做',
   capUserMgmt: '用户管理',

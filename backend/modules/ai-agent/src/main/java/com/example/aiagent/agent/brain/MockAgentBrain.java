@@ -1,6 +1,7 @@
 package com.example.aiagent.agent.brain;
 
 import com.example.aiagent.agent.tool.AgentTool;
+import com.example.aiagent.chat.dto.HistoryMessage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,9 @@ public class MockAgentBrain implements AgentBrain {
       Pattern.compile("(?:分配|赋予|授予|assign)[^\\w]*(?:角色|role)", Pattern.CASE_INSENSITIVE);
 
   @Override
-  public BrainDecision decide(String userMessage, List<AgentTool> tools) {
+  public BrainDecision decide(
+      String userMessage, List<AgentTool> tools, List<HistoryMessage> relevantHistory) {
+    // Mock 只对当前消息做关键词匹配；relevantHistory 仅 DeepSeek 使用，此处忽略。
     String msg = userMessage == null ? "" : userMessage.trim();
     boolean canDelete = has(tools, "deleteUser");
     boolean canCreate = has(tools, "createUser");

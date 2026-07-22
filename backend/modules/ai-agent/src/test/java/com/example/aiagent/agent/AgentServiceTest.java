@@ -9,6 +9,7 @@ import com.example.aiagent.agent.tool.AgentTool;
 import com.example.aiagent.agent.tool.ToolRegistry;
 import com.example.aiagent.agent.tool.ToolResult;
 import com.example.aiagent.chat.dto.ChatRequest;
+import com.example.aiagent.chat.dto.HistoryMessage;
 import com.example.common.security.CurrentUser;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +34,8 @@ class AgentServiceTest {
   private static AgentBrain deciding(BrainDecision decision) {
     return new AgentBrain() {
       @Override
-      public BrainDecision decide(String userMessage, List<AgentTool> tools) {
+      public BrainDecision decide(
+          String userMessage, List<AgentTool> tools, List<HistoryMessage> relevantHistory) {
         return decision;
       }
 
@@ -62,7 +64,7 @@ class AgentServiceTest {
             new ToolRegistry(List.of(deleteUser)),
             deciding(BrainDecision.tool("deleteUser", Map.of("id", 5))));
 
-    List<AgentEvent> events = service.handle("删除用户 5", null);
+    List<AgentEvent> events = service.handle("删除用户 5", List.of(), null);
 
     assertThat(events).extracting(AgentEvent::type).contains("tool", "confirm", "done");
     assertThat(events).extracting(AgentEvent::type).doesNotContain("result", "action");
@@ -89,7 +91,7 @@ class AgentServiceTest {
             new ToolRegistry(List.of(createUser)),
             deciding(BrainDecision.tool("createUser", Map.of("username", "alice"))));
 
-    List<AgentEvent> events = service.handle("创建用户 alice", null);
+    List<AgentEvent> events = service.handle("创建用户 alice", List.of(), null);
 
     assertThat(events).extracting(AgentEvent::type).contains("tool", "result", "action", "done");
     assertThat(events).extracting(AgentEvent::type).doesNotContain("confirm");
@@ -114,7 +116,7 @@ class AgentServiceTest {
             new ToolRegistry(List.of(deleteUser)), deciding(BrainDecision.reply("unused")));
 
     List<AgentEvent> events =
-        service.handle(null, new ChatRequest.ConfirmTool("deleteUser", Map.of("id", 5)));
+        service.handle(null, List.of(), new ChatRequest.ConfirmTool("deleteUser", Map.of("id", 5)));
 
     assertThat(events).extracting(AgentEvent::type).contains("tool", "result", "done");
     assertThat(executed).isTrue();

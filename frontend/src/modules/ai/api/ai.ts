@@ -5,6 +5,9 @@
  *   - result/token/error 的 data 是裸字符串（Spring 对 String 未做 JSON 包裹）
  */
 
+import { http } from '@/modules/sys/api/http'
+import type { Result } from '@/modules/sys/api/types'
+
 export interface AiToolEvent {
   name: string
   args: Record<string, unknown>
@@ -100,20 +103,18 @@ function dispatch(block: string, h: AiHandlers): void {
   }
 }
 
-/** 发起对话并以流式回调接收事件。history 为最近对话上下文，供后端意图理解。 */
+/** 发起对话并以流式回调接收事件。 */
 export async function streamChat(
   message: string,
   handlers: AiHandlers,
   signal?: AbortSignal,
   confirm?: { tool: string; args: Record<string, unknown> },
-  history?: { role: string; text: string }[],
 ): Promise<void> {
   const base = import.meta.env.VITE_API_BASE_URL || '/api'
   const token = localStorage.getItem('token')
   const locale = localStorage.getItem('locale') || 'zh-CN'
   const body: Record<string, unknown> = { message }
   if (confirm) body.confirm = confirm
-  if (history && history.length > 0) body.history = history
   const resp = await fetch(`${base}/ai/chat`, {
     method: 'POST',
     headers: {
@@ -148,4 +149,21 @@ export async function streamChat(
   if (buffer.trim()) {
     dispatch(buffer, handlers)
   }
+}
+
+export interface AiHistoryMessage {
+  id: number
+  role: 'user' | 'assistant'
+  text: string
+}
+
+/** 拉取当前用户最近 10 条历史（时间升序，含消息 id 供单条删除）。 */
+export async function fetchHistory(): Promise<AiHistoryMessage[]> {
+  const res = (await http.get('/ai/chat/history')) as Result<AiHistoryMessage[]>
+  return res.data ?? []
+}
+
+/** 单条删除历史消息；不存在/非本人消息时后端返回 404。 */
+export async function deleteHistoryMessage(id: number): Promise<void> {
+  await http.delete(`/ai/chat/history/${id}`)
 }

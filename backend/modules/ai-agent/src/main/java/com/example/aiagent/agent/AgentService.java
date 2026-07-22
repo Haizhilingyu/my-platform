@@ -7,6 +7,7 @@ import com.example.aiagent.agent.tool.AgentTool;
 import com.example.aiagent.agent.tool.ToolRegistry;
 import com.example.aiagent.agent.tool.ToolResult;
 import com.example.aiagent.chat.dto.ChatRequest;
+import com.example.aiagent.chat.dto.HistoryMessage;
 import com.example.common.exception.ForbiddenException;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,9 +39,11 @@ public class AgentService {
    * 处理一次对话。
    *
    * @param userMessage 用户消息（二次确认回执时可留空）
+   * @param relevantHistory 与当前消息最相关的历史对话，透传给大脑做多轮意图理解
    * @param confirm 二次确认回执；非空时直接执行其携带的工具调用，跳过大脑
    */
-  public List<AgentEvent> handle(String userMessage, ChatRequest.ConfirmTool confirm) {
+  public List<AgentEvent> handle(
+      String userMessage, List<HistoryMessage> relevantHistory, ChatRequest.ConfirmTool confirm) {
     List<AgentEvent> events = new ArrayList<>();
     List<AgentTool> tools = toolRegistry.toolsForCurrentUser();
 
@@ -52,7 +55,7 @@ public class AgentService {
       return runTool(userMessage, tool, args, events);
     }
 
-    BrainDecision decision = brain.decide(userMessage, tools);
+    BrainDecision decision = brain.decide(userMessage, tools, relevantHistory);
     if (decision.hasToolCall()) {
       AgentTool tool = resolveTool(tools, decision.toolName());
       events.add(AgentEvent.tool(tool.name(), decision.toolArgs()));

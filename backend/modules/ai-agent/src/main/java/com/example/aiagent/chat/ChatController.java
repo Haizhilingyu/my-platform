@@ -3,7 +3,9 @@ package com.example.aiagent.chat;
 import com.example.aiagent.agent.AgentService;
 import com.example.aiagent.agent.event.AgentEvent;
 import com.example.aiagent.chat.dto.ChatRequest;
+import com.example.aiagent.chat.dto.HistoryMessage;
 import com.example.aiagent.config.AgentProperties;
+import com.example.common.result.Result;
 import com.example.common.security.CurrentUser;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -12,6 +14,9 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +36,7 @@ public class ChatController {
   private final AgentService agentService;
   private final AgentProperties properties;
   private final ChatRateLimiter rateLimiter;
+  private final ChatHistoryService chatHistoryService;
   private final com.example.sys.SysApi sysApi;
 
   @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -77,12 +83,26 @@ public class ChatController {
               emitter.complete();
               return;
             }
-            String contextMessage =
-                request.getHistory() != null && !request.getHistory().isEmpty()
-                    ? buildContext(request.getMessage(), request.getHistory())
-                    : request.getMessage();
-            for (AgentEvent e : agentService.handle(contextMessage, request.getConfirm())) {
+            // 落库用户消息（confirm 回执的 message 是系统生成的「✓ 确认…」文案，非用户意图——不存）。
+            if (hasMessage && !hasConfirm) {
+              chatHistoryService.save(user.userId(), "user", request.getMessage());
+            }
+            // 选最多 3 条与当前消息最相关的历史，喂给大脑做多轮意图理解。
+            List<HistoryMessage> relevant =
+                hasMessage && !hasConfirm
+                    ? chatHistoryService.relevant(user.userId(), request.getMessage())
+                    : List.of();
+            List<AgentEvent> events =
+                agentService.handle(request.getMessage(), relevant, request.getConfirm());
+            for (AgentEvent e : events) {
               send(emitter, e);
+            }
+            // 聚合 result/token 文本落库为 assistant 消息（error/confirm/action/tool 不入库）。
+            if (hasMessage) {
+              String assistantText = aggregateAssistant(events);
+              if (!assistantText.isBlank()) {
+                chatHistoryService.save(user.userId(), "assistant", assistantText);
+              }
             }
             emitter.complete();
           } catch (Exception ex) {
@@ -93,6 +113,19 @@ public class ChatController {
           }
         });
     return emitter;
+  }
+
+  /** 加载当前用户最近 10 条对话历史（时间升序，含消息 id 供前端单条删除）。 */
+  @GetMapping("/chat/history")
+  public Result<List<HistoryMessage>> history() {
+    return Result.ok(chatHistoryService.recent(CurrentUser.get().userId()));
+  }
+
+  /** 单条删除历史消息；不存在或不属于当前用户统一 404（不泄露他人数据存在性）。 */
+  @DeleteMapping("/chat/history/{id}")
+  public Result<Void> deleteHistoryMessage(@PathVariable Long id) {
+    chatHistoryService.delete(CurrentUser.get().userId(), id);
+    return Result.ok();
   }
 
   private void send(SseEmitter emitter, AgentEvent e) throws IOException {
@@ -110,18 +143,19 @@ public class ChatController {
     }
   }
 
-  /** 将历史对话拼成上下文前缀，供大脑做多轮意图理解。仅 Mock/关键词匹配受益；DeepSeek 直接读 history 更精确。 */
-  private static String buildContext(
-      String currentMessage, List<ChatRequest.HistoryMessage> history) {
+  /** 聚合事件序列中 result/token 的文本（按序、换行连接）为 assistant 回复，供落库。 */
+  private static String aggregateAssistant(List<AgentEvent> events) {
     StringBuilder sb = new StringBuilder();
-    for (ChatRequest.HistoryMessage h : history) {
-      if (h != null && h.text() != null && !h.text().isBlank()) {
-        sb.append("user".equals(h.role()) ? "[U] " : "[A] ")
-            .append(h.text(), 0, Math.min(h.text().length(), 200))
-            .append('\n');
+    for (AgentEvent e : events) {
+      if (("result".equals(e.type()) || "token".equals(e.type())) && e.data() instanceof String s) {
+        if (!s.isBlank()) {
+          if (!sb.isEmpty()) {
+            sb.append('\n');
+          }
+          sb.append(s);
+        }
       }
     }
-    sb.append("[U] ").append(currentMessage);
     return sb.toString();
   }
 

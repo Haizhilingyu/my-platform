@@ -1,17 +1,22 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
+import { defineComponent, h } from 'vue'
+import { NMessageProvider, NPopconfirm } from 'naive-ui'
 import ChatPanel from '@/modules/ai/views/ChatPanel.vue'
-import { streamChat } from '@/modules/ai/api/ai'
+import { streamChat, fetchHistory, deleteHistoryMessage } from '@/modules/ai/api/ai'
 
 /**
  * AI 对话面板组件测试。
  *
  * 覆盖：
- *  - 空态展示欢迎语与示例按钮，点示例直接发起对话；
+ *  - 空态展示欢迎语与示例按钮；
  *  - 输入框回车 / 发送按钮提交，消息气泡渲染；
  *  - 流式中输入框禁用；
  *  - 动作按钮向父组件抛出 action 事件；
- *  - 二次确认卡片执行 / 取消。
+ *  - 二次确认卡片执行 / 取消；
+ *  - 挂载后加载服务端历史；
+ *  - 带 id 消息渲染删除入口；
+ *  - 确认删除后气泡消失。
  */
 
 type Handlers = {
@@ -26,6 +31,8 @@ type Handlers = {
 
 vi.mock('@/modules/ai/api/ai', () => ({
   streamChat: vi.fn(),
+  fetchHistory: vi.fn(),
+  deleteHistoryMessage: vi.fn(),
 }))
 
 function mockStreamScript(script: (h: Handlers) => void) {
@@ -34,8 +41,15 @@ function mockStreamScript(script: (h: Handlers) => void) {
   })
 }
 
+// ChatPanel 调 useMessage()，需 NMessageProvider 祖先提供注入上下文
+const PanelHost = defineComponent({
+  setup() {
+    return () => h(NMessageProvider, null, { default: () => h(ChatPanel) })
+  },
+})
+
 function mountPanel() {
-  return mount(ChatPanel)
+  return mount(PanelHost, { attachTo: document.body })
 }
 
 async function submitText(wrapper: ReturnType<typeof mountPanel>, text: string) {
@@ -49,6 +63,8 @@ async function submitText(wrapper: ReturnType<typeof mountPanel>, text: string) 
 describe('ChatPanel.vue AI 对话面板', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(fetchHistory).mockResolvedValue([])
+    vi.mocked(deleteHistoryMessage).mockResolvedValue(undefined)
   })
 
   it('空态展示示例按钮，点击示例直接发起对话', async () => {
@@ -57,9 +73,9 @@ describe('ChatPanel.vue AI 对话面板', () => {
       h.onDone()
     })
     const wrapper = mountPanel()
+    await flushPromises()
     const exampleBtns = wrapper.findAll('button').filter((b) => b.text().length > 4)
     expect(exampleBtns.length).toBeGreaterThanOrEqual(2)
-    // 点击两个示例按钮（创建 / 删除），覆盖两个 @click 内联 handler
     for (const btn of exampleBtns.slice(0, 2)) {
       await btn.trigger('click')
       await flushPromises()
@@ -78,12 +94,12 @@ describe('ChatPanel.vue AI 对话面板', () => {
 
     await submitText(wrapper, '查一下用户列表')
 
+    // streamChat 现在 4 参（message, handlers, signal, confirm）——无 history
     expect(streamChat).toHaveBeenCalledWith(
       '查一下用户列表',
       expect.anything(),
       expect.anything(),
       undefined,
-      expect.anything(),
     )
     expect(wrapper.text()).toContain('查一下用户列表')
     expect(wrapper.text()).toContain('已查询')
@@ -125,15 +141,13 @@ describe('ChatPanel.vue AI 对话面板', () => {
     const wrapper = mountPanel()
 
     await submitText(wrapper, '创建用户')
-    const actionBtn = wrapper
-      .findAll('button')
-      .find((b) => b.text().length > 0 && b.html().includes('svg'))
-    // 找到“查看结果”按钮（mt-2 class 的 tiny 按钮）
     const viewBtn = wrapper.findAll('button').find((b) => b.classes().includes('mt-2'))
-    expect(viewBtn ?? actionBtn).toBeTruthy()
-    await (viewBtn ?? actionBtn)!.trigger('click')
+    expect(viewBtn).toBeTruthy()
+    await viewBtn!.trigger('click')
 
-    expect(wrapper.emitted('action')?.at(-1)).toEqual([action])
+    // ChatPanel 嵌套在 PanelHost 内，事件需从组件实例取
+    const panel = wrapper.findComponent(ChatPanel)
+    expect(panel.emitted('action')?.at(-1)).toEqual([action])
   })
 
   it('二次确认：点执行后回传确认载荷', async () => {
@@ -161,7 +175,6 @@ describe('ChatPanel.vue AI 对话面板', () => {
       expect.anything(),
       expect.anything(),
       { tool: 'delete_user', args: { id: 5 } },
-      expect.anything(),
     )
   })
 
@@ -180,5 +193,50 @@ describe('ChatPanel.vue AI 对话面板', () => {
     await flushPromises()
 
     expect(streamChat).not.toHaveBeenCalled()
+  })
+
+  it('挂载后加载服务端历史并渲染气泡（空态不渲染）', async () => {
+    vi.mocked(fetchHistory).mockResolvedValue([
+      { id: 10, role: 'user', text: '历史问题' },
+      { id: 11, role: 'assistant', text: '历史答复' },
+    ])
+    const wrapper = mountPanel()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('历史问题')
+    expect(wrapper.text()).toContain('历史答复')
+  })
+
+  it('带 id 消息渲染删除入口（NPopconfirm），无 id 消息不渲染', async () => {
+    vi.mocked(fetchHistory).mockResolvedValue([{ id: 10, role: 'user', text: '历史消息' }])
+    mockStreamScript((h) => h.onDone())
+    const wrapper = mountPanel()
+    await flushPromises()
+
+    // 历史消息（带 id）应有 1 个 NPopconfirm（删除入口）
+    const popconfirmsBefore = wrapper.findAllComponents(NPopconfirm)
+    expect(popconfirmsBefore.length).toBe(1)
+
+    // 发一条新消息（无 id）→ 不应有新增删除入口
+    await submitText(wrapper, '新消息')
+    const popconfirmsAfter = wrapper.findAllComponents(NPopconfirm)
+    expect(popconfirmsAfter.length).toBe(1)
+  })
+
+  it('确认删除后气泡消失并调用 API', async () => {
+    vi.mocked(fetchHistory).mockResolvedValue([{ id: 10, role: 'user', text: '待删消息' }])
+    const wrapper = mountPanel()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('待删消息')
+
+    // 直接触发 NPopconfirm 的 positive-click 事件（模拟用户点确认）
+    const popconfirm = wrapper.findComponent(NPopconfirm)
+    expect(popconfirm.exists()).toBe(true)
+    popconfirm.vm.$emit('positive-click')
+    await flushPromises()
+
+    expect(deleteHistoryMessage).toHaveBeenCalledWith(10)
+    expect(wrapper.text()).not.toContain('待删消息')
   })
 })

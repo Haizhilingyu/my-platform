@@ -1,6 +1,7 @@
 package com.example.aiagent.agent.brain;
 
 import com.example.aiagent.agent.tool.AgentTool;
+import com.example.aiagent.chat.dto.HistoryMessage;
 import com.example.aiagent.config.DeepSeekChatModelFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
@@ -39,16 +40,27 @@ public class DeepSeekAgentBrain implements AgentBrain {
   }
 
   @Override
-  public BrainDecision decide(String userMessage, List<AgentTool> tools) {
+  public BrainDecision decide(
+      String userMessage, List<AgentTool> tools, List<HistoryMessage> relevantHistory) {
     OpenAiChatOptions opts =
         OpenAiChatOptions.builder()
             .toolCallbacks(buildCallbacks(tools))
             .internalToolExecutionEnabled(false)
             .build();
-    Prompt prompt =
-        new Prompt(
-            List.of(systemMessage(), new UserMessage(userMessage == null ? "" : userMessage)),
-            opts);
+    List<Message> messages = new ArrayList<>();
+    messages.add(systemMessage());
+    // 注入相关历史对话（时间正序）：让模型做多轮意图理解。
+    if (relevantHistory != null) {
+      for (HistoryMessage h : relevantHistory) {
+        if (h == null || h.text() == null || h.text().isBlank()) {
+          continue;
+        }
+        String text = h.text().length() > 200 ? h.text().substring(0, 200) : h.text();
+        messages.add("user".equals(h.role()) ? new UserMessage(text) : new AssistantMessage(text));
+      }
+    }
+    messages.add(new UserMessage(userMessage == null ? "" : userMessage));
+    Prompt prompt = new Prompt(messages, opts);
     ChatResponse resp = chatModelFactory.model().call(prompt);
     AssistantMessage am = resp.getResult().getOutput();
     if (am.hasToolCalls()) {

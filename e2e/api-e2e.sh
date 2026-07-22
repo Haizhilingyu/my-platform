@@ -161,6 +161,55 @@ assert_case "无效 token 访问受保护接口应返回 403" \
   $([ "$code" = "403" ] && echo 0 || echo 1)
 
 # ------------------------------------------------------------------
+# 用例 9：AI 对话历史持久化 + 单条删除
+# 验证 /api/ai/chat 落库、GET /api/ai/chat/history 加载、DELETE 单条删除 + 404。
+# 走默认 mock provider，无 DeepSeek 依赖。
+# ------------------------------------------------------------------
+echo ""
+echo -e "${BOLD}--- AI 对话历史 ---${RESET}"
+
+# 0. 防御性清理：逐条删除既有历史（无全量删除 API）
+for mid in $(curl -s -H "Authorization: Bearer ${TOKEN}" "${BASE}/api/ai/chat/history" | jq -r '.data[].id // empty' 2>/dev/null); do
+  curl -s -X DELETE -H "Authorization: Bearer ${TOKEN}" "${BASE}/api/ai/chat/history/${mid}" >/dev/null
+done
+hist_count=$(curl -s -H "Authorization: Bearer ${TOKEN}" "${BASE}/api/ai/chat/history" | jq -r '.data | length')
+assert_case "清理后历史应为空" $([ "$hist_count" = "0" ] && echo 0 || echo 1)
+
+# 1. 发一条对话消息（mock 命中 listUsers 工具）
+chat_sse=$(curl -s -N -X POST "${BASE}/api/ai/chat" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"查询用户列表"}' 2>/dev/null)
+assert_case "AI 对话应返回 done 事件" $(echo "$chat_sse" | grep -q 'event:done' && echo 0 || echo 1)
+
+# 2. 验证历史落库（user + assistant 各一条）
+hist_json=$(curl -s -H "Authorization: Bearer ${TOKEN}" "${BASE}/api/ai/chat/history")
+hist_len=$(echo "$hist_json" | jq -r '.data | length')
+hist_first_role=$(echo "$hist_json" | jq -r '.data[0].role // empty')
+hist_first_text=$(echo "$hist_json" | jq -r '.data[0].text // empty')
+assert_case "对话后历史应有 2 条（user+assistant）" $([ "$hist_len" = "2" ] && echo 0 || echo 1)
+assert_case "历史第一条 role 应为 user" $([ "$hist_first_role" = "user" ] && echo 0 || echo 1)
+assert_case "历史第一条 text 应为查询用户列表" $([ "$hist_first_text" = "查询用户列表" ] && echo 0 || echo 1)
+
+# 3. 单条删除 user 消息
+uid=$(echo "$hist_json" | jq -r '.data[0].id')
+del_code=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE \
+  -H "Authorization: Bearer ${TOKEN}" "${BASE}/api/ai/chat/history/${uid}")
+# 取剩余条数
+remain_len=$(curl -s -H "Authorization: Bearer ${TOKEN}" "${BASE}/api/ai/chat/history" | jq -r '.data | length')
+assert_case "删除 user 消息后剩余应为 1 条" $([ "$remain_len" = "1" ] && echo 0 || echo 1)
+
+# 4. 负例：删除不存在的 id 返回 404
+notfound_code=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE \
+  -H "Authorization: Bearer ${TOKEN}" "${BASE}/api/ai/chat/history/99999999")
+assert_case "删除不存在的消息应返回 404" $([ "$notfound_code" = "404" ] && echo 0 || echo 1)
+
+# 5. 收尾清理（幂等）
+for mid in $(curl -s -H "Authorization: Bearer ${TOKEN}" "${BASE}/api/ai/chat/history" | jq -r '.data[].id // empty' 2>/dev/null); do
+  curl -s -X DELETE -H "Authorization: Bearer ${TOKEN}" "${BASE}/api/ai/chat/history/${mid}" >/dev/null
+done
+
+# ------------------------------------------------------------------
 # 汇总
 # ------------------------------------------------------------------
 echo ""

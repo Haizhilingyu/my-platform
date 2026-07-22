@@ -37,7 +37,6 @@ import {
   DocumentTextOutline,
   AppsOutline,
   SparklesOutline,
-  TrashOutline,
   CloseOutline,
 } from '@vicons/ionicons5'
 import { useThemeStore } from '@/stores/theme'
@@ -52,7 +51,7 @@ import { formatDateTime } from '@/shared/utils/datetime'
 import { notifyApi, type NotifyInboxVO, type NotifyLevel } from '@/shared/api/notify'
 import type { MenuTreeNode } from '@/modules/sys/api/types'
 import { useI18n } from 'vue-i18n'
-import { useMessage, useDialog } from 'naive-ui'
+import { useMessage } from 'naive-ui'
 import { type DropdownOption } from 'naive-ui'
 
 const themeStore = useThemeStore()
@@ -64,7 +63,6 @@ const route = useRoute()
 const collapsed = ref(false)
 const drawerVisible = ref(false)
 const aiBubbleVisible = ref(false)
-const aiChatKey = ref(0)
 
 const { t } = useI18n()
 const message = useMessage()
@@ -204,20 +202,6 @@ function handleAiAction(a: AiActionEvent): void {
     location.query = { highlight: String(a.highlightId) }
   }
   router.push(location)
-}
-
-const dialog = useDialog()
-
-function handleClearHistory(): void {
-  dialog.warning({
-    title: t('ai.clearHistory'),
-    content: t('ai.clearHistoryConfirm'),
-    positiveText: t('common.confirm'),
-    negativeText: t('common.cancel'),
-    onPositiveClick: () => {
-      aiChatKey.value++
-    },
-  })
 }
 </script>
 
@@ -443,17 +427,6 @@ function handleClearHistory(): void {
                 quaternary
                 circle
                 size="tiny"
-                :title="t('ai.clearHistory')"
-                @click="handleClearHistory"
-              >
-                <template #icon>
-                  <NIcon size="14"><TrashOutline /></NIcon>
-                </template>
-              </NButton>
-              <NButton
-                quaternary
-                circle
-                size="tiny"
                 :title="t('ai.closeChat')"
                 @click="aiBubbleVisible = false"
               >
@@ -465,7 +438,7 @@ function handleClearHistory(): void {
           </div>
           <!-- 聊天内容 -->
           <div class="flex-1 min-h-0">
-            <ChatPanel :key="aiChatKey" @action="handleAiAction" />
+            <ChatPanel @action="handleAiAction" />
           </div>
         </div>
       </Transition>
