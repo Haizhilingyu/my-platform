@@ -52,8 +52,8 @@ cat > docker/maven-settings.xml << 'MSETTINGS'
 MSETTINGS
 
 # 构建镜像
-echo "   Building Docker image..."
-docker build -t $IMAGE_NAME -f docker/Dockerfile .
+echo "   Building Docker image (no-cache)..."
+docker build --no-cache -t $IMAGE_NAME -f docker/Dockerfile .
 
 # Flyway 从多版本合并为单一 V1，需重建数据库（开发阶段不持久化数据）
 echo "   Rebuilding database (Flyway V1 consolidation)..."
