@@ -406,7 +406,7 @@ function handleAiAction(a: AiActionEvent): void {
             right: isMobile ? '8px' : '24px',
             bottom: isMobile ? '8px' : '24px',
             width: isMobile ? 'calc(100vw - 16px)' : '380px',
-            height: isMobile ? 'calc(100vh - 16px)' : 'min(560px, 70vh)',
+            height: isMobile ? '50vh' : 'min(560px, 70vh)',
             borderRadius: isMobile ? '12px' : '16px',
             border: '1px solid rgb(var(--color-border))',
             overflow: 'hidden',
