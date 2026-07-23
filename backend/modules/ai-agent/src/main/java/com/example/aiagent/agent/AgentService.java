@@ -3,16 +3,15 @@ package com.example.aiagent.agent;
 import com.example.aiagent.agent.brain.AgentBrain;
 import com.example.aiagent.agent.brain.BrainDecision;
 import com.example.aiagent.agent.event.AgentEvent;
-import com.example.aiagent.agent.tool.AgentTool;
 import com.example.aiagent.agent.tool.ToolRegistry;
-import com.example.aiagent.agent.tool.ToolResult;
 import com.example.aiagent.chat.dto.ChatRequest;
 import com.example.aiagent.chat.dto.HistoryMessage;
+import com.example.common.ai.AgentTool;
+import com.example.common.ai.ToolResult;
 import com.example.common.exception.ForbiddenException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,9 +27,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AgentService {
 
-  /** 破坏性/覆盖性工具：执行前需用户二次确认。 */
-  private static final Set<String> DESTRUCTIVE =
-      Set.of("deleteUser", "assignRoles", "assignRoleMenus");
+  // 破坏性标志由 AgentTool.destructive() 自描述（各 provider 声明），无需硬编码 Set。
 
   private final ToolRegistry toolRegistry;
   private final AgentBrain brain;
@@ -60,7 +57,7 @@ public class AgentService {
       AgentTool tool = resolveTool(tools, decision.toolName());
       events.add(AgentEvent.tool(tool.name(), decision.toolArgs()));
       // 破坏性工具：先请求二次确认，暂不执行。
-      if (DESTRUCTIVE.contains(tool.name())) {
+      if (tool.destructive()) {
         events.add(
             AgentEvent.confirm(
                 tool.name(),
@@ -109,16 +106,9 @@ public class AgentService {
         .orElseThrow(() -> ForbiddenException.i18n("error.permission.denied", name));
   }
 
-  /** 破坏性工具的确认提示文案。 */
+  /** 破坏性工具的确认提示文案（通用格式，不再 per-tool switch）。 */
   private String confirmMessage(String tool, Map<String, Object> args) {
-    return switch (tool) {
-      case "deleteUser" -> "确认删除用户 #" + args.get("id") + "？此操作不可撤销。";
-      case "assignRoles" ->
-          "确认将角色 " + args.get("roleIds") + " 覆盖分配给用户 #" + args.get("userId") + "？（会替换其原有角色）";
-      case "assignRoleMenus" ->
-          "确认将菜单 " + args.get("menuIds") + " 覆盖分配给角色 #" + args.get("roleId") + "？（会替换其原有菜单）";
-      default -> "确认执行操作 " + tool + "？";
-    };
+    return "确认执行工具「" + tool + "」？参数：" + args + "。此操作不可撤销。";
   }
 
   private static String messageOf(Exception ex) {

@@ -5,11 +5,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.example.aiagent.agent.brain.AgentBrain;
 import com.example.aiagent.agent.brain.BrainDecision;
 import com.example.aiagent.agent.event.AgentEvent;
-import com.example.aiagent.agent.tool.AgentTool;
 import com.example.aiagent.agent.tool.ToolRegistry;
-import com.example.aiagent.agent.tool.ToolResult;
 import com.example.aiagent.chat.dto.ChatRequest;
 import com.example.aiagent.chat.dto.HistoryMessage;
+import com.example.common.ai.AgentTool;
+import com.example.common.ai.AiToolProvider;
+import com.example.common.ai.ToolResult;
 import com.example.common.security.CurrentUser;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,11 @@ class AgentServiceTest {
     };
   }
 
+  /** 单工具 provider 工厂（便于测试构造）。 */
+  private static AiToolProvider provider(AgentTool... tools) {
+    return () -> List.of(tools);
+  }
+
   @Test
   void destructiveToolEmitsConfirmAndDoesNotExecute() {
     asAdmin();
@@ -55,13 +61,16 @@ class AgentServiceTest {
             "deleteUser",
             "d",
             "sys:user:delete",
+            Object.class,
+            new String[] {"删除用户"},
+            true,
             args -> {
               executed.set(true);
               return new ToolResult(true, "已删除", 5L, "/sys/user");
             });
     var service =
         new AgentService(
-            new ToolRegistry(List.of(deleteUser)),
+            new ToolRegistry(List.of(provider(deleteUser))),
             deciding(BrainDecision.tool("deleteUser", Map.of("id", 5))));
 
     List<AgentEvent> events = service.handle("删除用户 5", List.of(), null);
@@ -74,7 +83,7 @@ class AgentServiceTest {
     AgentEvent.ConfirmInfo info = (AgentEvent.ConfirmInfo) confirm.data();
     assertThat(info.tool()).isEqualTo("deleteUser");
     assertThat(info.args()).isEqualTo(Map.of("id", 5));
-    assertThat(info.message()).contains("删除");
+    assertThat(info.message()).contains("确认");
   }
 
   @Test
@@ -85,10 +94,13 @@ class AgentServiceTest {
             "createUser",
             "d",
             "sys:user:add",
+            Object.class,
+            new String[] {"创建用户"},
+            false,
             args -> new ToolResult(true, "已创建", 1L, "/sys/user"));
     var service =
         new AgentService(
-            new ToolRegistry(List.of(createUser)),
+            new ToolRegistry(List.of(provider(createUser))),
             deciding(BrainDecision.tool("createUser", Map.of("username", "alice"))));
 
     List<AgentEvent> events = service.handle("创建用户 alice", List.of(), null);
@@ -106,6 +118,9 @@ class AgentServiceTest {
             "deleteUser",
             "d",
             "sys:user:delete",
+            Object.class,
+            new String[] {"删除用户"},
+            true,
             args -> {
               executed.set(true);
               return new ToolResult(true, "已删除", 5L, "/sys/user");
@@ -113,7 +128,8 @@ class AgentServiceTest {
     // 大脑会 reply（不应被调用，因为 confirm 直接执行）
     var service =
         new AgentService(
-            new ToolRegistry(List.of(deleteUser)), deciding(BrainDecision.reply("unused")));
+            new ToolRegistry(List.of(provider(deleteUser))),
+            deciding(BrainDecision.reply("unused")));
 
     List<AgentEvent> events =
         service.handle(null, List.of(), new ChatRequest.ConfirmTool("deleteUser", Map.of("id", 5)));

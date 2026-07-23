@@ -1,7 +1,7 @@
 package com.example.aiagent.agent.brain;
 
-import com.example.aiagent.agent.tool.AgentTool;
 import com.example.aiagent.chat.dto.HistoryMessage;
+import com.example.common.ai.AgentTool;
 import java.util.List;
 
 /**
