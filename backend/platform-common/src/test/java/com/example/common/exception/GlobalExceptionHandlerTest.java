@@ -13,6 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -69,7 +70,8 @@ class GlobalExceptionHandlerTest {
     LocaleContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
 
     ResponseEntity<Result<Void>> resp =
-        handler.handleHttpMessageNotReadable(new HttpMessageNotReadableException("bad"));
+        handler.handleHttpMessageNotReadable(
+            new HttpMessageNotReadableException("bad", mock(HttpInputMessage.class)));
 
     assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     assertThat(resp.getBody().code()).isEqualTo(400);

@@ -15,7 +15,7 @@ RUN npm run build
 # 产物：/build/dist/
 
 # ===== Stage 2: 后端构建（Maven，内嵌前端 dist 到 classpath:/static/） =====
-FROM maven:3.9-eclipse-temurin-21 AS backend-builder
+FROM maven:3.9-eclipse-temurin-25 AS backend-builder
 
 # 阿里云 Maven 镜像加速
 COPY docker/maven-settings.xml /root/.m2/settings.xml
@@ -45,7 +45,7 @@ RUN mvn clean package -DskipTests -B \
     -Djacoco.skip=true
 
 # ===== Stage 3: 运行时（精简 JRE） =====
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 
 WORKDIR /app
 

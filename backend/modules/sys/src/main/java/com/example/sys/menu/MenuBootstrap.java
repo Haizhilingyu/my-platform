@@ -110,12 +110,14 @@ public class MenuBootstrap implements ApplicationRunner {
     }
 
     // 显式分配 id = MAX(id)+1，避免 IDENTITY 序列与 Flyway 显式 id 种子冲突。
-    return jdbcTemplate.queryForObject(
+    // 先算 id 再 INSERT（不用 PG 专有的 RETURNING id，H2 不支持 INSERT...RETURNING）。
+    Long nextId =
+        jdbcTemplate.queryForObject("SELECT COALESCE(MAX(id), 0) + 1 FROM sys_menu", Long.class);
+    jdbcTemplate.update(
         "INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, component, permission, "
-            + "icon, sort, visible, status) "
-            + "SELECT (SELECT COALESCE(MAX(id), 0) + 1 FROM sys_menu), ?, ?, ?, ?, ?, ?, ?, ?, ?, 1 "
-            + "RETURNING id",
-        Long.class,
+            + "icon, sort, visible, status, created_at, updated_at) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        nextId,
         parentId,
         def.menuName(),
         def.menuType(),
@@ -125,6 +127,7 @@ public class MenuBootstrap implements ApplicationRunner {
         def.icon(),
         def.sort(),
         def.visible() ? 1 : 0);
+    return nextId;
   }
 
   /** 幂等键查询：PAGE/BUTTON 按 permission；DIRECTORY 按 path + menuType。 */

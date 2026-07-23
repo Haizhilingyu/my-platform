@@ -2,9 +2,11 @@ package com.example.aiagent.config;
 
 import com.example.aiagent.config.AgentProperties.DeepSeek;
 import com.example.sys.SysApi;
+import com.openai.client.OpenAIClient;
+import com.openai.client.OpenAIClientImpl;
+import com.openai.core.ClientOptions;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -58,14 +60,14 @@ public class DeepSeekChatModelFactory {
       return local;
     }
     synchronized (this) {
-      if (key.equals(cacheKey) && current != null) {
-        return current;
-      }
-      OpenAiApi api = OpenAiApi.builder().baseUrl(baseUrl).apiKey(apiKey).build();
+      // Spring AI 2.0：OpenAiApi 已移除，改用官方 OpenAI SDK 的 OpenAIClient（com.openai），
+      // 通过 ClientOptions 配置自定义 baseUrl（指向 DeepSeek）+ apiKey。
+      OpenAIClient client =
+          new OpenAIClientImpl(new ClientOptions.Builder().baseUrl(baseUrl).apiKey(apiKey).build());
       current =
           OpenAiChatModel.builder()
-              .openAiApi(api)
-              .defaultOptions(OpenAiChatOptions.builder().model(model).build())
+              .openAiClient(client)
+              .options(OpenAiChatOptions.builder().model(model).build())
               .build();
       cacheKey = key;
       return current;

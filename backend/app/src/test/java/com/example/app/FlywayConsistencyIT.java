@@ -33,7 +33,7 @@ class FlywayConsistencyIT {
 
   private static final String H2_URL =
       "jdbc:h2:mem:flywayit;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;"
-          + "DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE";
+          + "DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;NON_KEYWORDS=VALUE";
 
   private static final String[] TABLES = {
     "sys_unit", "sys_user", "sys_role", "sys_user_role", "sys_menu", "sys_role_menu", "sys_config"
@@ -93,7 +93,7 @@ class FlywayConsistencyIT {
     map.put("sys_user_role", 1L);
     map.put("sys_menu", 23L);
     map.put("sys_role_menu", 23L);
-    map.put("sys_config", 4L);
+    map.put("sys_config", 7L);
     return map;
   }
 }

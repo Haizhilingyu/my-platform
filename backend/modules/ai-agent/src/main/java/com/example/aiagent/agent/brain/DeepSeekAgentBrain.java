@@ -20,12 +20,12 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * DeepSeek 真实 LLM 大脑（Spring AI）。{@code app.ai.provider=deepseek} 时生效。
+ * DeepSeek 真实 LLM 大脑（Spring AI 2.0）。{@code app.ai.provider=deepseek} 时生效。
  *
  * <p>用 Spring AI 的 OpenAiChatModel（由 {@link DeepSeekChatModelFactory} 按 sys_config 动态构建， base-url
- * 指向 DeepSeek）做模型调用。 工具 schema 经 {@link FunctionToolCallback} 提供；{@code
- * internalToolExecutionEnabled=false} 让模型只「建议」工具调用， 由 AgentService 执行（保留权限双层校验 + @Auditable + 事件流
- * tool/result/action/token）。
+ * 指向 DeepSeek）做模型调用。 工具 schema 经 {@link FunctionToolCallback} 提供；Spring AI 2.0 已移除 {@code
+ * internalToolExecutionEnabled}——直接调用 {@code ChatModel.call(prompt)} 不再自动执行工具， 由 AgentService
+ * 执行（保留权限双层校验 + @Auditable + 事件流 tool/result/action/token）。
  */
 @Component
 @ConditionalOnProperty(prefix = "app.ai", name = "provider", havingValue = "deepseek")
@@ -43,10 +43,7 @@ public class DeepSeekAgentBrain implements AgentBrain {
   public BrainDecision decide(
       String userMessage, List<AgentTool> tools, List<HistoryMessage> relevantHistory) {
     OpenAiChatOptions opts =
-        OpenAiChatOptions.builder()
-            .toolCallbacks(buildCallbacks(tools))
-            .internalToolExecutionEnabled(false)
-            .build();
+        OpenAiChatOptions.builder().toolCallbacks(buildCallbacks(tools)).build();
     List<Message> messages = new ArrayList<>();
     messages.add(systemMessage());
     // 注入相关历史对话（时间正序）：让模型做多轮意图理解。

@@ -63,10 +63,10 @@ solve_captcha() {
   local cap_json cap_id cap_ans
   cap_json=$(curl -s "${BASE}/api/sys/auth/captcha")
   cap_id=$(echo "$cap_json" | jq -r '.data.captchaId // empty')
-  for _ in 1 2 3 4 5; do
+  for _ in 1 2 3 4 5 6 7 8; do
     cap_ans=$(docker exec my-platform-redis redis-cli GET "captcha:${cap_id}" 2>/dev/null | tr -d '"\r\n')
     [ -n "$cap_ans" ] && break
-    sleep 0.2
+    sleep 0.3
   done
   echo "${cap_id}:${cap_ans}"
 }
@@ -138,19 +138,21 @@ else
     curl -s -o /dev/null -X POST "${BASE}/api/sys/user/${LOCK_USER_ID}/roles" \
       -H "$AUTH" -H 'Content-Type: application/json' -d '[2]'
 
-    # 故意错误登录 5 次（默认阈值 3，多打几次确保触发）
+    # 故意错误登录 5 次（默认阈值 3，多打几次确保触发）。
+    # 每次需解一次验证码（验证码单次有效）：解出 captchaId+答案后带错误密码登录。
     LOCKED=0
     for i in 1 2 3 4 5; do
+      BCAP=$(solve_captcha); BCAP_ID="${BCAP%%:*}"; BCAP_ANS="${BCAP##*:}"
       resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/api/sys/auth/login" \
         -H 'Content-Type: application/json' \
-        -d "{\"username\":\"${LOCK_USER}\",\"password\":\"wrong\"}")
+        -d '{"username":"'"${LOCK_USER}"'","password":"wrong","captchaId":"'"$BCAP_ID"'","captchaCode":"'"$BCAP_ANS"'"}')
       code=$(echo "$resp" | tail -1)
       if [ "$code" = "423" ]; then
         LOCKED=1
         break
       fi
     done
-    assert_case "连续错误登录后应返回 423（账号锁定）" $LOCKED
+    assert_case "连续错误登录后应返回 423（账号锁定）" $([ "$LOCKED" = "1" ] && echo 0 || echo 1)
 
     # 管理员解锁
     resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/api/sys/user/${LOCK_USER_ID}/unlock" \
@@ -158,10 +160,11 @@ else
     code=$(echo "$resp" | tail -1)
     assert_case "管理员解锁应返回 200" $([ "$code" = "200" ] && echo 0 || echo 1)
 
-    # 解锁后正确密码应能登录（或至少不再 423）
+    # 解锁后正确密码应能登录（或至少不再 423）；同样需解验证码
+    RCAP=$(solve_captcha); RCAP_ID="${RCAP%%:*}"; RCAP_ANS="${RCAP##*:}"
     resp=$(curl -s -w $'\n%{http_code}' -X POST "${BASE}/api/sys/auth/login" \
       -H 'Content-Type: application/json' \
-      -d "{\"username\":\"${LOCK_USER}\",\"password\":\"${LOCK_PASS}\"}")
+      -d '{"username":"'"${LOCK_USER}"'","password":"'"${LOCK_PASS}"'","captchaId":"'"$RCAP_ID"'","captchaCode":"'"$RCAP_ANS"'"}')
     code=$(echo "$resp" | tail -1)
     assert_case "解锁后登录不应再返回 423" $([ "$code" != "423" ] && echo 0 || echo 1)
 
